@@ -9889,7 +9889,7 @@ export const ANALYSIS_BY_PRODUCT_REVENUE = gql`
 
 export const PRODUCT_BY_NAME = gql`
     query ProductSearch($name: String!) {
-        products(search: $name, channel: "india-channel", first: 100, sortBy: { direction: ASC, field: NAME }) {
+        products(search: $name, channel: "india-channel", first: 500, sortBy: { direction: ASC, field: NAME }) {
             edges {
                 node {
                     id

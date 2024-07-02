@@ -110,7 +110,10 @@ const ProductEdit = (props: any) => {
     const [seoTittleErrMsg, setSeoTittleErrMsg] = useState('');
     const [seoDescErrMsg, setSeoDescErrMsg] = useState('');
     const [descriptionErrMsg, setDescriptionErrMsg] = useState('');
-
+    const [productListUpsell, setProductListUpsell] = useState([]);
+    const [productListCrossell, setProductListCrossell] = useState([]);
+    const [searchUpsells, setSearchUpsells] = useState('');
+    const [searchCrossell, setSearchCrossell] = useState('');
     const [shortDesErrMsg, setShortDesErrMsg] = useState('');
     const [categoryErrMsg, setCategoryErrMsg] = useState('');
     const [attributeError, setAttributeError] = useState('');
@@ -258,8 +261,12 @@ const ProductEdit = (props: any) => {
     }, [productTypelist]);
 
     useEffect(() => {
-        getProductByName();
-    }, [productSearch]);
+        getProductForUpsells();
+    }, [searchUpsells]);
+
+    useEffect(() => {
+        getProductForCrossell();
+    }, [searchCrossell]);
 
     useEffect(() => {
         const getparentCategoryList = parentList?.categories?.edges;
@@ -522,7 +529,6 @@ const ProductEdit = (props: any) => {
 
     // editor end
 
-
     const tags_list = async () => {
         try {
             if (tagsList) {
@@ -734,7 +740,6 @@ const ProductEdit = (props: any) => {
             if (selectedCrosssell?.length > 0) {
                 crosssells = selectedCrosssell?.map((item) => item?.value);
             }
-            console.log("selectedCat: ", selectedCat);
 
             const tagId = selectedTag?.map((item) => item.value) || [];
             const savedContent = await editorInstance.save();
@@ -1145,21 +1150,34 @@ const ProductEdit = (props: any) => {
             // productUpdateRefetch();
         }
     };
-    // -------------------------------------New Added-------------------------------------------------------
 
-    // const handleSave = async () => {
-    //     if (editorInstance) {
-    //         try {
-    //             const savedContent = await editorInstance.save();
-    //             console.log('Editor content:', savedContent);
-    //             setContent(JSON.stringify(savedContent, null, 2));
-    //             setValue(savedContent);
-    //         } catch (error) {
-    //             console.error('Failed to save editor content:', error);
-    //         }
-    //     }
-    // };
-    // console.log('value', value);
+    const getProductForUpsells = async () => {
+        try {
+            const res = await productSearchRefetch({
+                name: searchUpsells,
+            });
+
+            const response = res?.data?.products?.edges;
+            const dropdownData = response?.map((item: any) => ({ value: item?.node?.id, label: item?.node?.name }));
+            setProductListUpsell(dropdownData);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
+    const getProductForCrossell = async () => {
+        try {
+            const res = await productSearchRefetch({
+                name: searchCrossell,
+            });
+            const response = res?.data?.products?.edges;
+            const dropdownData = response?.map((item: any) => ({ value: item?.node?.id, label: item?.node?.name }));
+            setProductListCrossell(dropdownData);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
     return (
         <div>
             <div className="  mt-6">
@@ -1667,10 +1685,11 @@ const ProductEdit = (props: any) => {
                                                         <Select
                                                             placeholder="Select an option"
                                                             value={selectedUpsell}
-                                                            options={productList}
+                                                            options={productListUpsell}
                                                             onChange={(e: any) => setSelectedUpsell(e)}
                                                             isMulti
                                                             isSearchable={true}
+                                                            onInputChange={(inputValue) => setSearchUpsells(inputValue)}
                                                         />
                                                     </div>
                                                 </div>
@@ -1685,10 +1704,11 @@ const ProductEdit = (props: any) => {
                                                         <Select
                                                             placeholder="Select an option"
                                                             value={selectedCrosssell}
-                                                            options={productList}
+                                                            options={productListCrossell}
                                                             onChange={(e: any) => setSelectedCrosssell(e)}
                                                             isMulti
                                                             isSearchable={true}
+                                                            onInputChange={(inputValue) => setSearchCrossell(inputValue)}
                                                         />
                                                     </div>
                                                 </div>

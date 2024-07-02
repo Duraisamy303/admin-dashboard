@@ -158,8 +158,8 @@ const ProductAdd = () => {
     // const [addCategory, setAddCategory] = useState(false);
     const [quantityTrack, setQuantityTrack] = useState(true);
     const [parentLists, setParentLists] = useState([]);
-    console.log('parentLists: ', parentLists);
-
+    const [searchUpsells, setSearchUpsells] = useState('');
+    const [searchCrossell, setSearchCrossell] = useState('');
     const [active, setActive] = useState<string>('1');
     // track stock
     const trackStock = (value: any) => {
@@ -283,8 +283,12 @@ const ProductAdd = () => {
     }, [parentList]);
 
     useEffect(() => {
-        getProductByName();
-    }, [productSearch]);
+        getProductForUpsells();
+    }, [searchUpsells]);
+
+    useEffect(() => {
+        getProductForCrossell();
+    }, [searchCrossell]);
 
     const { data: tagsList, refetch: tagListRefetch } = useQuery(PRODUCT_LIST_TAGS, {
         variables: { channel: 'india-channel' },
@@ -319,8 +323,8 @@ const ProductAdd = () => {
     const [isOpenCat, setIsOpenCat] = useState(false);
     const [isOpenTag, setIsOpenTag] = useState(false);
     const [tagLoader, setTagLoader] = useState(false);
-    const [productList, setProductList] = useState([]);
-
+    const [productListUpsell, setProductListUpsell] = useState([]);
+    const [productListCrossell, setProductListCrossell] = useState([]);
     const [selectedUpsell, setSelectedUpsell] = useState([]);
     const [selectedCrosssell, setSelectedCrosssell] = useState([]);
 
@@ -962,15 +966,28 @@ const ProductAdd = () => {
         }));
     };
 
-    const getProductByName = async () => {
+    const getProductForUpsells = async () => {
         try {
             const res = await productSearchRefetch({
-                name: '',
+                name: searchUpsells,
             });
 
             const response = res?.data?.products?.edges;
             const dropdownData = response?.map((item: any) => ({ value: item?.node?.id, label: item?.node?.name }));
-            setProductList(dropdownData);
+            setProductListUpsell(dropdownData);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
+    const getProductForCrossell = async () => {
+        try {
+            const res = await productSearchRefetch({
+                name: searchCrossell,
+            });
+            const response = res?.data?.products?.edges;
+            const dropdownData = response?.map((item: any) => ({ value: item?.node?.id, label: item?.node?.name }));
+            setProductListCrossell(dropdownData);
         } catch (error) {
             console.log('error: ', error);
         }
@@ -1437,10 +1454,12 @@ const ProductAdd = () => {
                                                         <Select
                                                             placeholder="Select an option"
                                                             value={selectedUpsell}
-                                                            options={productList}
+                                                            options={productListUpsell}
                                                             onChange={(e: any) => setSelectedUpsell(e)}
                                                             isMulti
                                                             isSearchable={true}
+                                                            onInputChange={(inputValue) => setSearchUpsells(inputValue)}
+
                                                         />
                                                     </div>
                                                 </div>
@@ -1455,10 +1474,11 @@ const ProductAdd = () => {
                                                         <Select
                                                             placeholder="Select an option"
                                                             value={selectedCrosssell}
-                                                            options={productList}
+                                                            options={productListCrossell}
                                                             onChange={(e: any) => setSelectedCrosssell(e)}
                                                             isMulti
                                                             isSearchable={true}
+                                                            onInputChange={(inputValue) => setSearchCrossell(inputValue)}
                                                         />
                                                     </div>
                                                 </div>

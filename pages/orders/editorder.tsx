@@ -165,6 +165,7 @@ const Editorder = () => {
     });
 
     const [orderData, setOrderData] = useState<any>({});
+    console.log("orderData: ", orderData);
     const [discountOpen, setDiscountOpen] = useState(false);
     const [openInvoice, setOpenInvoice] = useState(false);
     const [updateInvoideLoading, setUpdateInvoideLoading] = useState(false);
@@ -258,6 +259,7 @@ const Editorder = () => {
         setLoading(true);
         if (orderDetails) {
             if (orderDetails && orderDetails?.order) {
+                console.log('orderDetails: ', orderDetails);
                 //Invoice
 
                 if (orderDetails?.order?.invoices?.length > 0) {
@@ -1694,15 +1696,15 @@ const Editorder = () => {
                                                     {formData?.billing?.state !== '' && formData?.shipping?.state == 'Tamil Nadu' ? (
                                                         <>
                                                             <td>
-                                                                <div>{`${formatCurrency(orderData?.subtotal?.gross?.currency)}${addCommasToNumber(orderData?.subtotal?.gross?.amount / 2)}`}</div>
+                                                                <div>{`${formatCurrency(orderData?.subtotal?.gross?.currency)}${addCommasToNumber(orderData?.subtotal?.tax?.amount / 2)}`}</div>
                                                             </td>
                                                             <td>
-                                                                <div>{`${formatCurrency(orderData?.subtotal?.gross?.currency)}${addCommasToNumber(orderData?.subtotal?.gross?.amount / 2)}`}</div>
+                                                                <div>{`${formatCurrency(orderData?.subtotal?.gross?.currency)}${addCommasToNumber(orderData?.subtotal?.tax?.amount / 2)}`}</div>
                                                             </td>
                                                         </>
                                                     ) : (
                                                         <td>
-                                                            <div>{`${formatCurrency(orderData?.subtotal?.gross?.currency)}${addCommasToNumber(orderData?.subtotal?.gross?.amount)}`}</div>
+                                                            <div>{`${formatCurrency(orderData?.subtotal?.gross?.currency)}${addCommasToNumber(orderData?.subtotal?.tax?.amount)}`}</div>
                                                         </td>
                                                     )}
                                                     {/* <td>
@@ -1740,17 +1742,17 @@ const Editorder = () => {
                                                 <div className="mt-4 flex items-center justify-between">
                                                     <div>SGST</div>
                                                     <div>
-                                                        <div>{`${formatCurrency(orderData?.subtotal?.gross?.currency)}${addCommasToNumber(orderData?.subtotal?.gross?.amount / 2)}`}</div>
+                                                        <div>{`${formatCurrency(orderData?.subtotal?.tax?.currency)}${addCommasToNumber(orderData?.subtotal?.tax?.amount / 2)}`}</div>
 
-                                                        {/* {orderData?.subtotal?.gross?.currency} {orderData?.subtotal?.gross?.amount / 2} */}
+                                                        {/* {orderData?.subtotal?.tax?.currency} {orderData?.subtotal?.tax?.amount / 2} */}
                                                     </div>
                                                 </div>
                                                 <div className="mt-4 flex items-center justify-between">
                                                     <div>CSGT</div>
                                                     <div>
-                                                        <div>{`${formatCurrency(orderData?.subtotal?.gross?.currency)}${addCommasToNumber(orderData?.subtotal?.gross?.amount / 2)}`}</div>
+                                                        <div>{`${formatCurrency(orderData?.subtotal?.tax?.currency)}${addCommasToNumber(orderData?.subtotal?.tax?.amount / 2)}`}</div>
 
-                                                        {/* {orderData?.subtotal?.gross?.currency} {orderData?.subtotal?.gross?.amount / 2} */}
+                                                        {/* {orderData?.subtotal?.tax?.currency} {orderData?.subtotal?.tax?.amount / 2} */}
                                                     </div>
                                                 </div>
                                             </>
@@ -1758,7 +1760,7 @@ const Editorder = () => {
                                             <div className="mt-4 flex items-center justify-between">
                                                 <div>IGST</div>
                                                 <div>
-                                                    <div>{`${formatCurrency(orderData?.subtotal?.gross?.currency)}${addCommasToNumber(orderData?.subtotal?.gross?.amount)}`}</div>
+                                                    <div>{`${formatCurrency(orderData?.subtotal?.tax?.currency)}${addCommasToNumber(orderData?.subtotal?.tax?.amount)}`}</div>
 
                                                     {/* {orderData?.subtotal?.gross?.currency} {orderData?.subtotal?.gross?.amount} */}
                                                 </div>
@@ -1769,7 +1771,7 @@ const Editorder = () => {
                                             <div>{orderData?.total?.tax?.amount}</div>
                                         </div> */}
                                     <div className="mt-4 flex  justify-between">
-                                        <div>Shipping Rate</div>
+                                        <div>{orderData?.paymentMethod?.name== 'Cash On delivery' ? 'COD Cost' : 'Shipping Rate'}</div>
                                         <div>
                                             <div className="ml-[94px] items-end">
                                                 {`${formatCurrency(orderData?.shippingPrice?.gross?.currency)}${addCommasToNumber(orderData?.shippingPrice?.gross?.amount)}`}

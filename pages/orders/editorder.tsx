@@ -165,7 +165,6 @@ const Editorder = () => {
     });
 
     const [orderData, setOrderData] = useState<any>({});
-    console.log("orderData: ", orderData);
     const [discountOpen, setDiscountOpen] = useState(false);
     const [openInvoice, setOpenInvoice] = useState(false);
     const [updateInvoideLoading, setUpdateInvoideLoading] = useState(false);
@@ -1771,19 +1770,29 @@ const Editorder = () => {
                                             <div>{orderData?.total?.tax?.amount}</div>
                                         </div> */}
                                     <div className="mt-4 flex  justify-between">
-                                        <div>{orderData?.paymentMethod?.name== 'Cash On delivery' ? 'COD Cost' : 'Shipping Rate'}</div>
+                                        <div>{orderData?.paymentMethod?.name == 'Cash On delivery' ? 'COD Fee' : 'Shipping Rate'}</div>
                                         <div>
-                                            <div className="ml-[94px] items-end">
-                                                {`${formatCurrency(orderData?.shippingPrice?.gross?.currency)}${addCommasToNumber(orderData?.shippingPrice?.gross?.amount)}`}
-                                            </div>
-                                            {isGiftWrap && <div className=" ">(Include Gift wrap &#8377;50)</div>}
+                                            {orderData?.paymentMethod?.name == 'Cash On delivery' ? (
+                                                <div className="ml-[94px] items-end">{`${formatCurrency(orderData?.shippingPrice?.gross?.currency)}350.00`}</div>
+                                            ) : (
+                                                <div className="ml-[94px] items-end">
+                                                    {`${formatCurrency(orderData?.shippingPrice?.gross?.currency)}${
+                                                        isGiftWrap
+                                                            ? `${addCommasToNumber(orderData?.shippingPrice?.gross?.amount) - 50}.00`
+                                                            : addCommasToNumber(orderData?.shippingPrice?.gross?.amount)
+                                                    }`}
+                                                </div>
+                                            )}
                                         </div>
-                                        {/* {orderData?.shippingPrice?.gross?.currency} {orderData?.shippingPrice?.gross?.amount} */}
-                                        {/* <div>{orderData?.shippingPrice?.gross?.amount}</div> */}
-                                        {/* <div className="cursor-pointer" onClick={() => setShippingOpen(true)}>
-                                                <IconPencil />
-                                            </div> */}
                                     </div>
+                                    {isGiftWrap && (
+                                        <div className="mt-4 flex  justify-between">
+                                            <div>Gift Wrap</div>
+                                            <div>
+                                                <div className="ml-[94px] items-end">{`₹50.00`}</div>
+                                            </div>
+                                        </div>
+                                    )}
                                     {orderDetails?.order?.giftCards?.length > 0 && (
                                         <div className="mt-4 flex  justify-between">
                                             <div>Coupon Amount</div>

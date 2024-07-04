@@ -30,6 +30,7 @@
     "@x1mrdonut1x/nouislider-react": "^3.4.3",
     "antd": "^5.18.0",
     "apexcharts": "^3.37.1",
+    "aws-sdk": "^2.1654.0",
     "axios": "^1.7.1",
     "dayjs": "^1.11.11",
     "easymde": "^2.18.0",

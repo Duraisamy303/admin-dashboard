@@ -33,7 +33,7 @@ const tabClassNames = (selected: boolean) =>
     `${selected ? ' text-lg !border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''}
     -mb-[1px] block border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black text-lg `;
 
-const  Reports=()=> {
+const Reports = () => {
     const order = ['Sales by date', 'Sales by product', 'Sales by category', 'Coupons by date'];
     const analysis = ['Order Analysis', 'Revenue Analysis', 'Customer Analysis', 'Product by Country', 'Product Revenue'];
     const customer = ['Guests list', 'Customer list'];
@@ -297,49 +297,40 @@ const  Reports=()=> {
             const response = res?.data?.salesByDate;
 
             const salesByDate = [
-                // {
-                //     name: 'gross sales in this period',
-                //     value: '0.00',
-                // },
-                // {
-                //     name: 'average gross monthly sales',
-                //     value: '0.00',
-                // },
-                // {
-                //     name: 'net sales in this period',
-                //     value: '0.00',
-                // },
-                // {
-                //     name: 'average net monthly sales',
-                //     value: '0.00',
-                // },
+              
+               
                 {
                     name: 'Orders placed',
                     value: response.noOfOrderListCount,
                 },
-                // {
-                //     name: 'Items purchased',
-                //     value: '0.00',
-                // },
+              
                 {
                     name: 'Total items sold',
                     value: response.totalItemsSoldListCount,
                 },
                 {
                     name: 'Product total amount',
-                    value: `${formatCurrency('INR')} ${response.productsTotalAmountTotal}`,
+                    value: `${formatCurrency('INR')}${response.productsTotalAmountTotal}`,
                 },
                 {
                     name: `Refunded 0 orders (0 items)`,
-                    value: `${formatCurrency('INR')} ${response.refundAmountListTotal}`,
+                    value: `${formatCurrency('INR')}${response.refundAmountListTotal}`,
                 },
                 {
                     name: 'Charged for shipping',
-                    value: `${formatCurrency('INR')} ${response.shippingAmountListTotal}`,
+                    value: `${formatCurrency('INR')}${response.shippingAmountListTotal}`,
                 },
                 {
                     name: 'Worth of coupons used',
-                    value: `${formatCurrency('INR')} ${response.couponAmountListTotal}`,
+                    value: `${formatCurrency('INR')}${response.couponAmountListTotal}`,
+                },
+                {
+                    name: 'COD Amount',
+                    value: `${formatCurrency('INR')}${response.codAmountListTotal}`,
+                },
+                {
+                    name: 'Gift Wrap Amount',
+                    value: `${formatCurrency('INR')}${response.giftwrapAmountListTotal}`,
                 },
             ];
             const tableColumn = [
@@ -350,8 +341,10 @@ const  Reports=()=> {
                 { accessor: 'refundAmount', title: 'Refund Amount' },
                 { accessor: 'shippingAmount', title: 'Shipping Amount' },
                 { accessor: 'productsTotalAmount', title: 'Total Amount' },
-
+                { accessor: 'codAmountList', title: 'COD Amount' },
+                { accessor: 'giftwrapAmountList', title: 'Gif Wrap Amount' },
             ];
+            console.log('response: ', response);
 
             const tableData = salesBydateTable(response);
 
@@ -1120,7 +1113,7 @@ const  Reports=()=> {
     };
 
     const salesBydateTable = (data) => {
-        const { dates, totalItemsSoldList, shippingAmountList, refundAmountList, noOfOrderList, couponAmountList, productsTotalAmount } = data;
+        const { giftwrapAmountList, codAmountList, dates, totalItemsSoldList, shippingAmountList, refundAmountList, noOfOrderList, couponAmountList, productsTotalAmount } = data;
 
         const table = dates?.map((date, index) => ({
             date,
@@ -1130,6 +1123,8 @@ const  Reports=()=> {
             noOfOrders: noOfOrderList[index],
             couponAmount: couponAmountList[index],
             productsTotalAmount: productsTotalAmount[index],
+            codAmountList: codAmountList[index],
+            giftwrapAmountList: giftwrapAmountList[index],
         }));
 
         return table;
@@ -1814,6 +1809,6 @@ const  Reports=()=> {
             </Tab.Group>
         </>
     );
-}
+};
 
 export default PrivateRouter(Reports);

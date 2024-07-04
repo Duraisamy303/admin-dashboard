@@ -9794,6 +9794,8 @@ export const SALES_BY_DATE = gql`
         salesByDate(fromDate: $fromdate, inputString: $currency, toDate: $toDate) {
             totalItemsSoldList
             shippingAmountList
+            codAmountList
+            giftwrapAmountList
             refundAmountList
             noOfOrderList
             dates
@@ -9805,6 +9807,8 @@ export const SALES_BY_DATE = gql`
             refundAmountListTotal
             shippingAmountListTotal
             totalItemsSoldListCount
+            codAmountListTotal
+            giftwrapAmountListTotal
         }
     }
 `;

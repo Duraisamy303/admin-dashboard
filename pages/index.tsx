@@ -30,7 +30,7 @@ import IconLoader from '@/components/Icon/IconLoader';
 import { sortBy } from 'lodash';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 
-const  Index=()=> {
+const Index = () => {
     const PAGE_SIZE = 20;
 
     const router = useRouter();
@@ -78,7 +78,7 @@ const  Index=()=> {
 
     useEffect(() => {
         const data = sortBy(recordsData, sortStatus.columnAccessor);
-        setRecordsData(recordsData)
+        setRecordsData(recordsData);
     }, [sortStatus]);
 
     const { loading: getLoading, refetch: fetchLowStockList } = useQuery(UPDATED_PRODUCT_PAGINATION, {
@@ -407,7 +407,7 @@ const  Index=()=> {
                 variables: {
                     input: {
                         attributes: [],
-                        category: row?.category?.id,
+                        category: row?.category?.map((item) => item.id),
                         collections: collectionId,
                         description: row.description,
                         tags: tagId,
@@ -792,5 +792,5 @@ const  Index=()=> {
             </div>
         </div>
     );
-}
+};
 export default PrivateRouter(Index);

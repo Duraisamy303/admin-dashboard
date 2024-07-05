@@ -64,7 +64,7 @@ import {
     UPDATE_VARIANT,
     UPDATE_VARIANT_LIST,
 } from '@/query/product';
-import { Failure, Success, getValueByKey, objIsEmpty, sampleParams, showDeleteAlert, uploadImage } from '@/utils/functions';
+import { Failure, Success, formatOptions, getValueByKey, objIsEmpty, sampleParams, showDeleteAlert, uploadImage } from '@/utils/functions';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import IconLoader from '@/components/Icon/IconLoader';
 const ProductEdit = (props: any) => {
@@ -238,7 +238,7 @@ const ProductEdit = (props: any) => {
         },
     ]);
 
-    const [selectedCat, setselectedCat] = useState<any>('');
+    const [selectedCat, setselectedCat] = useState<any>([]);
 
     useEffect(() => {
         productsDetails();
@@ -271,6 +271,12 @@ const ProductEdit = (props: any) => {
     useEffect(() => {
         const getparentCategoryList = parentList?.categories?.edges;
         setCategoryList(getparentCategoryList);
+    }, [parentList]);
+
+    useEffect(() => {
+        const getparentCategoryList = parentList?.categories?.edges;
+        const options = formatOptions(getparentCategoryList);
+        setCategoryList(options);
     }, [parentList]);
 
     const getProductByName = async () => {
@@ -309,7 +315,7 @@ const ProductEdit = (props: any) => {
                         crossells = data?.getCrosssells?.map((item) => ({ value: item.productId, label: item.name }));
                     }
 
-                    setselectedCat(data?.category?.id);
+                    setselectedCat(data?.category?.map((item) => ({ value: item.id, label: item.name })));
                     setSelectedCrosssell(crossells);
 
                     if (data?.tags?.length > 0) {
@@ -685,6 +691,12 @@ const ProductEdit = (props: any) => {
             validateField(seoTittle, setSeoTittleErrMsg, 'Seo title cannot be empty');
             validateField(seoDesc, setSeoDescErrMsg, 'Seo description cannot be empty');
             validateField(shortDescription, setShortDesErrMsg, 'Short description cannot be empty');
+            if(selectedCat?.length == 0){
+                setCategoryErrMsg("Category cannot be empty"); 
+                hasError = true;
+                setUpdateLoading(false);
+
+            }
             // const savedContent = await editorInstance.save();
             // const descr = JSON.stringify(savedContent, null, 2);
             // if (savedContent?.blocks?.length == 0) {
@@ -749,7 +761,7 @@ const ProductEdit = (props: any) => {
                     id: id,
                     input: {
                         attributes: [],
-                        category: selectedCat,
+                        category: selectedCat?.map((item) => item?.value),
                         collections: selectedCollection.map((item) => item.value),
                         tags: tagId,
                         name: productName,
@@ -2023,7 +2035,9 @@ const ProductEdit = (props: any) => {
                                 <h5 className=" block text-lg font-medium text-gray-700">Product Categories</h5>
                             </div>
                             <div className="mb-5">
-                                <select name="parentCategory" className="form-select" value={selectedCat} onChange={(e) => selectCat(e.target.value)}>
+                                <Select isMulti value={selectedCat} onChange={(e) => selectCat(e)} options={categoryList} placeholder="Select categories..." className="form-select" />
+
+                                {/* <select name="parentCategory" className="form-select" >
                                     <option value="">Open this select</option>
                                     {categoryList?.map((item) => (
                                         <React.Fragment key={item?.node?.id}>
@@ -2035,7 +2049,7 @@ const ProductEdit = (props: any) => {
                                             ))}
                                         </React.Fragment>
                                     ))}
-                                </select>
+                                </select> */}
                                 {/* <Select placeholder="Select an category" options={categoryList} value={selectedCat} onChange={selectCat} isSearchable={true} /> */}
                                 {categoryErrMsg && <p className="error-message mt-1 text-red-500 ">{categoryErrMsg}</p>}
                             </div>

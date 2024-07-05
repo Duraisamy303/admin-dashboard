@@ -4,6 +4,7 @@ import placeholder from '../public/assets/images/placeholder.png';
 import * as FileSaver from 'file-saver';
 import XLSX from 'sheetjs-style';
 import moment from 'moment';
+import AWS from 'aws-sdk';
 
 export const capitalizeFLetter = (string = '') => {
     if (string.length > 0) {
@@ -595,4 +596,15 @@ export const filterByDates = (filter: any, fromDate: any, toDate: any) => {
         (startDate = moment(fromDate).format('YYYY-MM-DD')), (endDate = moment(toDate).format('YYYY-MM-DD'));
     }
     return { startDate, endDate };
+};
+
+export const formatOptions = (lists) => {
+    return lists?.flatMap((item) => {
+        const children =
+            item?.node?.children?.edges?.map((child) => ({
+                value: child?.node?.id,
+                label: `-- ${child?.node?.name}`,
+            })) || [];
+        return [{ value: item?.node?.id, label: item?.node?.name }, ...children];
+    });
 };

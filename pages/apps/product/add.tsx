@@ -59,7 +59,7 @@ import {
     UPDATE_VARIANT_LIST,
     PRODUCT_BY_NAME,
 } from '@/query/product';
-import { Failure, Success, objIsEmpty, sampleParams, showDeleteAlert, uploadImage } from '@/utils/functions';
+import { Failure, Success, formatOptions, objIsEmpty, sampleParams, showDeleteAlert, uploadImage } from '@/utils/functions';
 import IconRestore from '@/components/Icon/IconRestore';
 import { cA } from '@fullcalendar/core/internal-common';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
@@ -279,7 +279,8 @@ const ProductAdd = () => {
 
     useEffect(() => {
         const getparentCategoryList = parentList?.categories?.edges;
-        setParentLists(getparentCategoryList);
+        const options = formatOptions(getparentCategoryList);
+        setParentLists(options);
     }, [parentList]);
 
     useEffect(() => {
@@ -319,7 +320,7 @@ const ProductAdd = () => {
     const [label, setLabel] = useState<any>('');
 
     const [productType, setProductType] = useState([]);
-    const [selectedCat, setselectedCat] = useState<any>('');
+    const [selectedCat, setselectedCat] = useState<any>([]);
     const [isOpenCat, setIsOpenCat] = useState(false);
     const [isOpenTag, setIsOpenTag] = useState(false);
     const [tagLoader, setTagLoader] = useState(false);
@@ -472,10 +473,6 @@ const ProductAdd = () => {
         };
     }, [editorInstance, value]);
 
-    const selectCat = (cat: any) => {
-        setselectedCat(cat);
-    };
-
     const selectedCollections = (data: any) => {
         setSelectedCollection(data);
     };
@@ -510,7 +507,7 @@ const ProductAdd = () => {
                 seoDesc: seoDesc.trim() === '' ? 'Seo description cannot be empty' : '',
                 description: savedContent?.blocks?.length == 0 ? 'Description cannot be empty' : '',
                 shortDescription: shortDescription?.trim() === '' ? 'Short description cannot be empty' : '',
-                category: selectedCat === '' ? 'Category cannot be empty' : '',
+                category: selectedCat?.length == 0 ? 'Category cannot be empty' : '',
             };
 
             setProductNameErrMsg(errors.productName);
@@ -583,7 +580,7 @@ const ProductAdd = () => {
                     input: {
                         description: descr,
                         attributes: [],
-                        category: selectedCat,
+                        category: selectedCat?.map((item) => item?.value),
                         collections: collectionId,
                         tags: tagId,
                         name: productName,
@@ -992,6 +989,13 @@ const ProductAdd = () => {
             console.log('error: ', error);
         }
     };
+
+    // const handleCatChange = (selected) => {
+    //     setSelectedOptions(selected);
+    //     selectCat(selected ? selected.map((option) => option.value) : []);
+    // };
+
+   
 
     return (
         <div>
@@ -1459,7 +1463,6 @@ const ProductAdd = () => {
                                                             isMulti
                                                             isSearchable={true}
                                                             onInputChange={(inputValue) => setSearchUpsells(inputValue)}
-
                                                         />
                                                     </div>
                                                 </div>
@@ -1756,7 +1759,8 @@ const ProductAdd = () => {
                                     );
                                 })}
                             </select> */}
-                                <select name="parentCategory" className="form-select" value={selectedCat} onChange={(e) => selectCat(e.target.value)}>
+                                <Select isMulti value={selectedCat} onChange={(e) => setselectedCat(e)} options={parentLists} placeholder="Select categories..." className="form-select" />
+                                {/* <select name="parentCategory" className="form-select" value={selectedCat} onChange={(e) => selectCat(e.target.value)}>
                                     <option value="">Open this select</option>
                                     {parentLists?.map((item) => (
                                         <React.Fragment key={item?.node?.id}>
@@ -1768,7 +1772,7 @@ const ProductAdd = () => {
                                             ))}
                                         </React.Fragment>
                                     ))}
-                                </select>
+                                </select> */}
 
                                 {/* <Select placeholder="Select an category" options={categoryList} value={selectedCat} onChange={selectCat} isSearchable={true} /> */}
                                 {categoryErrMsg && <p className="error-message mt-1 text-red-500 ">{categoryErrMsg}</p>}

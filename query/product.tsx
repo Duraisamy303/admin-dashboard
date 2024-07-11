@@ -222,7 +222,7 @@ export const UPDATED_PRODUCT_PAGINATION = gql`
             name
             __typename
         }
-        thumbnail(size: 1024, format: WEBP) {
+        thumbnail(size: 1024) {
             url
             alt
             __typename
@@ -233,7 +233,7 @@ export const UPDATED_PRODUCT_PAGINATION = gql`
             quantityAvailable
             __typename
         }
-        images {
+        media {
             url
             __typename
         }
@@ -327,7 +327,7 @@ export const PRODUCT_PREV_PAGINATION = gql`
             quantityAvailable
             __typename
         }
-        images {
+        media {
             url
             __typename
         }
@@ -475,6 +475,22 @@ export const UPDATE_CATEGORY = gql`
                 description
                 slug
             }
+        }
+    }
+`;
+
+export const UPDATE_CATEGORY_NEW = gql`
+    mutation updateCategory($id: ID!, $input: CategoryInput!) {
+        categoryUpdate(id: $id, input: $input) {
+            category {
+                id
+                name
+                backgroundImageUrl
+                description
+                slug
+                __typename
+            }
+            __typename
         }
     }
 `;
@@ -9986,6 +10002,27 @@ export const CREATE_PRODUCT = gql`
         field
         message
         __typename
+    }
+`;
+
+export const PRODUCT_MEDIA_CREATE_NEW = gql`
+    mutation productMediaCreate($productId: ID!, $media_url: String!, $alt: String!) {
+        productMediaCreate(input: { product: $productId, alt: $alt, mediaUrl: $media_url }) {
+            product {
+                id
+                name
+            }
+            media {
+                id
+                url
+                alt
+                oembedData
+            }
+            errors {
+                field
+                message
+            }
+        }
     }
 `;
 

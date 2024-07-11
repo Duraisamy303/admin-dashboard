@@ -1,35 +1,22 @@
 import { DataTable, DataTableSortStatus } from 'mantine-datatable';
-import { useEffect, useState, Fragment } from 'react';
+import React, { useEffect, useState } from 'react';
 import sortBy from 'lodash/sortBy';
 import { useDispatch, useSelector } from 'react-redux';
 import { setPageTitle } from '../../store/themeConfigSlice';
-import IconBell from '@/components/Icon/IconBell';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import IconTrashLines from '@/components/Icon/IconTrashLines';
 import IconPencil from '@/components/Icon/IconPencil';
-import { Button, Loader } from '@mantine/core';
+import { Loader } from '@mantine/core';
 import Dropdown from '../../components/Dropdown';
 import IconCaretDown from '@/components/Icon/IconCaretDown';
 
-import { Dialog, Transition } from '@headlessui/react';
-import IconX from '@/components/Icon/IconX';
-import Image1 from '@/public/assets/images/profile-1.jpeg';
-import Image2 from '@/public/assets/images/profile-2.jpeg';
-import Image3 from '@/public/assets/images/profile-3.jpeg';
-import { Field, Form, Formik } from 'formik';
-import * as Yup from 'yup';
 import Swal from 'sweetalert2';
-import IconEye from '@/components/Icon/IconEye';
 import { useMutation, useQuery } from '@apollo/client';
-import { CATEGORY_LIST, CREATE_CATEGORY, DELETE_CATEGORY, PRODUCT_LIST, UPDATE_CATEGORY } from '@/query/product';
-import ReactQuill from 'react-quill';
-import { PARENT_CATEGORY_LIST } from '@/query/product';
-import IconLoader from '@/components/Icon/IconLoader';
+import { CATEGORY_LIST, DELETE_CATEGORY } from '@/query/product';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
-import IconTrash from '@/components/Icon/IconTrash';
-import { categoryImageUpload } from '@/utils/functions';
 import { useRouter } from 'next/router';
+import CommonLoader from '../elements/commonLoader';
 
 const Category = () => {
     const isRtl = useSelector((state: any) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
@@ -37,62 +24,39 @@ const Category = () => {
     const router = useRouter();
 
     const dispatch = useDispatch();
-    useEffect(() => {
-        dispatch(setPageTitle('Category'));
-    });
-
-    const {
-        error,
-        data: categoryData,
-        refetch: categoryListRefetch,
-    } = useQuery(CATEGORY_LIST, {
-        variables: { channel: 'india-channel', first: 100 },
-    });
-
-    const [categoryList, setCategoryList] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [parentLists, setParentLists] = useState([]);
-    console.log("parentLists: ", parentLists);
-    const [previewUrl, setPreviewUrl] = useState(null);
-
-    const [createCategoryLoader, setCreateCategoryLoader] = useState(false);
-    const [updateCategoryLoader, setUpdateCategoryLoader] = useState(false);
-
-    useEffect(() => {
-        getCategoryList();
-    }, [categoryData]);
-
-    const getCategoryList = () => {
-        setLoading(true);
-        if (categoryData) {
-            if (categoryData.categories && categoryData.categories.edges) {
-                const newData = categoryData?.categories?.edges?.map((item: any) => {
-                    const jsonObject = JSON.parse(item?.node?.description || item?.node?.description);
-                    // Extract the text value
-                    const textValue = jsonObject?.blocks[0]?.data?.text;
-
-                    return {
-                        ...item.node,
-                        parent: item.node.parent?.name || '',
-                        parentId: item.node.parent?.id,
-                        product: item.node.products?.totalCount,
-                        textdescription: textValue || '',
-                        image: item.node?.backgroundImage?.url, // Set textValue or empty string if it doesn't exist
-                    };
-                });
-                setCategoryList(newData);
-                setLoading(false);
-            }
-        } else {
-            setLoading(false);
-        }
-    };
 
     const [page, setPage] = useState(1);
     const PAGE_SIZES = [10, 20, 30, 50, 100];
     const [pageSize, setPageSize] = useState(PAGE_SIZES[0]);
     const [initialRecords, setInitialRecords] = useState([]); // Initialize initialRecords with an empty array
     const [recordsData, setRecordsData] = useState([]);
+    const [selectedRecords, setSelectedRecords] = useState<any>([]);
+    const [search, setSearch] = useState('');
+    const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
+        columnAccessor: 'id',
+        direction: 'asc',
+    });
+    const [categoryList, setCategoryList] = useState([]);
+
+    const [deleteCategory] = useMutation(DELETE_CATEGORY);
+    const [bulkDelete] = useMutation(DELETE_CATEGORY);
+
+    const {
+        error,
+        loading: loading,
+        data: categoryData,
+        refetch: categoryListRefetch,
+    } = useQuery(CATEGORY_LIST, {
+        variables: { channel: 'india-channel', first: 100 },
+    });
+
+    useEffect(() => {
+        dispatch(setPageTitle('Category'));
+    });
+
+    useEffect(() => {
+        getCategoryList();
+    }, [categoryData]);
 
     // Update initialRecords whenever finishList changes
     useEffect(() => {
@@ -100,50 +64,9 @@ const Category = () => {
         setInitialRecords(categoryList);
     }, [categoryList]);
 
-    // Log initialRecords when it changes
-    useEffect(() => {}, [initialRecords]);
-
-    const [selectedRecords, setSelectedRecords] = useState<any>([]);
-
-    const [search, setSearch] = useState('');
-    const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
-        columnAccessor: 'id',
-        direction: 'asc',
-    });
-
-    const [modal1, setModal1] = useState(false);
-    const [modalTitle, setModalTitle] = useState(null);
-    const [modalContant, setModalContant] = useState<any>(null);
-
-    // const [viewModal, setViewModal] = useState(false);
-
-    //    parent category list query
-    const {
-        data: parentList,
-        error: parentListError,
-        refetch,
-    } = useQuery(PARENT_CATEGORY_LIST, {
-        variables: { channel: 'india-channel' },
-    });
-    useEffect(() => {
-        const getparentCategoryList = parentList?.categories?.edges;
-        setParentLists(getparentCategoryList);
-    }, [parentList]);
-
-    //Mutation
-    const [addCategory] = useMutation(CREATE_CATEGORY);
-    const [updateCategory] = useMutation(UPDATE_CATEGORY);
-    const [deleteCatImage] = useMutation(UPDATE_CATEGORY);
-    const [deleteCategory] = useMutation(DELETE_CATEGORY);
-    const [bulkDelete] = useMutation(DELETE_CATEGORY);
-
     useEffect(() => {
         setPage(1);
     }, [pageSize]);
-
-    useEffect(() => {
-        setPreviewUrl(previewUrl);
-    }, [previewUrl]);
 
     useEffect(() => {
         const from = (page - 1) * pageSize;
@@ -167,92 +90,31 @@ const Category = () => {
     }, [search]);
 
     useEffect(() => {
-        const data = sortBy(initialRecords, sortStatus.columnAccessor);
         setInitialRecords(initialRecords);
     }, [sortStatus]);
 
-    // FORM VALIDATION
-    const SubmittedForm = Yup.object().shape({
-        name: Yup.string().required('Please fill the Category Name'),
-        // description: Yup.string().required('Please fill the Description'),
-        // slug: Yup.string().required('Please fill the Slug'),
-        // count: Yup.string().required('Please fill the count'),
-        // image: Yup.string().required('Please fill the Image'),
-        // parentCategory: Yup.string().required('Please fill the Parent Category'),
-    });
+    const getCategoryList = () => {
+        if (categoryData) {
+            if (categoryData.categories && categoryData.categories.edges) {
+                const newData = categoryData?.categories?.edges?.map((item: any) => {
+                    const jsonObject = JSON.parse(item?.node?.description || item?.node?.description);
+                    // Extract the text value
+                    const textValue = jsonObject?.blocks[0]?.data?.text;
 
-    // form submit
-    const onSubmit = async (record: any, { resetForm }: any) => {
-        setCreateCategoryLoader(true);
-        setUpdateCategoryLoader(true);
-        try {
-            setCreateCategoryLoader(true);
-            setUpdateCategoryLoader(true);
-
-            const Description = JSON.stringify({ time: Date.now(), blocks: [{ id: 'some-id', data: { text: record.description }, type: 'paragraph' }], version: '2.24.3' });
-
-            const variables = {
-                input: {
-                    name: record.name,
-                    description: Description,
-                },
-                parent: record.parentCategory,
-            };
-
-            const { data } = await (modalTitle ? updateCategory({ variables: { ...variables, id: modalContant.id } }) : addCategory({ variables }));
-
-            const catId = data?.categoryCreate?.category?.id;
-
-            if (previewUrl) {
-                if (modalTitle == null) {
-                    const imageUpload = await categoryImageUpload(catId, previewUrl);
-                    console.log('imageUpload: ', imageUpload);
-                }
+                    return {
+                        ...item.node,
+                        parent: item.node.parent?.name || '',
+                        parentId: item.node.parent?.id,
+                        product: item.node.products?.totalCount,
+                        textdescription: textValue || '',
+                        image: item.node?.backgroundImage?.url, // Set textValue or empty string if it doesn't exist
+                    };
+                });
+                setCategoryList(newData);
             }
-
-            await categoryListRefetch();
-            const toast = Swal.mixin({
-                toast: true,
-                position: 'top',
-                showConfirmButton: false,
-                timer: 3000,
-            });
-            toast.fire({
-                icon: modalTitle ? 'success' : 'info',
-                title: modalTitle ? 'Data updated successfully' : 'New data added successfully',
-                padding: '10px 20px',
-            });
-
-            setModal1(false);
-            resetForm();
-            setCreateCategoryLoader(false);
-            setUpdateCategoryLoader(false);
-        } catch (error) {
-            console.log('error: ', error);
-            setCreateCategoryLoader(false);
-            setUpdateCategoryLoader(false);
+        } else {
         }
     };
-
-    // category table edit
-    const EditCategory = (record: any) => {
-        setModal1(true);
-        setModalTitle(record);
-        setModalContant(record);
-        setPreviewUrl(record?.backgroundImage?.url);
-    };
-
-    // category table create
-    const CreateCategory = () => {
-        setModal1(true);
-        setModalTitle(null);
-        setModalContant(null);
-    };
-
-    // view categotry
-    // const ViewCategory = (record: any) => {
-    //     setViewModal(true);
-    // };
 
     // delete Alert Message
     const showDeleteAlert = (onConfirm: () => void, onCancel: () => void) => {
@@ -309,9 +171,11 @@ const Category = () => {
     };
 
     const DeleteCategory = (record: any) => {
+        console.log('record: ', record);
         showDeleteAlert(
             async () => {
                 const { data } = await deleteCategory({ variables: { id: record.id } });
+                console.log('data: ', data);
                 const updatedRecordsData = categoryList.filter((dataRecord: any) => dataRecord.id !== record.id);
                 setRecordsData(updatedRecordsData);
                 setCategoryList(updatedRecordsData);
@@ -326,41 +190,6 @@ const Category = () => {
                 Swal.fire('Cancelled', 'Your List is safe :)', 'error');
             }
         );
-    };
-
-    const handleImageChange = async (e) => {
-        const selectedFile: any = e.target.files[0];
-        if (selectedFile) {
-            const imageUrl: any = URL.createObjectURL(selectedFile);
-            if (modalTitle !== null) {
-                console.log('if : ');
-                const res = await categoryImageUpload(modalTitle.id, imageUrl);
-                setModalTitle(res?.data?.categoryUpdate?.category);
-                setPreviewUrl(res?.data?.categoryUpdate?.category?.backgroundImage?.url);
-            } else {
-                setPreviewUrl(imageUrl);
-            }
-        }
-    };
-
-    const removeImage = async () => {
-        try {
-            const res = await deleteCatImage({
-                variables: {
-                    id: modalTitle.id,
-                    input: {
-                        backgroundImage: null,
-                    },
-                },
-            });
-
-            setModalTitle(res?.data?.categoryUpdate?.category);
-
-            setPreviewUrl(null);
-            // await categoryListRefetch();
-        } catch (error) {
-            console.log('error: ', error);
-        }
     };
 
     return (
@@ -393,13 +222,13 @@ const Category = () => {
                                 </ul>
                             </Dropdown>
                         </div>
-                        <button type="button" className="btn btn-primary w-full md:mb-0 md:w-auto" onClick={() => CreateCategory()}>
+                        <button type="button" className="btn btn-primary w-full md:mb-0 md:w-auto" onClick={() => router.push('/product/createCategory')}>
                             + Create
                         </button>
                     </div>
                 </div>
                 {loading ? (
-                    <Loader />
+                    <CommonLoader />
                 ) : (
                     <div className="datatables">
                         <DataTable
@@ -438,7 +267,15 @@ const Category = () => {
                                             </button>
                                         </Tippy> */}
                                             <Tippy content="Edit">
-                                                <button type="button" onClick={() => EditCategory(row)}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        router.push({
+                                                            pathname: '/product/editCategory',
+                                                            query: { id: row.id },
+                                                        })
+                                                    }
+                                                >
                                                     <IconPencil className="ltr:mr-2 rtl:ml-2" />
                                                 </button>
                                             </Tippy>
@@ -470,216 +307,6 @@ const Category = () => {
                     </div>
                 )}
             </div>
-
-            {/* CREATE AND EDIT CATEGORY FORM */}
-            <Transition appear show={modal1} as={Fragment}>
-                <Dialog as="div" open={modal1} onClose={() => setModal1(false)}>
-                    <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-                        <div className="fixed inset-0" />
-                    </Transition.Child>
-                    <div className="fixed inset-0 z-[999] overflow-y-auto bg-[black]/60">
-                        <div className="flex min-h-screen items-start justify-center px-4">
-                            <Transition.Child
-                                as={Fragment}
-                                enter="ease-out duration-300"
-                                enterFrom="opacity-0 scale-95"
-                                enterTo="opacity-100 scale-100"
-                                leave="ease-in duration-200"
-                                leaveFrom="opacity-100 scale-100"
-                                leaveTo="opacity-0 scale-95"
-                            >
-                                <Dialog.Panel as="div" className="panel my-8 w-full max-w-lg overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark">
-                                    <div className="flex items-center justify-between bg-[#fbfbfb] px-5 py-3 dark:bg-[#121c2c]">
-                                        <div className="text-lg font-bold">{modalTitle === null ? 'Create Category' : 'Edit Category'}</div>
-                                        <button type="button" className="text-white-dark hover:text-dark" onClick={() => setModal1(false)}>
-                                            <IconX />
-                                        </button>
-                                    </div>
-                                    <div className="mb-5 p-5">
-                                        <Formik
-                                            initialValues={
-                                                modalContant === null
-                                                    ? { name: '', textdescription: '', parentCategory: '', image: null }
-                                                    : {
-                                                          name: modalContant?.name,
-                                                          description: modalContant?.textdescription,
-                                                          parentCategory: modalContant?.parentId,
-                                                      }
-                                            }
-                                            validationSchema={SubmittedForm}
-                                            onSubmit={(values, { resetForm }) => {
-                                                onSubmit(values, { resetForm }); // Call the onSubmit function with form values and resetForm method
-                                            }}
-                                        >
-                                            {({ errors, submitCount, touched, setFieldValue, values }: any) => (
-                                                <Form className="space-y-5">
-                                                    {/* <div className={submitCount ? (errors.image ? 'has-error' : 'has-success') : ''}>
-                                                        <label htmlFor="image">Image</label>
-                                                        <input
-                                                            id="image"
-                                                            name="image"
-                                                            type="file"
-                                                            onChange={(event: any) => {
-                                                                setFieldValue('image', event.currentTarget.files[0]);
-                                                            }}
-                                                            className="form-input"
-                                                        />
-                                                        {values.image && typeof values.image === 'string' && (
-                                                            <img src={values.image} alt="Product Image" style={{ width: '30px', height: 'auto', paddingTop: '5px' }} />
-                                                        )}
-                                                        {submitCount ? errors.image ? <div className="mt-1 text-danger">{errors.image}</div> : <div className="mt-1 text-success"></div> : ''}
-                                                    </div> */}
-
-                                                    <div className={submitCount ? (errors.name ? 'has-error' : 'has-success') : ''}>
-                                                        <label htmlFor="fullName">Name </label>
-                                                        <Field name="name" type="text" id="fullName" placeholder="Enter Name" className="form-input" />
-
-                                                        {submitCount ? errors.name ? <div className="mt-1 text-danger">{errors.name}</div> : <div className="mt-1 text-success"></div> : ''}
-                                                    </div>
-                                                    {/* <div className="mb-5">
-                                                        <label htmlFor="description">Description</label>
-
-                                                        <textarea
-                                                            id="description"
-                                                            rows={3}
-                                                            placeholder="Enter description"
-                                                            name="description"
-                                                            className="form-textarea min-h-[130px] resize-none"
-                                                        ></textarea>
-                                                    </div> */}
-
-                                                    <div className={submitCount ? (errors.description ? 'has-error' : 'has-success') : ''}>
-                                                        <label htmlFor="description">Description </label>
-                                                        <Field name="description" as="textarea" id="description" placeholder="Enter Description" className="form-input" />
-
-                                                        {submitCount ? (
-                                                            errors.description ? (
-                                                                <div className="mt-1 text-danger">{errors.description}</div>
-                                                            ) : (
-                                                                <div className="mt-1 text-success"></div>
-                                                            )
-                                                        ) : (
-                                                            ''
-                                                        )}
-                                                    </div>
-
-                                                    {/* <div className={submitCount ? (errors.slug ? 'has-error' : 'has-success') : ''}>
-                                                        <label htmlFor="slug">Slug </label>
-                                                        <Field name="slug" type="text" id="slug" placeholder="Enter Description" className="form-input" />
-
-                                                        {submitCount ? errors.slug ? <div className="mt-1 text-danger">{errors.slug}</div> : <div className="mt-1 text-success"></div> : ''}
-                                                    </div> */}
-
-                                                    {/* <div className={submitCount ? (errors.count ? 'has-error' : 'has-success') : ''}>
-                                                        <label htmlFor="count">Count</label>
-                                                        <Field name="count" type="number" id="count" placeholder="Enter Count" className="form-input" />
-
-                                                        {submitCount ? errors.count ? <div className="mt-1 text-danger">{errors.count}</div> : <div className="mt-1 text-success"></div> : ''}
-                                                    </div> */}
-                                                    <div>
-                                                        <label htmlFor="description">Image </label>
-                                                        {previewUrl ? (
-                                                            <div className="relative flex items-center justify-around">
-                                                                <img src={previewUrl} alt="Selected" style={{ marginTop: '10px', maxHeight: '200px' }} />
-                                                                <div
-                                                                    className="absolute cursor-pointer rounded-full bg-red-500 p-1 text-white"
-                                                                    onClick={() => {
-                                                                        console.log('click');
-                                                                        if (modalTitle !== null) {
-                                                                            console.log('modalTitle: ');
-                                                                            removeImage();
-                                                                        } else {
-                                                                            console.log('else: ');
-                                                                            setPreviewUrl(null);
-                                                                        }
-                                                                    }}
-                                                                >
-                                                                    <IconTrashLines />
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <input type="file" id="product-gallery-image" className="form-input" onChange={handleImageChange} />
-                                                        )}
-                                                    </div>
-                                                    <div className={submitCount ? (errors.parentCategory ? 'has-error' : 'has-success') : ''}>
-                                                        <label htmlFor="parentCategory">Parent Category</label>
-                                                        <Field as="select" name="parentCategory" className="form-select">
-                                                            <option value="">Open this select</option>
-                                                            {parentLists?.map((item: any) => {
-                                                                return (
-                                                                    <>
-                                                                        <option value={item?.node?.id}>{item.node?.name}</option>
-                                                                        {item?.node?.children?.edges?.map((child: any) => (
-                                                                            <option key={child?.id} value={child?.node?.id} style={{ paddingLeft: '20px' }}>
-                                                                                -- {child?.node?.name}
-                                                                            </option>
-                                                                        ))}
-                                                                    </>
-                                                                );
-                                                            })}
-                                                        </Field>
-                                                        {/* {submitCount ? (
-                                                            errors.parentCategory ? (
-                                                                <div className=" mt-1 text-danger">{errors.parentCategory}</div>
-                                                            ) : (
-                                                                <div className=" mt-1 text-[#1abc9c]"></div>
-                                                            )
-                                                        ) : (
-                                                            ''
-                                                        )} */}
-                                                    </div>
-
-                                                    <button type="submit" className="btn btn-primary !mt-6">
-                                                        {createCategoryLoader || updateCategoryLoader ? (
-                                                            <IconLoader className="mr-2 h-4 w-4 animate-spin" />
-                                                        ) : modalTitle === null ? (
-                                                            'Submit'
-                                                        ) : (
-                                                            'Update'
-                                                        )}
-                                                    </button>
-                                                </Form>
-                                            )}
-                                        </Formik>
-                                    </div>
-                                </Dialog.Panel>
-                            </Transition.Child>
-                        </div>
-                    </div>
-                </Dialog>
-            </Transition>
-
-            {/* Full View Category data*/}
-            {/* <Transition appear show={viewModal} as={Fragment}>
-                <Dialog as="div" open={viewModal} onClose={() => setViewModal(false)}>
-                    <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-                        <div className="fixed inset-0" />
-                    </Transition.Child>
-                    <div className="fixed inset-0 z-[999] overflow-y-auto bg-[black]/60">
-                        <div className="flex min-h-screen items-start justify-center px-4">
-                            <Transition.Child
-                                as={Fragment}
-                                enter="ease-out duration-300"
-                                enterFrom="opacity-0 scale-95"
-                                enterTo="opacity-100 scale-100"
-                                leave="ease-in duration-200"
-                                leaveFrom="opacity-100 scale-100"
-                                leaveTo="opacity-0 scale-95"
-                            >
-                                <Dialog.Panel as="div" className="panel my-8 w-full max-w-lg overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark">
-                                    <div className="flex items-center justify-between bg-[#fbfbfb] px-5 py-3 dark:bg-[#121c2c]">
-                                        <div className="text-lg font-bold">View Category</div>
-                                        <button type="button" className="text-white-dark hover:text-dark" onClick={() => setViewModal(false)}>
-                                            <IconX />
-                                        </button>
-                                    </div>
-                                    <div className="mb-5 p-5"></div>
-                                </Dialog.Panel>
-                            </Transition.Child>
-                        </div>
-                    </div>
-                </Dialog>
-            </Transition> */}
         </div>
     );
 };

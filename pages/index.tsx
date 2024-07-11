@@ -126,7 +126,9 @@ const Index = () => {
             ...item.node,
             product: item.node.products?.totalCount,
             image: item.node.thumbnail?.url,
-            categories: item.node.category?.name ? item.node.category.name : '-',
+            categories: item.node.category?.length > 0 ? item.node?.category?.map((cats) => cats?.name).join(',') : '-',
+
+            // categories: item.node.category?.name ? item.node.category.name : '-',
             date: item.node.updatedAt
                 ? `Last Modified ${moment(item.node.updatedAt).format('YYYY/MM/DD [at] h:mm a')}`
                 : `Published ${moment(item.node.channelListings[0]?.publishedAt).format('YYYY/MM/DD [at] h:mm a')}`,
@@ -721,7 +723,10 @@ const Index = () => {
                             { accessor: 'stock', sortable: false },
                             { accessor: 'status', sortable: true },
                             { accessor: 'price', sortable: true },
-                            { accessor: 'categories', sortable: true },
+                            { accessor: 'categories', sortable: true,
+
+                                render: (row) => <div style={{ whiteSpace: 'normal', wordWrap: 'break-word', overflow: 'hidden', width: '200px' }}>{row.categories}</div>
+                             },
                             // {
                             //     accessor: 'tags',
                             //     sortable: true,

@@ -58,13 +58,16 @@ import {
     UPDATE_PRODUCT_CHANNEL,
     UPDATE_VARIANT_LIST,
     PRODUCT_BY_NAME,
+    PRODUCT_MEDIA_CREATE_NEW,
 } from '@/query/product';
-import { Failure, Success, formatOptions, objIsEmpty, sampleParams, showDeleteAlert, uploadImage } from '@/utils/functions';
+import { Failure, Success, deleteImagesFromS3, fetchImagesFromS3, formatOptions, generatePresignedPost, objIsEmpty, sampleParams, showDeleteAlert, uploadImage } from '@/utils/functions';
 import IconRestore from '@/components/Icon/IconRestore';
 import { cA } from '@fullcalendar/core/internal-common';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import Modal from '@/components/Modal';
 import IconLoader from '@/components/Icon/IconLoader';
+import moment from 'moment';
+import axios from 'axios';
 const ProductAdd = () => {
     const router = useRouter();
     const isRtl = useSelector((state: any) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
@@ -76,6 +79,9 @@ const ProductAdd = () => {
 
     const [modal1, setModal1] = useState(false);
     const [modal2, setModal2] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    const [mediaTab, setMediaTab] = useState(0);
 
     const [isMounted, setIsMounted] = useState(false); //tabs
 
@@ -93,13 +99,9 @@ const ProductAdd = () => {
 
     const [shortDescription, setShortDescription] = useState('');
 
-    const [description, setDescription] = useState('');
-    const [quantity, setQuantity] = useState('');
-    const [regularPrice, setRegularPrice] = useState('');
     const [selectedCollection, setSelectedCollection] = useState([]);
     const [tagList, setTagList] = useState([]);
     const [selectedTag, setSelectedTag] = useState([]);
-    const [stackMgmt, setStackMgmt] = useState('');
     const [publish, setPublish] = useState('published');
     const [modal4, setModal4] = useState(false);
 
@@ -123,15 +125,12 @@ const ProductAdd = () => {
     const [seoTittleErrMsg, setSeoTittleErrMsg] = useState('');
     const [seoDescErrMsg, setSeoDescErrMsg] = useState('');
     const [shortDesErrMsg, setShortDesErrMsg] = useState('');
-    const [skuErrMsg, setSkuErrMsg] = useState('');
-    const [quantityErrMsg, setQuantityErrMsg] = useState('');
-    const [salePriceErrMsg, setSalePriceErrMsg] = useState('');
     const [categoryErrMsg, setCategoryErrMsg] = useState('');
     const [descriptionErrMsg, setDescriptionErrMsg] = useState('');
     const [attributeError, setAttributeError] = useState('');
     const [variantErrors, setVariantErrors] = useState<any>([]);
     const [createLoading, setCreateLoading] = useState(false);
-
+    const [isLongPress, setIsLongPress] = useState(false);
     // error message end
 
     const [dropdowndata, setDropdownData] = useState<any>('');
@@ -151,11 +150,6 @@ const ProductAdd = () => {
 
     // ------------------------------------------New Data--------------------------------------------
 
-    const [statusVisible, setStatusVisible] = useState(false);
-    const [publicVisible, setPublicVisible] = useState(false);
-    const [publishedDate, setPublishedDate] = useState(false);
-    const [catalogVisible, setCatalogVisible] = useState(false);
-    // const [addCategory, setAddCategory] = useState(false);
     const [quantityTrack, setQuantityTrack] = useState(true);
     const [parentLists, setParentLists] = useState([]);
     const [searchUpsells, setSearchUpsells] = useState('');
@@ -182,39 +176,6 @@ const ProductAdd = () => {
     ];
 
     const optionsVal = arr.map((item) => ({ value: item.type, label: item.type }));
-
-    const statusEditClick = () => {
-        setStatusVisible(!statusVisible);
-    };
-
-    const PublicEditClick = () => {
-        setPublicVisible(!publicVisible);
-    };
-
-    const PublishedDateClick = () => {
-        setPublishedDate(!publishedDate);
-    };
-
-    const CatalogEditClick = () => {
-        setCatalogVisible(!catalogVisible);
-    };
-
-    // const addCategoryClick = () => {
-    //     setAddCategory(!addCategory);
-    // };
-
-    const productImagePopup = () => {
-        setModal2(true);
-    };
-
-    const productVideoPopup = () => {
-        setModal1(true);
-    };
-    const togglePara = (value: string) => {
-        setActive((oldValue) => {
-            return oldValue === value ? '' : value;
-        });
-    };
 
     // -------------------------------------New Added-------------------------------------------------------
 
@@ -254,7 +215,6 @@ const ProductAdd = () => {
     const { data: parentList, error: parentListError } = useQuery(PARENT_CATEGORY_LIST, {
         variables: { channel: 'india-channel' },
     });
-    console.log('parentList: ', parentList);
 
     const { data: productSearch, refetch: productSearchRefetch } = useQuery(PRODUCT_BY_NAME);
 
@@ -314,6 +274,7 @@ const ProductAdd = () => {
     const [updateVariantList] = useMutation(UPDATE_VARIANT_LIST);
     const [updateMedatData] = useMutation(UPDATE_META_DATA);
     const [assignTagToProduct] = useMutation(ASSIGN_TAG_PRODUCT);
+    const [createMedia] = useMutation(PRODUCT_MEDIA_CREATE_NEW);
 
     const [categoryList, setCategoryList] = useState([]);
     const [collectionList, setCollectionList] = useState([]);
@@ -328,6 +289,10 @@ const ProductAdd = () => {
     const [productListCrossell, setProductListCrossell] = useState([]);
     const [selectedUpsell, setSelectedUpsell] = useState([]);
     const [selectedCrosssell, setSelectedCrosssell] = useState([]);
+    const [mediaImages, setMediaImages] = useState([]);
+    const [selectedImg, setSelectedImg] = useState({});
+    const [selectedImages, setSelectedImages] = useState([]);
+    const longPressTimeout = useRef(null);
 
     const [createCategoryLoader, setCreateCategoryLoader] = useState(false);
 
@@ -346,6 +311,20 @@ const ProductAdd = () => {
     useEffect(() => {
         productsType();
     }, [productTypelist]);
+
+    useEffect(() => {
+        getMediaImage();
+    }, []);
+
+    const getMediaImage = async () => {
+        try {
+            const res = await fetchImagesFromS3();
+            console.log('res: ', res);
+            setMediaImages(res);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
 
     const category_list = async () => {
         try {
@@ -485,8 +464,6 @@ const ProductAdd = () => {
         try {
             const savedContent = await editorInstance.save();
             const descr = JSON.stringify(savedContent, null, 2);
-            console.log('descr: ', descr);
-            console.log('Editor content:', savedContent);
             setCreateLoading(true);
             // Reset error messages
             setProductNameErrMsg('');
@@ -612,10 +589,13 @@ const ProductAdd = () => {
             } else {
                 const productId = data?.productCreate?.product?.id;
                 productChannelListUpdate(productId);
-                if (images?.length > 0) {
-                    images.forEach(async (item) => {
-                        const imageUpload = await uploadImage(productId, item);
-                        console.log('Image upload: ', imageUpload);
+                if (imageUrl?.length > 0) {
+                    imageUrl.forEach(async (item) => {
+                        createMediaData(productId, item);
+                        console.log('imageUrl: ', imageUrl);
+
+                        // const imageUpload = await uploadImage(productId, item);
+                        // console.log('Image upload: ', imageUpload);
                     });
                 }
             }
@@ -782,6 +762,22 @@ const ProductAdd = () => {
                 Success('Product created successfully');
                 router.push(`/apps/product/edit?id=${productId}`);
             }
+        } catch (error) {
+            setCreateLoading(false);
+            console.log('error: ', error);
+        }
+    };
+
+    const createMediaData = async (productId: any, item: any) => {
+        try {
+            const { data } = await createMedia({
+                variables: {
+                    productId,
+                    media_url: item,
+                    alt: '',
+                },
+            });
+            console.log('createMediaData: ', data);
         } catch (error) {
             setCreateLoading(false);
             console.log('error: ', error);
@@ -990,24 +986,79 @@ const ProductAdd = () => {
         }
     };
 
-    // const handleCatChange = (selected) => {
-    //     setSelectedOptions(selected);
-    //     selectCat(selected ? selected.map((option) => option.value) : []);
-    // };
+    const deleteImage = async () => {
+        try {
+            const res = await deleteImagesFromS3(selectedImg?.key);
+            getMediaImage();
+            setSelectedImg({});
+        } catch (error) {
+            console.error('Error deleting file:', error);
+        }
+    };
 
-   
+    const handleFileChange = async (e) => {
+        try {
+            const presignedPostData = await generatePresignedPost(e.target.files[0]);
+            console.log('Presigned POST data: ', presignedPostData);
 
+            const formData = new FormData();
+            Object.keys(presignedPostData.fields).forEach((key) => {
+                formData.append(key, presignedPostData.fields[key]);
+            });
+            formData.append('file', e.target.files[0]);
+
+            const response = await axios.post(presignedPostData.url, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            console.log('response: ', response);
+
+            getMediaImage();
+            setMediaTab(1);
+            console.log('File uploaded successfully', response);
+        } catch (error) {
+            console.error('Error uploading file:', error);
+        }
+    };
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(selectedImg?.url).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+        });
+    };
+    const handleImageSelect = (item) => {
+        setSelectedImages((prevSelectedImages) => {
+            if (prevSelectedImages.includes(item)) {
+                return prevSelectedImages.filter((image) => image !== item);
+            } else {
+                return [...prevSelectedImages, item];
+            }
+        });
+    };
+
+    const handleMouseDown = (item) => {
+        longPressTimeout.current = setTimeout(() => {
+            setIsLongPress(true);
+            handleImageSelect(item);
+        }, 500); // 500ms for long press
+    };
+
+    const handleMouseUp = () => {
+        clearTimeout(longPressTimeout.current);
+        setIsLongPress(false);
+    };
+
+    const handleMouseLeave = () => {
+        clearTimeout(longPressTimeout.current);
+        setIsLongPress(false);
+    };
     return (
         <div>
-            <div className="  mt-6">
+            <div className="mt-6">
                 <div className="panel mb-5 flex flex-col gap-5 md:flex-row md:items-center">
                     <h5 className="text-lg font-semibold dark:text-white-light">Add New Product</h5>
-
-                    {/* <div className="flex ltr:ml-auto rtl:mr-auto">
-                        <button type="button" className="btn btn-primary" onClick={() => CreateProduct()}>
-                            Submit
-                        </button>
-                    </div> */}
                 </div>
 
                 <div className="grid grid-cols-12 gap-4">
@@ -1068,54 +1119,14 @@ const ProductAdd = () => {
                             </div>
 
                             {descriptionErrMsg && <p className="error-message mt-1 text-red-500 ">{descriptionErrMsg}</p>}
-
-                            {/* <textarea
-                                id="ctnTextarea"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                rows={6}
-                                className="form-textarea"
-                                placeholder="Enter Description"
-                                required
-                            ></textarea> */}
                         </div>
 
                         <div className="panel mb-5 ">
-                            {/* <div className="mb-5 flex flex-col border-b border-gray-200 pb-5 pl-10 sm:flex-row">
-                                <label htmlFor="name" className="mt-2 block  pr-5 text-sm font-semibold text-gray-700">
-                                    Product Data
-                                </label>
-                                <select className="form-select" style={{ width: '200px' }}>
-                                    <option value="1">Simple Product</option>
-                                    <option value="2">Variable Product</option>
-                                </select>
-                            </div> */}
                             <div className="flex flex-col  md:flex-row ">
                                 {isMounted && (
                                     <Tab.Group>
                                         <div className="mx-10 mb-5 sm:mb-0 ">
                                             <Tab.List className="mb-5 flex w-32 flex-row text-center font-semibold  md:m-auto md:mb-0 md:flex-col ">
-                                                {/* <Tab as={Fragment}>
-                                                    {({ selected }) => (
-                                                        <button
-                                                            className={`${selected ? '!bg-primary text-white !outline-none hover:text-white' : ''}
-                                                        relative -mb-[1px] block w-full border-white-light p-3.5 py-4 before:absolute before:bottom-0 before:top-0 before:m-auto before:inline-block before:h-0 before:w-[1px] before:bg-primary before:transition-all before:duration-700 hover:text-primary hover:before:h-[80%] ltr:border-r ltr:before:-right-[1px] rtl:border-l rtl:before:-left-[1px] dark:border-[#191e3a]`}
-                                                        >
-                                                            General
-                                                        </button>
-                                                    )}
-                                                </Tab> */}
-
-                                                {/* <Tab as={Fragment}>
-                                                    {({ selected }) => (
-                                                        <button
-                                                            className={`${selected ? '!bg-primary text-white !outline-none hover:text-white' : ''}
-                                                        relative -mb-[1px] block w-full border-white-light p-3.5 py-4 before:absolute before:bottom-0 before:top-0 before:m-auto before:inline-block before:h-0 before:w-[1px] before:bg-primary before:transition-all before:duration-700 hover:text-primary hover:before:h-[80%] ltr:border-r ltr:before:-right-[1px] rtl:border-l rtl:before:-left-[1px] dark:border-[#191e3a]`}
-                                                        >
-                                                            Linked Products
-                                                        </button>
-                                                    )}
-                                                </Tab> */}
                                                 <Tab as={Fragment}>
                                                     {({ selected }) => (
                                                         <button
@@ -1183,10 +1194,8 @@ const ProductAdd = () => {
                                                                 <button
                                                                     type="button"
                                                                     className={`flex w-full items-center p-4 text-white-dark dark:bg-[#1b2e4b] ${active === '1' ? '!text-primary' : ''}`}
-                                                                    // onClick={() => togglePara('1')}
                                                                 >
                                                                     {item?.type}
-                                                                    {/* <button onClick={() => handleRemoveAccordion(item.type)}>Remove</button> */}
 
                                                                     <div className={`text-red-400 ltr:ml-auto rtl:mr-auto `} onClick={() => handleRemoveAccordion(item.type)}>
                                                                         <IconTrashLines />
@@ -1221,22 +1230,6 @@ const ProductAdd = () => {
                                                                                             })}
                                                                                         />
                                                                                         {attributeError[item.type] && <p className="error-message mt-1 text-red-500">{attributeError[item.type]}</p>}
-                                                                                        {/* <Select placeholder="Select an option" options={options} isMulti isSearchable={false} /> */}
-                                                                                        {/* <div className="flex justify-between">
-                                                                                        <div className="flex">
-                                                                                            <button type="button" className="btn btn-outline-primary btn-sm mr-2 mt-1">
-                                                                                                Select All
-                                                                                            </button>
-                                                                                            <button type="button" className="btn btn-outline-primary btn-sm mt-1">
-                                                                                                Select None
-                                                                                            </button>
-                                                                                        </div>
-                                                                                        <div>
-                                                                                            <button type="button" className="btn btn-outline-primary btn-sm mt-1">
-                                                                                                Create Value
-                                                                                            </button>
-                                                                                        </div>
-                                                                                    </div> */}
                                                                                     </div>
                                                                                 </div>
                                                                             </div>
@@ -1247,11 +1240,6 @@ const ProductAdd = () => {
                                                         ))}
                                                     </div>
                                                 </div>
-                                                {/* <div>
-                                                    <button type="button" className="btn btn-primary">
-                                                        Save Attributes
-                                                    </button>
-                                                </div> */}
                                             </Tab.Panel>
 
                                             <Tab.Panel>
@@ -1364,26 +1352,6 @@ const ProductAdd = () => {
                                                                 {variantErrors[index]?.regularPrice && <p className="error-message mt-1 text-red-500">{variantErrors[index].regularPrice}</p>}
                                                             </div>
                                                         </div>
-                                                        {/* <div className="flex items-center">
-                                                            <div className="mb-5 mr-4" style={{ width: '20%' }}>
-                                                                <label htmlFor={`salePrice_${index}`} className="block pr-10 text-sm font-medium text-gray-700">
-                                                                    Sale Price
-                                                                </label>
-                                                            </div>
-                                                            <div className="mb-5" style={{ width: '80%' }}>
-                                                                <input
-                                                                    type="number"
-                                                                    id={`salePrice_${index}`}
-                                                                    name={`salePrice_${index}`}
-                                                                    value={item.salePrice}
-                                                                    onChange={(e) => handleChange(index, 'salePrice', parseFloat(e.target.value))}
-                                                                    style={{ width: '100%' }}
-                                                                    placeholder="Enter Sale Price"
-                                                                    className="form-input"
-                                                                />
-                                                                {variantErrors[index]?.salePrice && <p className="error-message mt-1 text-red-500">{variantErrors[index].salePrice}</p>}
-                                                            </div>
-                                                        </div> */}
                                                     </div>
                                                 ))}
                                                 <div className="mb-5">
@@ -1391,37 +1359,6 @@ const ProductAdd = () => {
                                                         Add item
                                                     </button>
                                                 </div>
-
-                                                {/* <div>
-                                                    <div className="flex items-center">
-                                                        <div className="mb-5 mr-4">
-                                                            <label htmlFor="tax-status" className="block pr-8 text-sm font-medium text-gray-700">
-                                                                Tax Status
-                                                            </label>
-                                                        </div>
-                                                        <div className="mb-5">
-                                                            <select className="form-select w-52 flex-1" style={{ width: '100%' }} onChange={(e) => taxStatus(e.target.value)}>
-                                                                <option value="taxable">Taxable</option>
-                                                                <option value="shipping-only">Shipping Only</option>
-                                                                <option value="none">None</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center">
-                                                        <div className="mb-5 mr-4">
-                                                            <label htmlFor="tax-status" className="block pr-10 text-sm font-medium text-gray-700">
-                                                                Tax Class
-                                                            </label>
-                                                        </div>
-                                                        <div className="mb-5">
-                                                            <select className="form-select w-52 flex-1" style={{ width: '100%' }} onChange={(e) => taxClass(e.target.value)}>
-                                                                <option value="standard">Standard</option>
-                                                                <option value="reduced-rate">Reduced rate</option>
-                                                                <option value="zero-rate">Zero rate</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                </div> */}
                                             </Tab.Panel>
 
                                             <Tab.Panel>
@@ -1486,39 +1423,6 @@ const ProductAdd = () => {
                                                     </div>
                                                 </div>
                                             </Tab.Panel>
-                                            {/* <Tab.Panel>
-                                                <div className="active flex items-center">
-                                                    <div className="mb-20 mr-4">
-                                                        <label htmlFor="regularPrice" className="block pr-5 text-sm font-medium text-gray-700">
-                                                            Purchase note
-                                                        </label>
-                                                    </div>
-                                                    <div className="mb-5">
-                                                        <textarea rows={3} style={{ width: '100%' }} placeholder="Enter Regular Price" name="regularPrice" className="form-input" required />
-                                                    </div>
-                                                </div>
-                                                <div className="active flex items-center border-t border-gray-200 pt-5">
-                                                    <div className="mb-5 mr-4 pr-3">
-                                                        <label htmlFor="regularPrice" className="block pr-5 text-sm font-medium text-gray-700">
-                                                            Menu Order
-                                                        </label>
-                                                    </div>
-                                                    <div className="mb-5">
-                                                        <input type="number" style={{ width: '100%' }} placeholder="Enter Regular Price" name="regularPrice" className="form-input" required />
-                                                    </div>
-                                                </div>
-
-                                                <div className="active flex items-center border-t border-gray-200 pt-5">
-                                                    <div className="mb-5 mr-4 pr-3">
-                                                        <label htmlFor="review" className="block  text-sm font-medium text-gray-700">
-                                                            Enable reviews
-                                                        </label>
-                                                    </div>
-                                                    <div className="mb-5">
-                                                        <input type="checkbox" className="form-checkbox" defaultChecked />
-                                                    </div>
-                                                </div>
-                                            </Tab.Panel> */}
                                         </Tab.Panels>
                                     </Tab.Group>
                                 )}
@@ -1540,41 +1444,12 @@ const ProductAdd = () => {
                                 <Select placeholder="Select an label" options={options} value={label} onChange={(val: any) => setLabel(val)} isSearchable={true} />
                             </div>
                         </div>
-
-                        {/* <div className="panel mb-5">
-                            <div className="grid grid-cols-12 gap-4">
-                                <div className="col-span-6">
-                                    <h5 className="un mb-5 block text-lg font-medium text-gray-700 underline">Permanent "New" label</h5>
-                                    <label className="relative h-6 w-12">
-                                        <input type="checkbox" className="custom_switch peer absolute z-10 h-full w-full cursor-pointer opacity-0" id="custom_switch_checkbox1" />
-                                        <span className="block h-full rounded-full bg-[#ebedf2] before:absolute before:bottom-1 before:left-1 before:h-4 before:w-4 before:rounded-full before:bg-white before:transition-all before:duration-300 peer-checked:bg-primary peer-checked:before:left-7 dark:bg-dark dark:before:bg-white-dark dark:peer-checked:before:bg-white"></span>
-                                    </label>
-                                    <p className="mt-2 text-sm text-gray-500">Enable this option to make your product have "New" status forever.</p>
-                                </div>
-                                <div className="col-span-6">
-                                    <h5 className="un mb-5 block text-lg font-medium text-gray-700 underline">Mark product as "New" till date</h5>
-                                    <div>
-                                        <input type="date" style={{ width: '100%' }} placeholder="From.." name="new-label" className="form-input" required />
-                                        <p className="mt-2 text-sm text-gray-500">
-                                            Specify the end date when the "New" status will be retired. NOTE: "Permanent "New" label" option should be disabled if you use the exact date.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div> */}
                     </div>
                     <div className="col-span-12 md:col-span-3">
                         <div className="panel order-4 md:order-1">
                             <div className="mb-5 border-b border-gray-200 pb-2">
                                 <h5 className=" block text-lg font-medium text-gray-700">Publish</h5>
                             </div>
-
-                            {/* <p className="mb-5">
-                                Status: <span className="font-bold">Published</span>{' '}
-                                <span className="ml-2 cursor-pointer text-primary underline" onClick={() => statusEditClick()}>
-                                    {statusVisible ? 'Cancel' : 'Edit'}
-                                </span>
-                            </p> */}
 
                             <div className="active flex items-center">
                                 <div className="mb-5 w-full pr-3">
@@ -1584,132 +1459,12 @@ const ProductAdd = () => {
                                         <option value="draft">Draft</option>
                                     </select>
                                 </div>
-                                {/* <div className="mb-5">
-                                            <button type="button" className="btn btn-outline-primary">
-                                                Ok
-                                            </button>
-                                        </div> */}
                             </div>
-
-                            {/* <p className="mb-5">
-                                Visibility: <span className="font-bold">Public</span>{' '}
-                                <span className="ml-2 cursor-pointer text-primary underline" onClick={() => PublicEditClick()}>
-                                    {publicVisible ? 'Cancel' : 'Edit'}
-                                </span>
-                            </p>
-
-                            {publicVisible ? (
-                                <>
-                                    <div className="active ">
-                                        <div className="mb-5">
-                                            <div className="pb-5">
-                                                <input type="radio" name="default_radio" className="form-radio" defaultChecked />
-                                                <span>Public</span>
-                                            </div>
-                                            <div className="pb-5">
-                                                <input type="radio" name="default_radio" className="form-radio" />
-                                                <span>Password protected</span>
-                                            </div>
-                                            <div>
-                                                <input type="radio" name="default_radio" className="form-radio" />
-                                                <span>Private</span>
-                                            </div>
-                                        </div>
-                                        <div className="mb-5 flex justify-start">
-                                            <button type="button" className="btn btn-outline-primary mr-2" onClick={() => setPublicVisible(false)}>
-                                                Cancel
-                                            </button>
-                                            <button type="button" className="btn btn-primary">
-                                                Ok
-                                            </button>
-                                        </div>
-                                    </div>
-                                </>
-                            ) : null} */}
-
-                            {/* <p className="mb-5">
-                                Published on: <span className="font-bold">May 19, 2023 at 17:53</span>{' '}
-                                <span className="ml-2 cursor-pointer text-primary underline" onClick={() => PublishedDateClick()}>
-                                    {publishedDate ? 'Cancel' : 'Edit'}
-                                </span>
-                            </p>
-
-                            {publishedDate ? (
-                                <>
-                                    <div className="active flex items-center">
-                                        <div className="mb-5 pr-3">
-                                            <input type="datetime-local" placeholder="From.." name="new-label" className="form-input" required />
-                                        </div>
-                                        <div className="mb-5">
-                                            <button type="button" className="btn btn-outline-primary">
-                                                Ok
-                                            </button>
-                                        </div>
-                                    </div>
-                                </>
-                            ) : null} */}
-                            {/* <p className="mb-5">
-                                Catalog visibility: <span className="font-bold">Shop and search results</span>{' '}
-                                <span className="ml-2 cursor-pointer text-primary underline" onClick={() => CatalogEditClick()}>
-                                    {catalogVisible ? 'Cancel' : 'Edit'}
-                                </span>
-                            </p> */}
-
-                            {/* {catalogVisible ? (
-                                <>
-                                    <div className="active">
-                                        <p className="mb-2 text-sm text-gray-500">This setting determines which shop pages products will be listed on.</p>
-                                        <div className="mb-5">
-                                            <div className="pb-3">
-                                                <input type="radio" name="default_radio" className="form-radio" defaultChecked />
-                                                <span>Shop and search results</span>
-                                            </div>
-                                            <div className="pb-3">
-                                                <input type="radio" name="default_radio" className="form-radio" />
-                                                <span>Shop only</span>
-                                            </div>
-                                            <div className="pb-3">
-                                                <input type="radio" name="default_radio" className="form-radio" />
-                                                <span>Search results only</span>
-                                            </div>
-
-                                            <div className="pb-3">
-                                                <input type="radio" name="default_radio" className="form-radio" />
-                                                <span>Hidden</span>
-                                            </div>
-                                        </div>
-                                        <div className="pb-3">
-                                            <input type="checkbox" className="form-checkbox" />
-                                            <span>This is a featured product</span>
-                                        </div>
-                                        <div className="mb-5 flex justify-start">
-                                            <button type="button" className="btn btn-outline-primary mr-2" onClick={() => setCatalogVisible(false)}>
-                                                Cancel
-                                            </button>
-                                            <button type="button" className="btn btn-primary">
-                                                Ok
-                                            </button>
-                                        </div>
-                                    </div>
-                                </>
-                            ) : null} */}
 
                             <button type="submit" className="btn btn-primary w-full" onClick={() => CreateProduct()}>
                                 {createLoading ? <IconLoader /> : 'Create'}
                             </button>
                         </div>
-
-                        {/* <div className="panel mt-5">
-                            <div className="mb-5 border-b border-gray-200 pb-2">
-                                <h5 className=" block text-lg font-medium text-gray-700">Product Image</h5>
-                            </div>
-                            <div onClick={() => productImagePopup()}>
-                                <img src="https://via.placeholder.com/200x300" alt="Product image" className="h-60 object-cover" />
-                            </div>
-                            <p className="mt-5 text-sm text-gray-500">Click the image to edit or update</p>
-
-                            <p className="mt-5 cursor-pointer text-danger underline">Remove product image</p>
-                        </div> */}
 
                         <div className="panel order-2 mt-5 md:order-2">
                             <div className="mb-5 border-b border-gray-200 pb-2">
@@ -1718,8 +1473,14 @@ const ProductAdd = () => {
                             <div className="grid grid-cols-12 gap-3">
                                 {imageUrl?.length > 0 &&
                                     imageUrl?.map((item: any, index: any) => (
-                                        <div className="relative col-span-4" key={index}>
-                                            <img src={item} alt="Product image" className=" object-cover" />
+                                        <div className="relative col-span-4 flex h-[60px] w-[80px] overflow-hidden " key={index}>
+                                            {item?.endsWith('.mp4') ? (
+                                                <video controls src={item} className="h-full w-full object-cover">
+                                                    Your browser does not support the video tag.
+                                                </video>
+                                            ) : (
+                                                <img src={item} alt="Product image" className=" h-full w-full" />
+                                            )}
                                             <button onClick={() => handleRemoveImage(index)} className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white">
                                                 <IconTrashLines className="h-4 w-4" />
                                             </button>
@@ -1731,7 +1492,14 @@ const ProductAdd = () => {
                                         </div> */}
                             </div>
 
-                            <p className="mt-5 cursor-pointer text-primary underline" onClick={() => setModal4(true)}>
+                            <p
+                                className="mt-5 cursor-pointer text-primary underline"
+                                onClick={() => {
+                                    setMediaTab(1);
+                                    setModal2(true);
+                                    setSelectedImg({});
+                                }}
+                            >
                                 Add product gallery images
                             </p>
                             {/* <button type="button" className="btn btn-primary mt-5" onClick={() => productVideoPopup()}>
@@ -1796,8 +1564,16 @@ const ProductAdd = () => {
                     </div>
                 </div>
             </div>
+
             <Transition appear show={modal2} as={Fragment}>
-                <Dialog as="div" open={modal2} onClose={() => setModal2(false)}>
+                <Dialog
+                    as="div"
+                    open={modal2}
+                    onClose={() => {
+                        setSelectedImg({});
+                        setModal2(false);
+                    }}
+                >
                     <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
                         <div className="fixed inset-0" />
                     </Transition.Child>
@@ -1814,170 +1590,198 @@ const ProductAdd = () => {
                             >
                                 <Dialog.Panel className="panel max-w-8xl my-8 w-full overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark">
                                     <div className="flex items-center justify-between bg-[#fbfbfb] px-5 py-3 dark:bg-[#121c2c]">
-                                        <h5 className="text-lg font-bold">Product Image</h5>
-                                        <button onClick={() => setModal2(false)} type="button" className="text-white-dark hover:text-dark">
+                                        <h5 className="text-lg font-bold">Media</h5>
+                                        <button
+                                            onClick={() => {
+                                                setModal2(false);
+                                            }}
+                                            type="button"
+                                            className="text-white-dark hover:text-dark"
+                                        >
                                             <IconX />
                                         </button>
                                     </div>
                                     <div className="m-5">
-                                        {isMounted && (
-                                            <Tab.Group>
-                                                <Tab.List className="mt-3 flex flex-wrap gap-2 border-b border-gray-200 pb-5">
-                                                    <Tab as={Fragment}>
-                                                        {({ selected }) => (
-                                                            <button
-                                                                className={`${selected ? 'bg-primary text-white !outline-none' : ''}
-                                                    -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block hover:bg-primary hover:text-white`}
-                                                            >
-                                                                Upload Files
-                                                            </button>
-                                                        )}
-                                                    </Tab>
-                                                    <Tab as={Fragment}>
-                                                        {({ selected }) => (
-                                                            <button
-                                                                className={`${selected ? 'bg-primary text-white !outline-none' : ''}
-                                                    -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block hover:bg-primary hover:text-white`}
-                                                            >
-                                                                Media Library
-                                                            </button>
-                                                        )}
-                                                    </Tab>
-                                                </Tab.List>
-                                                <Tab.Panels>
-                                                    <Tab.Panel>
-                                                        <div className="active  pt-5">
-                                                            <div className="flex h-[500px] items-center justify-center">
-                                                                <div className="w-1/2 text-center">
-                                                                    <h3 className="mb-2 text-xl font-semibold">Drag and drop files to upload</h3>
-                                                                    <p className="mb-2 text-sm ">or</p>
-                                                                    <input type="file" className="mb-2 ml-32" />
-                                                                    <p className="mb-2 text-sm">Maximum upload file size: 30 MB.</p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </Tab.Panel>
+                                        <div className="flex gap-5">
+                                            <button
+                                                onClick={() => {
+                                                    setMediaTab(0);
+                                                    getMediaImage();
+                                                }}
+                                                className={`${mediaTab == 0 ? 'bg-primary text-white !outline-none' : ''}
+                                                    -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block `}
+                                            >
+                                                Upload Files
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setMediaTab(1);
+                                                    getMediaImage();
+                                                }}
+                                                className={`${mediaTab == 1 ? 'bg-primary text-white !outline-none' : ''}
+                                                    -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block `}
+                                            >
+                                                Media Library
+                                            </button>
+                                        </div>
 
-                                                    <Tab.Panel>
-                                                        <div className="grid grid-cols-12 pt-5">
-                                                            <div className="col-span-9 h-[450px] overflow-y-scroll border-r border-gray-200 pr-5">
-                                                                <div>
-                                                                    <div>Filter mediaFilter by type</div>
-                                                                </div>
-                                                                <div className="flex justify-between gap-3 pt-3">
-                                                                    <div className="flex gap-3">
-                                                                        {/* <select className="form-select flex-1">
+                                        {mediaTab == 0 ? (
+                                            <div className="active  pt-5">
+                                                <div className="flex h-[500px] items-center justify-center">
+                                                    <div className="w-1/2 text-center">
+                                                        <h3 className="mb-2 text-xl font-semibold">Drag and drop files to upload</h3>
+                                                        <p className="mb-2 text-sm ">or</p>
+                                                        {/* <input type="file" className="mb-2 ml-32" /> */}
+                                                        <input type="file" className="mb-2 ml-32" onChange={handleFileChange} />
+
+                                                        <p className="mb-2 text-sm">Maximum upload file size: 30 MB.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="grid grid-cols-12 pt-5">
+                                                    <div className="col-span-9 h-[450px] overflow-y-scroll border-r border-gray-200 pr-5">
+                                                        <div>
+                                                            <div>Filter mediaFilter by type</div>
+                                                        </div>
+                                                        <div className="flex justify-between gap-3 pt-3">
+                                                            <div className="flex gap-3">
+                                                                {/* <select className="form-select flex-1">
                                                                             <option value=""> </option>
                                                                             <option value="Anklets">Anklets</option>
                                                                             <option value="Earings">Earings</option>
                                                                             <option value="Palakka">Palakka</option>
                                                                         </select>{' '} */}
-                                                                        <select className="form-select w-40 flex-1">
-                                                                            <option value="">All Datas </option>
-                                                                            <option value="June2023">June2023</option>
-                                                                            <option value="july2023">july2023</option>
-                                                                            <option value="aug2023">aug2023</option>
-                                                                        </select>
-                                                                    </div>
-                                                                    <div>
-                                                                        <input
-                                                                            type="text"
-                                                                            className="form-input mr-2 w-auto"
-                                                                            placeholder="Search..."
-                                                                            // value={search}
-                                                                            // onChange={(e) => setSearch(e.target.value)}
-                                                                        />
-                                                                    </div>
+                                                                <select className="form-select w-40 flex-1">
+                                                                    <option value="">All Datas </option>
+                                                                    <option value="June2023">June2023</option>
+                                                                    <option value="july2023">july2023</option>
+                                                                    <option value="aug2023">aug2023</option>
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <input
+                                                                    type="text"
+                                                                    className="form-input mr-2 w-auto"
+                                                                    placeholder="Search..."
+                                                                    // value={search}
+                                                                    // onChange={(e) => setSearch(e.target.value)}
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="grid grid-cols-6 gap-3 pt-5">
+                                                            {mediaImages?.map((item) => (
+                                                                <div
+                                                                    key={item.url}
+                                                                    className={`flex h-[160px] w-[180px] overflow-hidden p-2 ${selectedImages.includes(item) ? 'border-4 border-blue-500' : ''}`}
+                                                                    // className={`flex h-[200px] w-[200px] overflow-hidden p-2   ${selectedImages.includes(item) ? 'border-4 border-blue-500' : ''}`}
+                                                                    onMouseDown={() => handleMouseDown(item)}
+                                                                    onMouseUp={handleMouseUp}
+                                                                    onMouseLeave={handleMouseLeave}
+                                                                    onClick={() => {
+                                                                        setSelectedImg(item);
+                                                                        if (!isLongPress) {
+                                                                            handleImageSelect(item);
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    {item?.key?.endsWith('.mp4') ? (
+                                                                        <video controls src={item.url} className="h-full w-full object-cover">
+                                                                            Your browser does not support the video tag.
+                                                                        </video>
+                                                                    ) : (
+                                                                        <img src={item.url} alt="" className="h-full w-full" />
+                                                                    )}
+                                                                    {/* <img src={item.url} alt="" className="h-full w-full object-cover" /> */}
                                                                 </div>
-
-                                                                <div className="grid grid-cols-12 gap-3 pt-5">
-                                                                    <div className="col-span-2">
-                                                                        <img src="https://via.placeholder.com/150x150" alt="" />
-                                                                    </div>
-
-                                                                    <div className="col-span-2">
-                                                                        <img src="https://via.placeholder.com/150x150" alt="" />
-                                                                    </div>
-
-                                                                    <div className="col-span-2">
-                                                                        <img src="https://via.placeholder.com/150x150" alt="" />
-                                                                    </div>
-                                                                    <div className="col-span-2">
-                                                                        <img src="https://via.placeholder.com/150x150" alt="" />
-                                                                    </div>
-                                                                    <div className="col-span-2">
-                                                                        <img src="https://via.placeholder.com/150x150" alt="" />
-                                                                    </div>
-                                                                    <div className="col-span-2">
-                                                                        <img src="https://via.placeholder.com/150x150" alt="" />
-                                                                    </div>
-                                                                    <div className="col-span-2">
-                                                                        <img src="https://via.placeholder.com/150x150" alt="" />
-                                                                    </div>
-                                                                </div>
-                                                                <div className="flex justify-center pt-5">
+                                                            ))}
+                                                        </div>
+                                                        {/* <div className="flex justify-center pt-5">
                                                                     <div className=" text-center">
                                                                         <p>Showing 80 of 2484 media items</p>
                                                                         <div className="flex justify-center">
                                                                             <button className="btn btn-primary mt-2">Load more</button>
                                                                         </div>
                                                                     </div>
+                                                                </div> */}
+                                                    </div>
+                                                    {!objIsEmpty(selectedImg) && (
+                                                        <div className="col-span-3 h-[450px] overflow-y-scroll pl-5">
+                                                            <div className="border-b border-gray-200 pb-5">
+                                                                <div>
+                                                                    <p className="mb-2 text-lg font-semibold">ATTACHMENT DETAILS</p>
                                                                 </div>
+                                                                <div>
+                                                                    {selectedImg?.key?.endsWith('.mp4') ? (
+                                                                        <video controls src={selectedImg.url} className="h-full w-full object-cover">
+                                                                            Your browser does not support the video tag.
+                                                                        </video>
+                                                                    ) : (
+                                                                        <img src={selectedImg?.url} alt="" />
+                                                                    )}
+                                                                </div>
+                                                                <p className="mt-2 font-semibold">{selectedImg?.key}</p>
+                                                                <p className="text-sm">{moment(selectedImg?.LastModified).format('MMM d, yyyy')}</p>
+                                                                <p className="text-sm">{(selectedImg?.Size / 1024).toFixed(2)} KB</p>
+
+                                                                {/* <p className="text-sm">1707 by 2560 pixels</p> */}
+                                                                <a href="#" className="text-danger underline" onClick={() => deleteImage()}>
+                                                                    Delete permanently
+                                                                </a>
                                                             </div>
-                                                            <div className="col-span-3 h-[450px] overflow-y-scroll pl-5">
-                                                                <div className="border-b border-gray-200 pb-5">
-                                                                    <div>
-                                                                        <p className="mb-2 text-lg font-semibold">ATTACHMENT DETAILS</p>
-                                                                    </div>
-                                                                    <div>
-                                                                        <img src="https://via.placeholder.com/250x300" alt="" />
-                                                                    </div>
-                                                                    <p className="mt-2 font-semibold">PraDeJewels_Necklace_Yazhu-scaled-2.jpg</p>
-                                                                    <p className="text-sm">May 19, 2023</p>
-                                                                    <p className="text-sm">619 KB</p>
-                                                                    <p className="text-sm">1707 by 2560 pixels</p>
-                                                                    <a href="#" className="text-danger underline">
-                                                                        Delete permanently
-                                                                    </a>
+                                                            <div className="pr-5">
+                                                                <div className="mt-5">
+                                                                    <label className="mb-2">Alt Text</label>
+                                                                    <textarea className="form-input" placeholder="Enter Alt Text"></textarea>
+                                                                    <span>
+                                                                        <a href="#" className="text-primary underline">
+                                                                            Learn how to describe the purpose of the image
+                                                                        </a>
+                                                                        . Leave empty if the image is purely decorative.
+                                                                    </span>
                                                                 </div>
-                                                                <div className="pr-5">
-                                                                    <div className="mt-5">
-                                                                        <label className="mb-2">Alt Text</label>
-                                                                        <textarea className="form-input" placeholder="Enter Alt Text"></textarea>
-                                                                        <span>
-                                                                            <a href="#" className="text-primary underline">
-                                                                                Learn how to describe the purpose of the image
-                                                                            </a>
-                                                                            . Leave empty if the image is purely decorative.
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="mt-5">
-                                                                        <label className="mb-2">Title</label>
-                                                                        <input type="text" className="form-input" placeholder="Enter Title" />
-                                                                    </div>
+                                                                <div className="mt-5">
+                                                                    <label className="mb-2">Title</label>
+                                                                    <input type="text" className="form-input" placeholder="Enter Title" />
+                                                                </div>
 
-                                                                    <div className="mt-5">
-                                                                        <label className="mb-2">Caption</label>
-                                                                        <textarea className="form-input" placeholder="Enter Caption"></textarea>
-                                                                    </div>
+                                                                <div className="mt-5">
+                                                                    <label className="mb-2">Caption</label>
+                                                                    <textarea className="form-input" placeholder="Enter Caption"></textarea>
+                                                                </div>
 
-                                                                    <div className="mt-5">
-                                                                        <label className="mb-2">File URL</label>
-                                                                        <input type="text" className="form-input" placeholder="Enter Title" />
-                                                                        <button className="btn btn-primary-outline mt-2 text-sm">Copy URL to Clipboard</button>
-                                                                    </div>
-                                                                    <div className="mt-5">
-                                                                        <p>Required fields are marked *</p>
-                                                                    </div>
+                                                                <div className="mt-5">
+                                                                    <label className="mb-2">File URL</label>
+                                                                    <input type="text" className="form-input" placeholder="Enter Title" value={selectedImg?.url} />
+                                                                    <button className="btn btn-primary-outline mt-2 text-sm" onClick={handleCopy}>
+                                                                        Copy URL to Clipboard
+                                                                    </button>
+                                                                    {copied ? <label className="mt-2 text-green-500">Copied</label> : <label className="mt-2">Copy Link</label>}
+                                                                </div>
+                                                                <div className="mt-5">
+                                                                    <p>Required fields are marked *</p>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <div className="mt-5 flex justify-end border-t border-gray-200 pt-5">
-                                                            <button className="btn btn-primary">Set Product Image</button>
-                                                        </div>
-                                                    </Tab.Panel>
-                                                </Tab.Panels>
-                                            </Tab.Group>
+                                                    )}
+                                                </div>
+                                                <div className="mt-5 flex justify-end border-t border-gray-200 pt-5">
+                                                    <button
+                                                        className="btn btn-primary"
+                                                        onClick={() => {
+                                                            const urls = selectedImages?.map((item) => item.url);
+                                                            setImageUrl([...urls, ...imageUrl]);
+                                                            setModal2(false);
+                                                            setSelectedImages([]);
+                                                            setSelectedImg({});
+                                                        }}
+                                                    >
+                                                        Set Product Image
+                                                    </button>
+                                                </div>
+                                            </>
                                         )}
                                     </div>
                                 </Dialog.Panel>

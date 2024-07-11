@@ -52,6 +52,7 @@ import {
     PRODUCT_FULL_DETAILS,
     PRODUCT_LIST_TAGS,
     PRODUCT_MEDIA_CREATE,
+    PRODUCT_MEDIA_CREATE_NEW,
     PRODUCT_TYPE_LIST,
     REMOVE_IMAGE,
     SIZE_LIST,
@@ -64,9 +65,23 @@ import {
     UPDATE_VARIANT,
     UPDATE_VARIANT_LIST,
 } from '@/query/product';
-import { Failure, Success, formatOptions, getValueByKey, objIsEmpty, sampleParams, showDeleteAlert, uploadImage } from '@/utils/functions';
+import {
+    Failure,
+    Success,
+    deleteImagesFromS3,
+    fetchImagesFromS3,
+    formatOptions,
+    generatePresignedPost,
+    getValueByKey,
+    objIsEmpty,
+    sampleParams,
+    showDeleteAlert,
+    uploadImage,
+} from '@/utils/functions';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import IconLoader from '@/components/Icon/IconLoader';
+import moment from 'moment';
+import axios from 'axios';
 const ProductEdit = (props: any) => {
     const router = useRouter();
 
@@ -76,6 +91,10 @@ const ProductEdit = (props: any) => {
 
     const [modal1, setModal1] = useState(false);
     const [modal2, setModal2] = useState(false);
+    const [mediaImages, setMediaImages] = useState([]);
+    const [selectedImg, setSelectedImg] = useState({});
+    const [selectedImages, setSelectedImages] = useState([]);
+    const [mediaTab, setMediaTab] = useState(0);
 
     const dispatch = useDispatch();
 
@@ -90,6 +109,7 @@ const ProductEdit = (props: any) => {
     const [menuOrder, setMenuOrder] = useState(0);
     const [selectedUpsell, setSelectedUpsell] = useState([]);
     const [selectedCrosssell, setSelectedCrosssell] = useState([]);
+    const [mediaDate, setMediaDate] = useState('all');
 
     // ------------------------------------------New Data--------------------------------------------
 
@@ -99,6 +119,8 @@ const ProductEdit = (props: any) => {
     const [seoDesc, setSeoDesc] = useState('');
 
     const [shortDescription, setShortDescription] = useState('');
+    const [mediaSearch, setMediaSearch] = useState('');
+
     const [description, setDescription] = useState('');
     const [selectedCollection, setSelectedCollection] = useState<any>([]);
     const [publish, setPublish] = useState('published');
@@ -139,9 +161,7 @@ const ProductEdit = (props: any) => {
         variables: { channel: 'india-channel', id: id },
     });
 
-    // const { data: cat_list } = useQuery(PRODUCT_CAT_LIST, {
-    //     variables: sampleParams,
-    // });
+    const [createMedia] = useMutation(PRODUCT_MEDIA_CREATE_NEW);
 
     const { data: collection_list } = useQuery(COLLECTION_LIST, {
         variables: sampleParams,
@@ -192,7 +212,7 @@ const ProductEdit = (props: any) => {
     const [removeImage] = useMutation(REMOVE_IMAGE);
     const [updateProduct] = useMutation(UPDATE_PRODUCT);
     const [deleteVarient] = useMutation(DELETE_VARIENT);
-
+    const longPressTimeout = useRef(null);
     const [createProductMedia] = useMutation(PRODUCT_MEDIA_CREATE);
 
     const { data: productSearch, refetch: productSearchRefetch } = useQuery(PRODUCT_BY_NAME);
@@ -209,14 +229,14 @@ const ProductEdit = (props: any) => {
     const [mediaData, setMediaData] = useState([]);
     const [productList, setProductList] = useState([]);
 
-    const [imageUrl, setImageUrl] = useState('');
-    const [thumbnailFile, setThumbnailFile] = useState<any>({});
+    const [imageUrl, setImageUrl] = useState([]);
 
     const [thumbnail, setThumbnail] = useState('');
 
     const [images, setImages] = useState<any>([]);
+    const [copied, setCopied] = useState(false);
+    const [isLongPress, setIsLongPress] = useState(false);
     const [deletedImages, setDeletedImages] = useState<any>([]);
-
     const [selectedArr, setSelectedArr] = useState<any>([]);
     const [accordions, setAccordions] = useState<any>([]);
     const [openAccordion, setOpenAccordion] = useState<any>('');
@@ -248,9 +268,18 @@ const ProductEdit = (props: any) => {
         tags_list();
     }, [tagsList]);
 
-    // useEffect(() => {
-    //     category_list();
-    // }, [cat_list]);
+    useEffect(() => {
+        getMediaImage();
+    }, []);
+
+    const getMediaImage = async () => {
+        try {
+            const res = await fetchImagesFromS3();
+            setMediaImages(res);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
 
     useEffect(() => {
         collections_list();
@@ -346,6 +375,7 @@ const ProductEdit = (props: any) => {
 
                     if (data?.media?.length > 0) {
                         setImages(data?.media);
+                        setImageUrl(data?.media?.map((item) => item.url));
                     }
 
                     Attributes(data);
@@ -595,38 +625,45 @@ const ProductEdit = (props: any) => {
     };
 
     // Function to handle file selection
-    const handleFileChange = (event: any) => {
-        const selectedFile = event.target.files[0];
-        if (selectedFile) {
-            const imageUrl = URL.createObjectURL(selectedFile);
-            setImageUrl(imageUrl);
-            setThumbnailFile(event.target.files[0]);
+    const handleFileChange = async (e) => {
+        try {
+            const presignedPostData: any = await generatePresignedPost(e.target.files[0]);
+
+            const formData = new FormData();
+            Object.keys(presignedPostData.fields).forEach((key) => {
+                formData.append(key, presignedPostData.fields[key]);
+            });
+            formData.append('file', e.target.files[0]);
+
+            const response = await axios.post(presignedPostData.url, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            getMediaImage();
+            setMediaTab(1);
+            console.log('File uploaded successfully', response);
+        } catch (error) {
+            console.error('Error uploading file:', error);
         }
     };
 
     const multiImgUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile: any = event.target.files?.[0];
-        const imageUrl = URL.createObjectURL(selectedFile);
-
-        // Push the selected file into the 'images' array
-        // setImages((prevImages) => [...prevImages, selectedFile]);
-
-        // Push the blob URL into the 'imageUrl' array
-        // setImageUrl((prevUrls) => [...prevUrls, imageUrl]);
-
         setModal4(false);
-
         const res = await uploadImage(id, selectedFile);
         setImages(res?.data?.productMediaCreate?.product?.media);
     };
 
     const multiImageDelete = async (val: any) => {
-        console.log('item: ', val);
         showDeleteAlert(
             async () => {
-                setDeletedImages([...deletedImages, val.id]);
+                // const { data } = await removeImage({
+                //     variables: { id: val },
+                // });
+                setDeletedImages([...deletedImages, val]);
+                // const filter = images?.filter((item) => item.url !== val);
                 const filter = images?.filter((item) => item.id !== val.id);
-                console.log('filter: ', filter);
                 setImages(filter);
                 Swal.fire('Deleted!', 'Your files have been deleted.', 'success');
             },
@@ -634,26 +671,6 @@ const ProductEdit = (props: any) => {
                 Swal.fire('Cancelled', 'Your Image List is safe :)', 'error');
             }
         );
-    };
-
-    // Function to handle upload button click
-
-    // Function to handle delete icon click
-    const handleDelete = () => {
-        // Clear the image URL from the state
-        setImageUrl('');
-        setThumbnail('');
-        setThumbnailFile({});
-        imageDelete(thumbnailFile.id);
-
-        // const filter = images?.filter((item, index) => index !== 0);
-        // setImages(filter);
-    };
-
-    const imageDelete = (ids: any) => {
-        const { data }: any = removeImage({
-            variables: { channel: 'india-channel', id: ids },
-        });
     };
 
     const updateProducts = async () => {
@@ -691,23 +708,11 @@ const ProductEdit = (props: any) => {
             validateField(seoTittle, setSeoTittleErrMsg, 'Seo title cannot be empty');
             validateField(seoDesc, setSeoDescErrMsg, 'Seo description cannot be empty');
             validateField(shortDescription, setShortDesErrMsg, 'Short description cannot be empty');
-            if(selectedCat?.length == 0){
-                setCategoryErrMsg("Category cannot be empty"); 
+            if (selectedCat?.length == 0) {
+                setCategoryErrMsg('Category cannot be empty');
                 hasError = true;
                 setUpdateLoading(false);
-
             }
-            // const savedContent = await editorInstance.save();
-            // const descr = JSON.stringify(savedContent, null, 2);
-            // if (savedContent?.blocks?.length == 0) {
-            //     hasError = true;
-            //     setDescriptionErrMsg('Description cannot be empty');
-            // }
-
-            // if (selectedCat === '') {
-            //     setCategoryErrMsg('Category cannot be empty');
-            //     hasError = true;
-            // }
 
             if (variants.length > 0)
                 if (variants && variants.length > 0) {
@@ -829,7 +834,7 @@ const ProductEdit = (props: any) => {
                 if (deletedImages?.length > 0) {
                     deletedImages?.map(async (val: any) => {
                         const { data } = await removeImage({
-                            variables: { id: val },
+                            variables: { id: val.id },
                         });
                     });
                 }
@@ -933,10 +938,6 @@ const ProductEdit = (props: any) => {
                     value: shortDescription ? shortDescription : '',
                 });
             }
-            // input.push({
-            //     key: 'description',
-            //     value: description,
-            // });
             if (label?.value) {
                 input.push({
                     key: 'label',
@@ -949,18 +950,14 @@ const ProductEdit = (props: any) => {
                     input,
                     keysToDelete: [],
                 },
-                // variables: { email: formData.email, password: formData.password },
             });
             if (data?.updateMetadata?.errors?.length > 0) {
                 setUpdateLoading(false);
                 Failure(data?.updateMetadata?.errors[0]?.message);
             } else {
                 Success('Product updated successfully');
-                // productUpdateRefetch();
                 router.push('/');
                 setUpdateLoading(false);
-
-                // assignsTagToProduct();
             }
         } catch (error) {
             setUpdateLoading(false);
@@ -1126,7 +1123,6 @@ const ProductEdit = (props: any) => {
     };
 
     const handleDragStart = (e: any, id: any, i: any) => {
-        console.log('id: ', i);
         e.dataTransfer.setData('id', id);
         setDropIndex(id);
     };
@@ -1152,16 +1148,27 @@ const ProductEdit = (props: any) => {
             const [draggedImage] = newImages.splice(draggedImageIndex, 1);
             newImages.splice(newIndex, 0, draggedImage);
             setImages(newImages);
-            // const updatedImg = newImages?.map((item) => item.id);
-            // const { data } = await mediaReorder({
-            //     variables: {
-            //         mediaIds: updatedImg,
-            //         productId: id,
-            //     },
-            // });
-            // productUpdateRefetch();
         }
     };
+
+    // const handleDragStart = (e, index) => {
+    //     e.dataTransfer.setData('dragIndex', index);
+    // };
+
+    // const handleDrop = (e, dropIndex) => {
+    //     const dragIndex = e.dataTransfer.getData('dragIndex');
+    //     if (dragIndex === '') return; // Check for invalid dragIndex
+
+    //     const newImageUrl = [...imageUrl];
+    //     const draggedItem = newImageUrl[dragIndex];
+    //     newImageUrl.splice(dragIndex, 1);
+    //     newImageUrl.splice(dropIndex, 0, draggedItem);
+    //     setImageUrl(newImageUrl);
+    // };
+
+    // const handleDragOver = (e) => {
+    //     e.preventDefault();
+    // };
 
     const getProductForUpsells = async () => {
         try {
@@ -1187,6 +1194,132 @@ const ProductEdit = (props: any) => {
             setProductListCrossell(dropdownData);
         } catch (error) {
             console.log('error: ', error);
+        }
+    };
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(selectedImg?.url).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+        });
+    };
+    const handleImageSelect = (item) => {
+        setSelectedImages((prevSelectedImages) => {
+            if (prevSelectedImages.includes(item)) {
+                return prevSelectedImages.filter((image) => image !== item);
+            } else {
+                return [...prevSelectedImages, item];
+            }
+        });
+    };
+
+    const handleMouseDown = (item) => {
+        longPressTimeout.current = setTimeout(() => {
+            setIsLongPress(true);
+            handleImageSelect(item);
+        }, 500); // 500ms for long press
+    };
+
+    const handleMouseUp = () => {
+        clearTimeout(longPressTimeout.current);
+        setIsLongPress(false);
+    };
+
+    const handleMouseLeave = () => {
+        clearTimeout(longPressTimeout.current);
+        setIsLongPress(false);
+    };
+
+    const createMediaData = async (item) => {
+        try {
+            const { data } = await createMedia({
+                variables: {
+                    productId: id,
+                    media_url: item,
+                    alt: '',
+                },
+            });
+            const resData = {
+                id: data?.productMediaCreate?.media?.id,
+                url: data?.productMediaCreate?.media?.url,
+            };
+            return resData;
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
+    const newImageAdded = async () => {
+        {
+            let arr = [...images];
+            const urls = selectedImages?.map((item) => item.url);
+            urls.map(async (items) => {
+                const { data } = await createMedia({
+                    variables: {
+                        productId: id,
+                        media_url: items,
+                        alt: '',
+                    },
+                });
+
+                if (data?.productMediaCreate?.errors?.length > 0) {
+                    Failure(data?.productMediaCreate?.errors[0]?.message);
+                } else {
+                    const resData = {
+                        id: data?.productMediaCreate?.media?.id,
+                        url: data?.productMediaCreate?.media?.url,
+                    };
+                    arr.push(resData);
+                }
+            });
+            setImages(arr);
+            setModal2(false);
+            setSelectedImages([]);
+            setSelectedImg({});
+        }
+    };
+
+    const deleteImage = async (key) => {
+        try {
+            const res = await deleteImagesFromS3(selectedImg?.key);
+            getMediaImage();
+            setSelectedImg({});
+        } catch (error) {
+            console.error('Error deleting file:', error);
+        }
+    };
+
+    const searchMediaByName = (e) => {
+        setMediaSearch(e);
+        if (e) {
+            const filtered = images.filter((image) => {
+                const matchesName = image?.url?.includes(e) || image?.key?.includes(e);
+                // const matchesDate = !startDate || new Date(image.LastModified) >= new Date(startDate);
+                return matchesName;
+            });
+            setMediaImages(filtered);
+        } else {
+            getMediaImage();
+        }
+    };
+
+    const filterMediaByMonth = (e) => {
+        console.log('e: ', e);
+        setMediaDate(e);
+
+        if (e != 'all') {
+            const [month, year] = e.split('/');
+            console.log('year: ', year);
+            console.log('month: ', month);
+            let res = mediaImages.filter((item) => {
+                const date = new Date(item.LastModified);
+                return date.getFullYear() === year && date.getMonth() === month - 1; // month is 0-indexed
+            });
+            console.log('res: ', res);
+
+            // setMediaImages(filtered);
+        } else {
+            getMediaImage();
         }
     };
 
@@ -1825,152 +1958,12 @@ const ProductEdit = (props: any) => {
                                         <option value="draft">Draft</option>
                                     </select>
                                 </div>
-                                {/* <div className="mb-5">
-                                            <button type="button" className="btn btn-outline-primary">
-                                                Ok
-                                            </button>
-                                        </div> */}
                             </div>
 
-                            {/* <p className="mb-5">
-                                Visibility: <span className="font-bold">Public</span>{' '}
-                                <span className="ml-2 cursor-pointer text-primary underline" onClick={() => PublicEditClick()}>
-                                    {publicVisible ? 'Cancel' : 'Edit'}
-                                </span>
-                            </p>
-
-                            {publicVisible ? (
-                                <>
-                                    <div className="active ">
-                                        <div className="mb-5">
-                                            <div className="pb-5">
-                                                <input type="radio" name="default_radio" className="form-radio" defaultChecked />
-                                                <span>Public</span>
-                                            </div>
-                                            <div className="pb-5">
-                                                <input type="radio" name="default_radio" className="form-radio" />
-                                                <span>Password protected</span>
-                                            </div>
-                                            <div>
-                                                <input type="radio" name="default_radio" className="form-radio" />
-                                                <span>Private</span>
-                                            </div>
-                                        </div>
-                                        <div className="mb-5 flex justify-start">
-                                            <button type="button" className="btn btn-outline-primary mr-2" onClick={() => setPublicVisible(false)}>
-                                                Cancel
-                                            </button>
-                                            <button type="button" className="btn btn-primary">
-                                                Ok
-                                            </button>
-                                        </div>
-                                    </div>
-                                </>
-                            ) : null} */}
-
-                            {/* <p className="mb-5">
-                                Published on: <span className="font-bold">May 19, 2023 at 17:53</span>{' '}
-                                <span className="ml-2 cursor-pointer text-primary underline" onClick={() => PublishedDateClick()}>
-                                    {publishedDate ? 'Cancel' : 'Edit'}
-                                </span>
-                            </p>
-
-                            {publishedDate ? (
-                                <>
-                                    <div className="active flex items-center">
-                                        <div className="mb-5 pr-3">
-                                            <input type="datetime-local" placeholder="From.." name="new-label" className="form-input" required />
-                                        </div>
-                                        <div className="mb-5">
-                                            <button type="button" className="btn btn-outline-primary">
-                                                Ok
-                                            </button>
-                                        </div>
-                                    </div>
-                                </>
-                            ) : null} */}
-                            {/* <p className="mb-5">
-                                Catalog visibility: <span className="font-bold">Shop and search results</span>{' '}
-                                <span className="ml-2 cursor-pointer text-primary underline" onClick={() => CatalogEditClick()}>
-                                    {catalogVisible ? 'Cancel' : 'Edit'}
-                                </span>
-                            </p> */}
-
-                            {/* {catalogVisible ? (
-                                <>
-                                    <div className="active">
-                                        <p className="mb-2 text-sm text-gray-500">This setting determines which shop pages products will be listed on.</p>
-                                        <div className="mb-5">
-                                            <div className="pb-3">
-                                                <input type="radio" name="default_radio" className="form-radio" defaultChecked />
-                                                <span>Shop and search results</span>
-                                            </div>
-                                            <div className="pb-3">
-                                                <input type="radio" name="default_radio" className="form-radio" />
-                                                <span>Shop only</span>
-                                            </div>
-                                            <div className="pb-3">
-                                                <input type="radio" name="default_radio" className="form-radio" />
-                                                <span>Search results only</span>
-                                            </div>
-
-                                            <div className="pb-3">
-                                                <input type="radio" name="default_radio" className="form-radio" />
-                                                <span>Hidden</span>
-                                            </div>
-                                        </div>
-                                        <div className="pb-3">
-                                            <input type="checkbox" className="form-checkbox" />
-                                            <span>This is a featured product</span>
-                                        </div>
-                                        <div className="mb-5 flex justify-start">
-                                            <button type="button" className="btn btn-outline-primary mr-2" onClick={() => setCatalogVisible(false)}>
-                                                Cancel
-                                            </button>
-                                            <button type="button" className="btn btn-primary">
-                                                Ok
-                                            </button>
-                                        </div>
-                                    </div>
-                                </>
-                            ) : null} */}
-
-                            <button type="submit" className="btn btn-primary w-full" onClick={() => updateProducts()}>
-                                {updateLoading ? <IconLoader /> : 'Update'}
+                            <button type="submit" className="btn btn-primary w-full " onClick={() => updateProducts()}>
+                                {updateLoading ? <IconLoader  className="mr-2 h-4 w-4 animate-spin" /> : 'Update'}
                             </button>
                         </div>
-
-                        {/* <div className="panel mt-5">
-                            <div className="mb-5 border-b border-gray-200 pb-2">
-                                <h5 className=" block text-lg font-medium text-gray-700">Product Image</h5>
-                            </div>
-                            <div onClick={() => productImagePopup()}>
-                                <img src="https://via.placeholder.com/200x300" alt="Product image" className="h-60 object-cover" />
-                            </div>
-                            <div
-                                onClick={() => productImagePopup()}
-                                className="cursor-pointer"
-                                title="Upload Images"
-                            >
-                                {thumbnail == '' || null ? (
-                                    <img src="https://via.placeholder.com/200x300" alt="Product image" className="h-60 object-cover" />
-                                ) : (
-                                    <img src={thumbnail} alt="Product image" className="h-60 object-cover" />
-                                )}
-                            </div>
-                            <p className="mt-5 text-sm text-gray-500">Click the image to edit or update</p>
-                            {thumbnail && (
-                                <p className="mt-2 cursor-pointer text-danger underline" onClick={handleDelete}>
-                                    Remove product image
-                                </p>
-                            )}
-                            <div className="flex justify-end">
-                                <button className="btn btn-primary mt-5" onClick={uploadImage}>
-                                    Upload
-                                </button>
-                            </div>
-                            <p className="mt-5 cursor-pointer text-danger underline">Remove product image</p>
-                        </div> */}
 
                         <div className="panel mt-5">
                             <div className="mb-5 border-b border-gray-200 pb-2">
@@ -1991,41 +1984,35 @@ const ProductEdit = (props: any) => {
                                                 onDragStart={(e) => handleDragStart(e, item.id, index)}
                                                 onDragOver={handleDragOver}
                                                 onDrop={(e) => handleDrop(e, index)}
-                                                // style={{ width: '33.33%', padding: '5px' }}
                                             >
-                                                <img src={item?.url} alt="Selected" className=" h-full w-full overflow-auto object-contain" />
-
-                                                {/* Delete icon */}
+                                                {item?.url?.endsWith('.mp4') ? (
+                                                    <video controls src={item} className="h-full w-full object-cover">
+                                                        Your browser does not support the video tag.
+                                                    </video>
+                                                ) : (
+                                                    <img src={item?.url} alt="Product image" className=" h-full w-full" />
+                                                )}
+                                                {/* <img src={item?.url} alt="Selected" className=" h-full w-full overflow-auto object-contain" /> */}
 
                                                 <button className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white" onClick={() => multiImageDelete(item)}>
                                                     <IconTrashLines />
                                                 </button>
                                             </div>
-                                            {/* </div> */}
                                         </>
                                     ))}
-
-                                {/* <div className="grid grid-cols-12 gap-3">
-                                    {imageUrl?.length > 0 &&
-                                        imageUrl?.map((item, index) => (
-                                            <div className="relative col-span-4">
-                                                <img src={item} alt="Product image" className=" object-cover" />
-                                                <button className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white">
-                                                    <IconTrashLines className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        ))} */}
-
-                                {/* <div className="col-span-4">
-                                            <img src="https://via.placeholder.com/100x100" alt="Product image" className=" object-cover" />
-                                        </div> */}
-                                {/* </div> */}
                             </div>
 
-                            <p className="mt-5 cursor-pointer text-primary underline" onClick={() => setModal4(true)}>
+                            <p
+                                className="mt-5 cursor-pointer text-primary underline"
+                                onClick={() => {
+                                    setMediaTab(1);
+                                    setModal2(true);
+                                    setSelectedImg({});
+                                }}
+                            >
                                 Add product gallery images
                             </p>
-                            {/* <button type="button" className="btn btn-primary mt-5" onClick={() => productVideoPopup()}>
+                            {/* <button type="button" className="btn btn-primary mt-5" onClick={() => finalImageData()}>
                                 + Video
                             </button> */}
                         </div>
@@ -2192,196 +2179,7 @@ const ProductEdit = (props: any) => {
                     </div>
                 </div>
             </div>
-            <Transition appear show={modal2} as={Fragment}>
-                <Dialog as="div" open={modal2} onClose={() => setModal2(false)}>
-                    <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-                        <div className="fixed inset-0" />
-                    </Transition.Child>
-                    <div className="fixed inset-0 z-[999] bg-[black]/60">
-                        <div className="flex min-h-screen items-start justify-center px-4">
-                            <Transition.Child
-                                as={Fragment}
-                                enter="ease-out duration-300"
-                                enterFrom="opacity-0 scale-95"
-                                enterTo="opacity-100 scale-100"
-                                leave="ease-in duration-200"
-                                leaveFrom="opacity-100 scale-100"
-                                leaveTo="opacity-0 scale-95"
-                            >
-                                <Dialog.Panel className="panel max-w-8xl my-8 w-full overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark">
-                                    <div className="flex items-center justify-between bg-[#fbfbfb] px-5 py-3 dark:bg-[#121c2c]">
-                                        <h5 className="text-lg font-bold">Product Image</h5>
-                                        <button onClick={() => setModal2(false)} type="button" className="text-white-dark hover:text-dark">
-                                            <IconX />
-                                        </button>
-                                    </div>
-                                    <div className="m-5">
-                                        {isMounted && (
-                                            <Tab.Group>
-                                                <Tab.List className="mt-3 flex flex-wrap gap-2 border-b border-gray-200 pb-5">
-                                                    <Tab as={Fragment}>
-                                                        {({ selected }) => (
-                                                            <button
-                                                                className={`${selected ? 'bg-primary text-white !outline-none' : ''}
-                                                    -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block hover:bg-primary hover:text-white`}
-                                                            >
-                                                                Upload Files
-                                                            </button>
-                                                        )}
-                                                    </Tab>
-                                                    <Tab as={Fragment}>
-                                                        {({ selected }) => (
-                                                            <button
-                                                                className={`${selected ? 'bg-primary text-white !outline-none' : ''}
-                                                    -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block hover:bg-primary hover:text-white`}
-                                                            >
-                                                                Media Library
-                                                            </button>
-                                                        )}
-                                                    </Tab>
-                                                </Tab.List>
-                                                <Tab.Panels>
-                                                    <Tab.Panel>
-                                                        <div className="active  pt-5">
-                                                            <div className="flex h-[500px] items-center justify-center">
-                                                                <div className="w-1/2 text-center">
-                                                                    <h3 className="mb-2 text-xl font-semibold">Drag and drop files to upload</h3>
-                                                                    <p className="mb-2 text-sm ">or</p>
-                                                                    <input type="file" className="mb-2 ml-32" />
-                                                                    <p className="mb-2 text-sm">Maximum upload file size: 30 MB.</p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </Tab.Panel>
 
-                                                    <Tab.Panel>
-                                                        <div className="grid grid-cols-12 pt-5">
-                                                            <div className="col-span-9 h-[450px] overflow-y-scroll border-r border-gray-200 pr-5">
-                                                                <div>
-                                                                    <div>Filter mediaFilter by type</div>
-                                                                </div>
-                                                                <div className="flex justify-between gap-3 pt-3">
-                                                                    <div className="flex gap-3">
-                                                                        {/* <select className="form-select flex-1">
-                                                                            <option value=""> </option>
-                                                                            <option value="Anklets">Anklets</option>
-                                                                            <option value="Earings">Earings</option>
-                                                                            <option value="Palakka">Palakka</option>
-                                                                        </select>{' '} */}
-                                                                        <select className="form-select w-40 flex-1">
-                                                                            <option value="">All Datas </option>
-                                                                            <option value="June2023">June2023</option>
-                                                                            <option value="july2023">july2023</option>
-                                                                            <option value="aug2023">aug2023</option>
-                                                                        </select>
-                                                                    </div>
-                                                                    <div>
-                                                                        <input
-                                                                            type="text"
-                                                                            className="form-input mr-2 w-auto"
-                                                                            placeholder="Search..."
-                                                                            // value={search}
-                                                                            // onChange={(e) => setSearch(e.target.value)}
-                                                                        />
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="grid grid-cols-12 gap-3 pt-5">
-                                                                    <div className="col-span-2">
-                                                                        <img src="https://via.placeholder.com/150x150" alt="" />
-                                                                    </div>
-
-                                                                    <div className="col-span-2">
-                                                                        <img src="https://via.placeholder.com/150x150" alt="" />
-                                                                    </div>
-
-                                                                    <div className="col-span-2">
-                                                                        <img src="https://via.placeholder.com/150x150" alt="" />
-                                                                    </div>
-                                                                    <div className="col-span-2">
-                                                                        <img src="https://via.placeholder.com/150x150" alt="" />
-                                                                    </div>
-                                                                    <div className="col-span-2">
-                                                                        <img src="https://via.placeholder.com/150x150" alt="" />
-                                                                    </div>
-                                                                    <div className="col-span-2">
-                                                                        <img src="https://via.placeholder.com/150x150" alt="" />
-                                                                    </div>
-                                                                    <div className="col-span-2">
-                                                                        <img src="https://via.placeholder.com/150x150" alt="" />
-                                                                    </div>
-                                                                </div>
-                                                                <div className="flex justify-center pt-5">
-                                                                    <div className=" text-center">
-                                                                        <p>Showing 80 of 2484 media items</p>
-                                                                        <div className="flex justify-center">
-                                                                            <button className="btn btn-primary mt-2">Load more</button>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="col-span-3 h-[450px] overflow-y-scroll pl-5">
-                                                                <div className="border-b border-gray-200 pb-5">
-                                                                    <div>
-                                                                        <p className="mb-2 text-lg font-semibold">ATTACHMENT DETAILS</p>
-                                                                    </div>
-                                                                    <div>
-                                                                        <img src="https://via.placeholder.com/250x300" alt="" />
-                                                                    </div>
-                                                                    <p className="mt-2 font-semibold">PraDeJewels_Necklace_Yazhu-scaled-2.jpg</p>
-                                                                    <p className="text-sm">May 19, 2023</p>
-                                                                    <p className="text-sm">619 KB</p>
-                                                                    <p className="text-sm">1707 by 2560 pixels</p>
-                                                                    <a href="#" className="text-danger underline">
-                                                                        Delete permanently
-                                                                    </a>
-                                                                </div>
-                                                                <div className="pr-5">
-                                                                    <div className="mt-5">
-                                                                        <label className="mb-2">Alt Text</label>
-                                                                        <textarea className="form-input" placeholder="Enter Alt Text"></textarea>
-                                                                        <span>
-                                                                            <a href="#" className="text-primary underline">
-                                                                                Learn how to describe the purpose of the image
-                                                                            </a>
-                                                                            . Leave empty if the image is purely decorative.
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="mt-5">
-                                                                        <label className="mb-2">Title</label>
-                                                                        <input type="text" className="form-input" placeholder="Enter Title" />
-                                                                    </div>
-
-                                                                    <div className="mt-5">
-                                                                        <label className="mb-2">Caption</label>
-                                                                        <textarea className="form-input" placeholder="Enter Caption"></textarea>
-                                                                    </div>
-
-                                                                    <div className="mt-5">
-                                                                        <label className="mb-2">File URL</label>
-                                                                        <input type="text" className="form-input" placeholder="Enter Title" />
-                                                                        <button className="btn btn-primary-outline mt-2 text-sm">Copy URL to Clipboard</button>
-                                                                    </div>
-                                                                    <div className="mt-5">
-                                                                        <p>Required fields are marked *</p>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="mt-5 flex justify-end border-t border-gray-200 pt-5">
-                                                            <button className="btn btn-primary">Set Product Image</button>
-                                                        </div>
-                                                    </Tab.Panel>
-                                                </Tab.Panels>
-                                            </Tab.Group>
-                                        )}
-                                    </div>
-                                </Dialog.Panel>
-                            </Transition.Child>
-                        </div>
-                    </div>
-                </Dialog>
-            </Transition>
             {/* product video popup */}
             <Transition appear show={modal1} as={Fragment}>
                 <Dialog as="div" open={modal1} onClose={() => setModal1(false)}>
@@ -2521,6 +2319,214 @@ const ProductEdit = (props: any) => {
                                                     </div>
                                                 </div>
                                             ))} */}
+                                    </div>
+                                </Dialog.Panel>
+                            </Transition.Child>
+                        </div>
+                    </div>
+                </Dialog>
+            </Transition>
+
+            <Transition appear show={modal2} as={Fragment}>
+                <Dialog
+                    as="div"
+                    open={modal2}
+                    onClose={() => {
+                        setSelectedImg({});
+                        setModal2(false);
+                    }}
+                >
+                    <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
+                        <div className="fixed inset-0" />
+                    </Transition.Child>
+                    <div className="fixed inset-0 z-[999] bg-[black]/60">
+                        <div className="flex min-h-screen items-start justify-center px-4">
+                            <Transition.Child
+                                as={Fragment}
+                                enter="ease-out duration-300"
+                                enterFrom="opacity-0 scale-95"
+                                enterTo="opacity-100 scale-100"
+                                leave="ease-in duration-200"
+                                leaveFrom="opacity-100 scale-100"
+                                leaveTo="opacity-0 scale-95"
+                            >
+                                <Dialog.Panel className="panel max-w-8xl my-8 w-full overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark">
+                                    <div className="flex items-center justify-between bg-[#fbfbfb] px-5 py-3 dark:bg-[#121c2c]">
+                                        <h5 className="text-lg font-bold">Media</h5>
+                                        <button
+                                            onClick={() => {
+                                                setModal2(false);
+                                            }}
+                                            type="button"
+                                            className="text-white-dark hover:text-dark"
+                                        >
+                                            <IconX />
+                                        </button>
+                                    </div>
+                                    <div className="m-5">
+                                        <div className="flex gap-5">
+                                            <button
+                                                onClick={() => {
+                                                    setMediaTab(0);
+                                                    getMediaImage();
+                                                }}
+                                                className={`${mediaTab == 0 ? 'bg-primary text-white !outline-none' : ''}
+                                                    -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block `}
+                                            >
+                                                Upload Files
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setMediaTab(1);
+                                                    getMediaImage();
+                                                }}
+                                                className={`${mediaTab == 1 ? 'bg-primary text-white !outline-none' : ''}
+                                                    -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block `}
+                                            >
+                                                Media Library
+                                            </button>
+                                        </div>
+
+                                        {mediaTab == 0 ? (
+                                            <div className="active  pt-5">
+                                                <div className="flex h-[500px] items-center justify-center">
+                                                    <div className="w-1/2 text-center">
+                                                        <h3 className="mb-2 text-xl font-semibold">Drag and drop files to upload</h3>
+                                                        <p className="mb-2 text-sm ">or</p>
+                                                        {/* <input type="file" className="mb-2 ml-32" /> */}
+                                                        <input type="file" className="mb-2 ml-32" onChange={handleFileChange} />
+
+                                                        <p className="mb-2 text-sm">Maximum upload file size: 30 MB.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="grid grid-cols-12 pt-5">
+                                                    <div className="col-span-9 h-[450px] overflow-y-scroll border-r border-gray-200 pr-5">
+                                                        <div>
+                                                            <div>Filter mediaFilter by type</div>
+                                                        </div>
+                                                        <div className="flex justify-between gap-3 pt-3">
+                                                            <div className="flex gap-3">
+                                                                <select className="form-select w-40 flex-1" value={mediaDate} onChange={(e) => filterMediaByMonth(e.target.value)}>
+                                                                    <option value="all">All Datas </option>
+                                                                    <option value="June/2023">June2023</option>
+                                                                    <option value="july/2023">july2023</option>
+                                                                    <option value="aug/2023">aug2023</option>
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <input
+                                                                    type="text"
+                                                                    className="form-input mr-2 w-auto"
+                                                                    placeholder="Search..."
+                                                                    value={mediaSearch}
+                                                                    onChange={(e) => searchMediaByName(e.target.value)}
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="grid grid-cols-6 gap-3 pt-5">
+                                                            {mediaImages?.length > 0 ? (
+                                                                mediaImages?.map((item) => (
+                                                                    <div
+                                                                        key={item.url}
+                                                                        className={`flex h-[200px] w-[200px] overflow-hidden   ${selectedImages.includes(item) ? 'border-4 border-blue-500' : ''}`}
+                                                                        onMouseDown={() => handleMouseDown(item)}
+                                                                        onMouseUp={handleMouseUp}
+                                                                        onMouseLeave={handleMouseLeave}
+                                                                        onClick={() => {
+                                                                            console.log('onClick: ');
+                                                                            setSelectedImg(item);
+                                                                            if (!isLongPress) {
+                                                                                handleImageSelect(item);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        {item?.key?.endsWith('.mp4') ? (
+                                                                            <video controls src={item.url} className="h-full w-full object-cover">
+                                                                                Your browser does not support the video tag.
+                                                                            </video>
+                                                                        ) : (
+                                                                            <img src={item.url} alt="" className="h-full w-full" />
+                                                                        )}
+                                                                        {/* <img src={item.url} alt="" className="h-full w-full object-cover" /> */}
+                                                                    </div>
+                                                                ))
+                                                            ) : (
+                                                                <div className="col-span-6 flex h-64 items-center justify-center">No Data Found</div>
+                                                            )}
+                                                        </div>
+                                                        {/* <div className="flex justify-center pt-5">
+                                                                    <div className=" text-center">
+                                                                        <p>Showing 80 of 2484 media items</p>
+                                                                        <div className="flex justify-center">
+                                                                            <button className="btn btn-primary mt-2">Load more</button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div> */}
+                                                    </div>
+                                                    {!objIsEmpty(selectedImg) && (
+                                                        <div className="col-span-3 h-[450px] overflow-y-scroll pl-5">
+                                                            <div className="border-b border-gray-200 pb-5">
+                                                                <div>
+                                                                    <p className="mb-2 text-lg font-semibold">ATTACHMENT DETAILS</p>
+                                                                </div>
+                                                                <div>
+                                                                    <img src={selectedImg?.url} alt="" />
+                                                                </div>
+                                                                <p className="mt-2 font-semibold">{selectedImg?.key}</p>
+                                                                <p className="text-sm">{moment(selectedImg?.LastModified).format('MMM d, yyyy')}</p>
+                                                                <p className="text-sm">{parseInt(selectedImg?.Size / 1024)} KB</p>
+                                                                {/* <p className="text-sm">1707 by 2560 pixels</p> */}
+                                                                <a href="#" className="text-danger underline" onClick={() => deleteImage()}>
+                                                                    Delete permanently
+                                                                </a>
+                                                            </div>
+                                                            <div className="pr-5">
+                                                                <div className="mt-5">
+                                                                    <label className="mb-2">Alt Text</label>
+                                                                    <textarea className="form-input" placeholder="Enter Alt Text"></textarea>
+                                                                    <span>
+                                                                        <a href="#" className="text-primary underline">
+                                                                            Learn how to describe the purpose of the image
+                                                                        </a>
+                                                                        . Leave empty if the image is purely decorative.
+                                                                    </span>
+                                                                </div>
+                                                                <div className="mt-5">
+                                                                    <label className="mb-2">Title</label>
+                                                                    <input type="text" className="form-input" placeholder="Enter Title" />
+                                                                </div>
+
+                                                                <div className="mt-5">
+                                                                    <label className="mb-2">Caption</label>
+                                                                    <textarea className="form-input" placeholder="Enter Caption"></textarea>
+                                                                </div>
+
+                                                                <div className="mt-5">
+                                                                    <label className="mb-2">File URL</label>
+                                                                    <input type="text" className="form-input" placeholder="Enter Title" value={selectedImg?.url} />
+                                                                    <button className="btn btn-primary-outline mt-2 text-sm" onClick={handleCopy}>
+                                                                        Copy URL to Clipboard
+                                                                    </button>
+                                                                    {copied ? <label className="mt-2 text-green-500">Copied</label> : <label className="mt-2">Copy Link</label>}
+                                                                </div>
+                                                                <div className="mt-5">
+                                                                    <p>Required fields are marked *</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="mt-5 flex justify-end border-t border-gray-200 pt-5">
+                                                    <button className="btn btn-primary" onClick={() => newImageAdded()}>
+                                                        Set Product Image
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </Dialog.Panel>
                             </Transition.Child>

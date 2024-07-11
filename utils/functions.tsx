@@ -6,6 +6,9 @@ import XLSX from 'sheetjs-style';
 import moment from 'moment';
 import AWS from 'aws-sdk';
 
+export const accessKeyId = 'DO00MUC2HWP9YVLPXKXT';
+export const secretAccessKey = 'W9N9b51nxVBvpS59Er9aB6Ht7xx2ZXMrbf3vjBBR8OA';
+
 export const capitalizeFLetter = (string = '') => {
     if (string.length > 0) {
         return string.charAt(0).toUpperCase() + string.slice(1);
@@ -166,22 +169,35 @@ export const uploadImage = async (productId: any, file: any) => {
     try {
         const token = localStorage.getItem('token');
         const formData = new FormData();
-        formData.append(
-            'operations',
-            JSON.stringify({
-                operationName: 'ProductMediaCreate',
-                variables: { product: productId, alt: '', image: null },
-                query: `mutation ProductMediaCreate($product: ID!, $image: Upload, $alt: String, $mediaUrl: String) {
-                productMediaCreate(input: {alt: $alt, image: $image, product: $product, mediaUrl: $mediaUrl}) {
-                    errors { ...ProductError }
-                    product { id media { ...ProductMedia } }
+
+        // Define GraphQL mutation operation
+        const operations = {
+            operationName: 'ProductMediaCreate',
+            variables: { productId: productId, alt: '', media_url: null },
+            query: `mutation productMediaCreate($productId: ID!, $media_url: String!, $alt: String!) {
+                productMediaCreate(input: { product: $productId, alt: $alt, mediaUrl: $media_url }) {
+                    product {
+                        id
+                        name
+                    }
+                    media {
+                        id
+                        url
+                        alt
+                        oembedData
+                    }
+                    errors {
+                        field
+                        message
+                    }
                 }
-            }
-            fragment ProductError on ProductError { code field message }
-            fragment ProductMedia on ProductMedia { id alt sortOrder url(size: 1024) type oembedData }`,
-            })
-        );
-        formData.append('map', JSON.stringify({ '1': ['variables.image'] }));
+            }`,
+        };
+
+        formData.append('operations', JSON.stringify(operations));
+
+        // Map the file to variables.media_url
+        formData.append('map', JSON.stringify({ '1': ['variables.media_url'] }));
         formData.append('1', file);
 
         const response = await fetch('https://file.prade.in/graphql/', {
@@ -254,30 +270,19 @@ export const categoryImageUpload = async (categoryId, imageUrl) => {
                     backgroundImage: null, // Placeholder for the file variable
                 },
             },
-            query: `mutation CategoryUpdate($id: ID!, $input: CategoryInput!) {
-                categoryUpdate(id: $id, input: $input) {
-                    category {
-                        id
-                        backgroundImage {
-                            alt
-                            url
-                        }
-                        name
-                        slug
-                        description
-                        seoDescription
-                        seoTitle
-                        parent {
-                            id
-                        }
-                    }
-                    errors {
-                        code
-                        field
-                        message
-                    }
-                }
-            }`,
+            query: `mutation updateCategory($id: ID!, $input: CategoryInput!) {
+  categoryUpdate(id: $id, input: $input) {
+    category {
+      id
+      name
+      backgroundImageUrl
+      description
+      slug
+      __typename
+    }
+    __typename
+  }
+}`,
         });
 
         const map = JSON.stringify({
@@ -539,7 +544,6 @@ export const PaymentStatus = (status: any) => {
 };
 
 export const getDateRange = (rangeType) => {
-    console.log('rangeType: ', rangeType);
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
@@ -607,4 +611,137 @@ export const formatOptions = (lists) => {
             })) || [];
         return [{ value: item?.node?.id, label: item?.node?.name }, ...children];
     });
+};
+
+export const fetchImagesFromS3 = async () => {
+    const spacesEndpoint = new AWS.Endpoint('https://blr1.digitaloceanspaces.com');
+    const s3 = new AWS.S3({
+        endpoint: spacesEndpoint,
+        accessKeyId, // Add your access key here
+        secretAccessKey, // Add your secret key here
+    });
+    const params = {
+        Bucket: 'prade', // Your Space name
+    };
+    try {
+        const data = await s3.listObjectsV2(params).promise();
+        console.log('datasss: ', data);
+        const imageUrls = data.Contents.map((item) => ({
+            url: `https://prade.blr1.cdn.digitaloceanspaces.com/${item.Key}`,
+            key: item.Key,
+            ...item,
+        }));
+        return imageUrls;
+    } catch (error) {
+        console.error('Error fetching images:', error);
+    }
+};
+
+export const deleteImagesFromS3 = async (key) => {
+    const spacesEndpoint = new AWS.Endpoint('https://blr1.digitaloceanspaces.com');
+    const s3 = new AWS.S3({
+        endpoint: spacesEndpoint,
+        accessKeyId, // Add your access key here
+        secretAccessKey, // Add your secret key here
+    });
+    const params = {
+        Bucket: 'prade', // Your Space name
+        Key: key,
+    };
+    try {
+        const res = await s3.deleteObject(params).promise();
+    } catch (error) {
+        console.error('Error deleting file:', error);
+    }
+};
+
+export const generatePresignedPost = (file) => {
+    const spacesEndpoint = new AWS.Endpoint('https://prade.blr1.digitaloceanspaces.com');
+
+    const s3 = new AWS.S3({
+        endpoint: spacesEndpoint,
+        accessKeyId, // Add your access key here
+        secretAccessKey, // Add your secret key here
+    });
+    const params = {
+        Bucket: 'prade', // Your Space name
+        Fields: {
+            key: file.name, // File name
+            acl: 'public-read',
+            // 'x-amz-meta-alt-text': metadata.altText, // Alternative Text metadata
+            // 'x-amz-meta-title': metadata.title, // Title metadata
+            // 'x-amz-meta-caption': metadata.caption, // Caption metadata
+            // 'x-amz-meta-description': metadata.description, // Description metadata
+        },
+        Conditions: [
+            ['content-length-range', 0, 1048576], // 1 MB limit
+            ['starts-with', '$Content-Type', ''], // Allow any content type
+            ['eq', '$key', file.name],
+            // ['eq', '$x-amz-meta-alt-text', metadata.altText], // Validate Alternative Text
+            // ['eq', '$x-amz-meta-title', metadata.title], // Validate Title
+            // ['eq', '$x-amz-meta-caption', metadata.caption], // Validate Caption
+            // ['eq', '$x-amz-meta-description', metadata.description], // Validate Description
+        ],
+        Expires: 60, // 1 minute expiration
+    };
+
+    return new Promise((resolve, reject) => {
+        s3.createPresignedPost(params, (err, data) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(data);
+            }
+        });
+    });
+};
+export const generatePresignedVideoPost = (file) => {
+    const spacesEndpoint = new AWS.Endpoint('https://prade.blr1.digitaloceanspaces.com');
+
+    const s3 = new AWS.S3({
+        endpoint: spacesEndpoint,
+        accessKeyId, // Add your access key here
+        secretAccessKey, // Add your secret key here
+    });
+    const params = {
+        Bucket: 'prade', // Your Space name
+        Fields: {
+            key: file.name, // File name
+            acl: 'public-read',
+        },
+        Conditions: [
+            ['content-length-range', 0, 104857600], // 100 MB limit (adjust as needed)
+            ['starts-with', '$Content-Type', ''], // Ensure only MP4 files are allowed
+            ['eq', '$key', file.name],
+        ],
+        Expires: 60, // 1 minute expiration
+    };
+
+    return new Promise((resolve, reject) => {
+        s3.createPresignedPost(params, (err, data) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(data);
+            }
+        });
+    });
+};
+
+export const filterByMonth = (arr, year, month) => {
+    return arr?.filter((item) => {
+        const date = new Date(item.LastModified);
+        return date.getFullYear() === year && date.getMonth() === month - 1; // month is 0-indexed
+    });
+};
+
+export const separateFiles = (files) => {
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+    const videoExtensions = ['mp4'];
+
+    const images = files.filter((file) => imageExtensions.includes(file.key.split('.').pop().toLowerCase()));
+
+    const videos = files.filter((file) => videoExtensions.includes(file.key.split('.').pop().toLowerCase()));
+
+    return { images, videos };
 };

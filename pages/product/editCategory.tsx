@@ -191,7 +191,7 @@ const EditCategory = () => {
         }
     };
 
-    const deleteImage = async (key) => {
+    const deleteImage = async () => {
         try {
             const res = await deleteImagesFromS3(selectedImg?.key);
             getMediaImage();
@@ -403,7 +403,8 @@ const EditCategory = () => {
                                                                 </div>
                                                                 <p className="mt-2 font-semibold">{selectedImg?.key}</p>
                                                                 <p className="text-sm">{moment(selectedImg?.LastModified).format('MMM d, yyyy')}</p>
-                                                                <p className="text-sm">{parseInt(selectedImg?.Size / 1024)} KB</p>
+                                                                <p className="text-sm">{(selectedImg?.Size / 1024).toFixed(2)} KB</p>
+
                                                                 {/* <p className="text-sm">1707 by 2560 pixels</p> */}
                                                                 <a href="#" className="text-danger underline" onClick={() => deleteImage()}>
                                                                     Delete permanently

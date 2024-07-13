@@ -290,7 +290,7 @@ const ProductAdd = () => {
     const [selectedUpsell, setSelectedUpsell] = useState([]);
     const [selectedCrosssell, setSelectedCrosssell] = useState([]);
     const [mediaImages, setMediaImages] = useState([]);
-    const [selectedImg, setSelectedImg] = useState({});
+    const [selectedImg, setSelectedImg] = useState(null);
     const [selectedImages, setSelectedImages] = useState([]);
     const longPressTimeout = useRef(null);
 
@@ -998,7 +998,7 @@ const ProductAdd = () => {
 
     const handleFileChange = async (e) => {
         try {
-            const presignedPostData = await generatePresignedPost(e.target.files[0]);
+            const presignedPostData:any = await generatePresignedPost(e.target.files[0]);
             console.log('Presigned POST data: ', presignedPostData);
 
             const formData = new FormData();

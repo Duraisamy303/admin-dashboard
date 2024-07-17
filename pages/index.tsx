@@ -29,6 +29,9 @@ import IconArrowForward from '@/components/Icon/IconArrowForward';
 import IconLoader from '@/components/Icon/IconLoader';
 import { sortBy } from 'lodash';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
+import QuickEdit from '@/components/quickEdit';
+import IconLog from '@/components/Icon/Menu/IconLog';
+import IconMenuReport from '@/components/Icon/Menu/IconMenuReport';
 
 const Index = () => {
     const PAGE_SIZE = 20;
@@ -58,6 +61,7 @@ const Index = () => {
     const [createVariant] = useMutation(CREATE_VARIANT);
     const [updateVariantList] = useMutation(UPDATE_VARIANT_LIST);
     const [updateMedatData] = useMutation(UPDATE_META_DATA);
+    const { refetch: refreshfetch } = useQuery(UPDATED_PRODUCT_PAGINATION);
 
     const tableRef = useRef(null);
 
@@ -99,6 +103,26 @@ const Index = () => {
         },
     });
 
+    const refresh = async () => {
+        try {
+            const { data } = await refreshfetch({
+                channel: 'india-channel',
+                first: PAGE_SIZE,
+                after: null,
+                search: '',
+            });
+            const products = data?.products?.edges || [];
+            setRecordsData(tableFormat(products));
+            setStartCursor(data?.products?.pageInfo?.startCursor || null);
+            setEndCursor(data?.products?.pageInfo?.endCursor || null);
+            setHasNextPage(data?.products?.pageInfo?.hasNextPage || false);
+            setHasPreviousPage(data?.products?.pageInfo?.hasPreviousPage || false);
+            Success('Product updated successfully');
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
     const [fetchNextPage] = useLazyQuery(UPDATED_PRODUCT_PAGINATION, {
         onCompleted: (data) => {
             const products = data?.products?.edges || [];
@@ -137,6 +161,7 @@ const Index = () => {
             sku: item.node.defaultVariant ? item.node.defaultVariant.sku : '-',
             tags: item.node.tags?.length > 0 ? item.node?.tags?.map((tag) => tag?.name).join(',') : '-',
             stock: checkStock(item.node.variants) ? 'In stock' : 'Out of stock',
+            id: item.node.id,
         }));
 
         return newData;
@@ -190,6 +215,7 @@ const Index = () => {
     };
 
     const handleSearchChange = (e) => {
+        console.log('handleSearchChange: ');
         setSearch(e);
         fetchLowStockList({
             variables: {
@@ -723,10 +749,12 @@ const Index = () => {
                             { accessor: 'stock', sortable: false },
                             { accessor: 'status', sortable: true },
                             { accessor: 'price', sortable: true },
-                            { accessor: 'categories', sortable: true,
+                            {
+                                accessor: 'categories',
+                                sortable: true,
 
-                                render: (row) => <div style={{ whiteSpace: 'normal', wordWrap: 'break-word', overflow: 'hidden', width: '200px' }}>{row.categories}</div>
-                             },
+                                render: (row) => <div style={{ whiteSpace: 'normal', wordWrap: 'break-word', overflow: 'hidden', width: '200px' }}>{row.categories}</div>,
+                            },
                             // {
                             //     accessor: 'tags',
                             //     sortable: true,
@@ -767,11 +795,25 @@ const Index = () => {
                                             <button type="button" className="flex hover:text-danger" onClick={() => DeleteProduct(row)}>
                                                 <IconTrashLines />
                                             </button>
+
+                                            <button type="button" className="flex" onClick={() => router.push(`/apps/product/log?id=${row.id}`)}>
+                                                <IconMenuReport />
+                                            </button>
                                         </div>
                                     </>
                                 ),
                             },
                         ]}
+                        rowExpansion={{
+                            collapseProps: {
+                                transitionDuration: 500,
+                                animateOpacity: false,
+                                transitionTimingFunction: 'ease-out',
+                            },
+                            allowMultiple: false,
+                            content: ({ record }) => <QuickEdit data={record} updateList={() => refresh()} />,
+                            // ...
+                        }}
                         highlightOnHover
                         totalRecords={recordsData?.length}
                         recordsPerPage={PAGE_SIZE}

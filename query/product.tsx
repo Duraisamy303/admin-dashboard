@@ -895,6 +895,1130 @@ export const CREATE_PAYMENT = gql`
     }
 `;
 
+export const CREATE_COUPEN = gql`
+    mutation VoucherCreate($input: VoucherInput!) {
+        voucherCreate(input: $input) {
+            errors {
+                ...DiscountError
+                voucherCodes
+                __typename
+            }
+            voucher {
+                ...Voucher
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment DiscountError on DiscountError {
+        code
+        field
+        channels
+        message
+        __typename
+    }
+
+    fragment Voucher on Voucher {
+        ...Metadata
+        id
+        name
+        startDate
+        endDate
+        usageLimit
+        type
+        discountValueType
+        countries {
+            code
+            country
+            __typename
+        }
+        minCheckoutItemsQuantity
+        channelListings {
+            id
+            channel {
+                id
+                name
+                currencyCode
+                __typename
+            }
+            discountValue
+            currency
+            minSpent {
+                amount
+                currency
+                __typename
+            }
+            __typename
+        }
+        __typename
+    }
+
+    fragment Metadata on ObjectWithMetadata {
+        metadata {
+            ...MetadataItem
+            __typename
+        }
+        privateMetadata {
+            ...MetadataItem
+            __typename
+        }
+        __typename
+    }
+
+    fragment MetadataItem on MetadataItem {
+        key
+        value
+        __typename
+    }
+`;
+
+export const ASSIGN_TO_COUPON = gql`
+    mutation VoucherCataloguesAdd(
+        $input: CatalogueInput!
+        $id: ID!
+        $after: String
+        $before: String
+        $first: Int
+        $last: Int
+        $includeProducts: Boolean!
+        $includeCollections: Boolean!
+        $includeCategories: Boolean!
+    ) {
+        voucherCataloguesAdd(id: $id, input: $input) {
+            errors {
+                ...DiscountError
+                __typename
+            }
+            voucher {
+                ...VoucherDetails
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment DiscountError on DiscountError {
+        code
+        field
+        channels
+        message
+        __typename
+    }
+
+    fragment VoucherDetails on Voucher {
+        ...Voucher
+        usageLimit
+        used
+        applyOncePerOrder
+        applyOncePerCustomer
+        onlyForStaff
+        singleUse
+        productsCount: products {
+            totalCount
+            __typename
+        }
+        collectionsCount: collections {
+            totalCount
+            __typename
+        }
+        categoriesCount: categories {
+            totalCount
+            __typename
+        }
+        products(after: $after, before: $before, first: $first, last: $last) @include(if: $includeProducts) {
+            edges {
+                node {
+                    id
+                    name
+                    productType {
+                        id
+                        name
+                        __typename
+                    }
+                    thumbnail {
+                        url
+                        __typename
+                    }
+                    channelListings {
+                        ...ChannelListingProductWithoutPricing
+                        __typename
+                    }
+                    __typename
+                }
+                __typename
+            }
+            pageInfo {
+                ...PageInfo
+                __typename
+            }
+            __typename
+        }
+        collections(after: $after, before: $before, first: $first, last: $last) @include(if: $includeCollections) {
+            edges {
+                node {
+                    id
+                    name
+                    products {
+                        totalCount
+                        __typename
+                    }
+                    __typename
+                }
+                __typename
+            }
+            pageInfo {
+                ...PageInfo
+                __typename
+            }
+            __typename
+        }
+        categories(after: $after, before: $before, first: $first, last: $last) @include(if: $includeCategories) {
+            edges {
+                node {
+                    id
+                    name
+                    products {
+                        totalCount
+                        __typename
+                    }
+                    __typename
+                }
+                __typename
+            }
+            pageInfo {
+                ...PageInfo
+                __typename
+            }
+            __typename
+        }
+        __typename
+    }
+
+    fragment Voucher on Voucher {
+        ...Metadata
+        id
+        name
+        startDate
+        endDate
+        usageLimit
+        type
+        discountValueType
+        countries {
+            code
+            country
+            __typename
+        }
+        minCheckoutItemsQuantity
+        channelListings {
+            id
+            channel {
+                id
+                name
+                currencyCode
+                __typename
+            }
+            discountValue
+            currency
+            minSpent {
+                amount
+                currency
+                __typename
+            }
+            __typename
+        }
+        __typename
+    }
+
+    fragment Metadata on ObjectWithMetadata {
+        metadata {
+            ...MetadataItem
+            __typename
+        }
+        privateMetadata {
+            ...MetadataItem
+            __typename
+        }
+        __typename
+    }
+
+    fragment MetadataItem on MetadataItem {
+        key
+        value
+        __typename
+    }
+
+    fragment ChannelListingProductWithoutPricing on ProductChannelListing {
+        isPublished
+        publicationDate
+        isAvailableForPurchase
+        availableForPurchase
+        visibleInListings
+        channel {
+            id
+            name
+            currencyCode
+            __typename
+        }
+        __typename
+    }
+
+    fragment PageInfo on PageInfo {
+        endCursor
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        __typename
+    }
+`;
+
+export const REMOVE_TO_COUPON = gql`
+    mutation VoucherCataloguesRemove(
+        $input: CatalogueInput!
+        $id: ID!
+        $after: String
+        $before: String
+        $first: Int
+        $last: Int
+        $includeProducts: Boolean!
+        $includeCollections: Boolean!
+        $includeCategories: Boolean!
+    ) {
+        voucherCataloguesRemove(id: $id, input: $input) {
+            errors {
+                ...DiscountError
+                __typename
+            }
+            voucher {
+                ...VoucherDetails
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment DiscountError on DiscountError {
+        code
+        field
+        channels
+        message
+        __typename
+    }
+
+    fragment VoucherDetails on Voucher {
+        ...Voucher
+        usageLimit
+        used
+        applyOncePerOrder
+        applyOncePerCustomer
+        onlyForStaff
+        singleUse
+        productsCount: products {
+            totalCount
+            __typename
+        }
+        collectionsCount: collections {
+            totalCount
+            __typename
+        }
+        categoriesCount: categories {
+            totalCount
+            __typename
+        }
+        products(after: $after, before: $before, first: $first, last: $last) @include(if: $includeProducts) {
+            edges {
+                node {
+                    id
+                    name
+                    productType {
+                        id
+                        name
+                        __typename
+                    }
+                    thumbnail {
+                        url
+                        __typename
+                    }
+                    channelListings {
+                        ...ChannelListingProductWithoutPricing
+                        __typename
+                    }
+                    __typename
+                }
+                __typename
+            }
+            pageInfo {
+                ...PageInfo
+                __typename
+            }
+            __typename
+        }
+        collections(after: $after, before: $before, first: $first, last: $last) @include(if: $includeCollections) {
+            edges {
+                node {
+                    id
+                    name
+                    products {
+                        totalCount
+                        __typename
+                    }
+                    __typename
+                }
+                __typename
+            }
+            pageInfo {
+                ...PageInfo
+                __typename
+            }
+            __typename
+        }
+        categories(after: $after, before: $before, first: $first, last: $last) @include(if: $includeCategories) {
+            edges {
+                node {
+                    id
+                    name
+                    products {
+                        totalCount
+                        __typename
+                    }
+                    __typename
+                }
+                __typename
+            }
+            pageInfo {
+                ...PageInfo
+                __typename
+            }
+            __typename
+        }
+        __typename
+    }
+
+    fragment Voucher on Voucher {
+        ...Metadata
+        id
+        name
+        startDate
+        endDate
+        usageLimit
+        type
+        discountValueType
+        countries {
+            code
+            country
+            __typename
+        }
+        minCheckoutItemsQuantity
+        channelListings {
+            id
+            channel {
+                id
+                name
+                currencyCode
+                __typename
+            }
+            discountValue
+            currency
+            minSpent {
+                amount
+                currency
+                __typename
+            }
+            __typename
+        }
+        __typename
+    }
+
+    fragment Metadata on ObjectWithMetadata {
+        metadata {
+            ...MetadataItem
+            __typename
+        }
+        privateMetadata {
+            ...MetadataItem
+            __typename
+        }
+        __typename
+    }
+
+    fragment MetadataItem on MetadataItem {
+        key
+        value
+        __typename
+    }
+
+    fragment ChannelListingProductWithoutPricing on ProductChannelListing {
+        isPublished
+        publicationDate
+        isAvailableForPurchase
+        availableForPurchase
+        visibleInListings
+        channel {
+            id
+            name
+            currencyCode
+            __typename
+        }
+        __typename
+    }
+
+    fragment PageInfo on PageInfo {
+        endCursor
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        __typename
+    }
+`;
+
+export const COUPON_LIST = gql`
+    query VoucherList($after: String, $before: String, $first: Int, $last: Int, $filter: VoucherFilterInput, $sort: VoucherSortingInput, $channel: String) {
+        vouchers(after: $after, before: $before, first: $first, last: $last, filter: $filter, sortBy: $sort, channel: $channel) {
+            edges {
+                node {
+                    ...Voucher
+                    __typename
+                }
+                __typename
+            }
+            pageInfo {
+                ...PageInfo
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment Voucher on Voucher {
+        ...Metadata
+        id
+        name
+        startDate
+        endDate
+        usageLimit
+        type
+        discountValueType
+        countries {
+            code
+            country
+            __typename
+        }
+        minCheckoutItemsQuantity
+        channelListings {
+            id
+            channel {
+                id
+                name
+                currencyCode
+                __typename
+            }
+            discountValue
+            currency
+            minSpent {
+                amount
+                currency
+                __typename
+            }
+            __typename
+        }
+        __typename
+    }
+
+    fragment Metadata on ObjectWithMetadata {
+        metadata {
+            ...MetadataItem
+            __typename
+        }
+        privateMetadata {
+            ...MetadataItem
+            __typename
+        }
+        __typename
+    }
+
+    fragment MetadataItem on MetadataItem {
+        key
+        value
+        __typename
+    }
+
+    fragment PageInfo on PageInfo {
+        endCursor
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        __typename
+    }
+`;
+
+export const COUPEN_DETAILS = gql`
+    query VoucherDetails($id: ID!, $after: String, $before: String, $first: Int, $last: Int, $includeProducts: Boolean!, $includeCollections: Boolean!, $includeCategories: Boolean!) {
+        voucher(id: $id) {
+            ...VoucherDetails
+            metadata {
+                key
+                value
+            }
+            __typename
+            excludeCategories(first: 500) {
+                edges {
+                    node {
+                        backgroundImageUrl
+                        name
+                        id
+                    }
+                }
+            }
+        }
+    }
+
+    fragment VoucherDetails on Voucher {
+        ...Voucher
+        usageLimit
+        used
+        applyOncePerOrder
+        applyOncePerCustomer
+        onlyForStaff
+        singleUse
+        productsCount: products {
+            totalCount
+            __typename
+        }
+        collectionsCount: collections {
+            totalCount
+            __typename
+        }
+        categoriesCount: categories {
+            totalCount
+            __typename
+        }
+        products(after: $after, before: $before, first: $first, last: $last) @include(if: $includeProducts) {
+            edges {
+                node {
+                    id
+                    name
+                    productType {
+                        id
+                        name
+                        __typename
+                    }
+                    thumbnail {
+                        url
+                        __typename
+                    }
+                    channelListings {
+                        ...ChannelListingProductWithoutPricing
+                        __typename
+                    }
+                    __typename
+                }
+                __typename
+            }
+            pageInfo {
+                ...PageInfo
+                __typename
+            }
+            __typename
+        }
+        collections(after: $after, before: $before, first: $first, last: $last) @include(if: $includeCollections) {
+            edges {
+                node {
+                    id
+                    name
+                    products {
+                        totalCount
+                        __typename
+                    }
+                    __typename
+                }
+                __typename
+            }
+            pageInfo {
+                ...PageInfo
+                __typename
+            }
+            __typename
+        }
+        categories(after: $after, before: $before, first: $first, last: $last) @include(if: $includeCategories) {
+            edges {
+                node {
+                    id
+                    name
+                    products {
+                        totalCount
+                        __typename
+                    }
+                    __typename
+                }
+                __typename
+            }
+            pageInfo {
+                ...PageInfo
+                __typename
+            }
+            __typename
+        }
+        __typename
+    }
+
+    fragment Voucher on Voucher {
+        id
+        name
+        startDate
+        endDate
+        usageLimit
+        type
+        discountValueType
+        countries {
+            code
+            country
+            __typename
+        }
+        minCheckoutItemsQuantity
+        channelListings {
+            id
+            channel {
+                id
+                name
+                currencyCode
+                __typename
+            }
+            discountValue
+            currency
+            minSpent {
+                amount
+                currency
+                __typename
+            }
+            __typename
+        }
+        __typename
+    }
+
+    fragment ChannelListingProductWithoutPricing on ProductChannelListing {
+        isPublished
+        publicationDate
+        isAvailableForPurchase
+        availableForPurchase
+        visibleInListings
+        channel {
+            id
+            name
+            currencyCode
+            __typename
+        }
+        __typename
+    }
+
+    fragment PageInfo on PageInfo {
+        endCursor
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        __typename
+    }
+`;
+
+export const COUPON_CODES = gql`
+    query VoucherCodes($id: ID!, $after: String, $before: String, $first: Int, $last: Int) {
+        voucher(id: $id) {
+            codes(first: $first, last: $last, before: $before, after: $after) {
+                edges {
+                    node {
+                        ...VoucherCode
+                        __typename
+                    }
+                    __typename
+                }
+                pageInfo {
+                    ...PageInfo
+                    __typename
+                }
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment VoucherCode on VoucherCode {
+        code
+        used
+        isActive
+        __typename
+    }
+
+    fragment PageInfo on PageInfo {
+        endCursor
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        __typename
+    }
+`;
+
+export const COUPON_META_DATA = gql`
+    mutation UpdateMetadata($id: ID!, $input: [MetadataInput!]!, $keysToDelete: [String!]!) {
+        updateMetadata(id: $id, input: $input) {
+            errors {
+                ...MetadataError
+                __typename
+            }
+            item {
+                ...Metadata
+                ... on Node {
+                    id
+                    __typename
+                }
+                __typename
+            }
+            __typename
+        }
+        deleteMetadata(id: $id, keys: $keysToDelete) {
+            errors {
+                ...MetadataError
+                __typename
+            }
+            item {
+                ...Metadata
+                ... on Node {
+                    id
+                    __typename
+                }
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment MetadataError on MetadataError {
+        code
+        field
+        message
+        __typename
+    }
+
+    fragment Metadata on ObjectWithMetadata {
+        metadata {
+            ...MetadataItem
+            __typename
+        }
+        privateMetadata {
+            ...MetadataItem
+            __typename
+        }
+        __typename
+    }
+
+    fragment MetadataItem on MetadataItem {
+        key
+        value
+        __typename
+    }
+`;
+
+export const COUPON_CHANNEL_UPDATE = gql`
+    mutation VoucherChannelListingUpdate($id: ID!, $input: VoucherChannelListingInput!) {
+        voucherChannelListingUpdate(id: $id, input: $input) {
+            errors {
+                ...DiscountError
+                __typename
+            }
+            voucher {
+                ...Voucher
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment DiscountError on DiscountError {
+        code
+        field
+        channels
+        message
+        __typename
+    }
+
+    fragment Voucher on Voucher {
+        ...Metadata
+        id
+        name
+        startDate
+        endDate
+        usageLimit
+        type
+        discountValueType
+        countries {
+            code
+            country
+            __typename
+        }
+        minCheckoutItemsQuantity
+        channelListings {
+            id
+            channel {
+                id
+                name
+                currencyCode
+                __typename
+            }
+            discountValue
+            currency
+            minSpent {
+                amount
+                currency
+                __typename
+            }
+            __typename
+        }
+        __typename
+    }
+
+    fragment Metadata on ObjectWithMetadata {
+        metadata {
+            ...MetadataItem
+            __typename
+        }
+        privateMetadata {
+            ...MetadataItem
+            __typename
+        }
+        __typename
+    }
+
+    fragment MetadataItem on MetadataItem {
+        key
+        value
+        __typename
+    }
+`;
+
+export const SEARCH_CATEGORIES = gql`
+    query SearchCategories($after: String, $first: Int!, $query: String!) {
+        search: categories(after: $after, first: $first, filter: { search: $query }) {
+            edges {
+                node {
+                    id
+                    name
+                    __typename
+                }
+                __typename
+            }
+            pageInfo {
+                ...PageInfo
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment PageInfo on PageInfo {
+        endCursor
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        __typename
+    }
+`;
+
+export const SEARCH_PRODUCT = gql`
+    query SearchProducts($after: String, $first: Int!, $query: String!, $channel: String) {
+        search: products(after: $after, first: $first, filter: { search: $query }, channel: $channel) {
+            edges {
+                node {
+                    id
+                    name
+                    thumbnail {
+                        url
+                        __typename
+                    }
+                    variants {
+                        id
+                        name
+                        sku
+                        channelListings {
+                            channel {
+                                id
+                                isActive
+                                name
+                                currencyCode
+                                __typename
+                            }
+                            price {
+                                amount
+                                currency
+                                __typename
+                            }
+                            __typename
+                        }
+                        __typename
+                    }
+                    collections {
+                        id
+                        __typename
+                    }
+                    __typename
+                }
+                __typename
+            }
+            pageInfo {
+                ...PageInfo
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment PageInfo on PageInfo {
+        endCursor
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        __typename
+    }
+`;
+
+export const UPDATE_COUPON = gql`
+    mutation VoucherUpdate($input: VoucherInput!, $id: ID!) {
+        voucherUpdate(id: $id, input: $input) {
+            errors {
+                ...DiscountError
+                voucherCodes
+                __typename
+            }
+            voucher {
+                ...Voucher
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment DiscountError on DiscountError {
+        code
+        field
+        channels
+        message
+        __typename
+    }
+
+    fragment Voucher on Voucher {
+        ...Metadata
+        id
+        name
+        startDate
+        endDate
+        usageLimit
+        type
+        discountValueType
+        countries {
+            code
+            country
+            __typename
+        }
+        minCheckoutItemsQuantity
+        channelListings {
+            id
+            channel {
+                id
+                name
+                currencyCode
+                __typename
+            }
+            discountValue
+            currency
+            minSpent {
+                amount
+                currency
+                __typename
+            }
+            __typename
+        }
+        __typename
+    }
+
+    fragment Metadata on ObjectWithMetadata {
+        metadata {
+            ...MetadataItem
+            __typename
+        }
+        privateMetadata {
+            ...MetadataItem
+            __typename
+        }
+        __typename
+    }
+
+    fragment MetadataItem on MetadataItem {
+        key
+        value
+        __typename
+    }
+`;
+
+export const COUPON_DELETE = gql`
+    mutation VoucherBulkDelete($ids: [ID!]!) {
+        voucherBulkDelete(ids: $ids) {
+            errors {
+                ...VoucherBulkDeleteError
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment VoucherBulkDeleteError on DiscountError {
+        code
+        field
+        message
+        __typename
+    }
+`;
+
+export const PRODUCT_LOG = gql`
+    query ProductLogs($productid: ID!, $first: Int, $after: String, $last: Int, $before: String) {
+        productlogs(id: $productid, first: $first, after: $after, last: $last, before: $before) {
+            edges {
+                node {
+                    log
+                    date
+                }
+            }
+            pageInfo {
+                hasNextPage
+                hasPreviousPage
+                startCursor
+                endCursor
+            }
+        }
+    }
+`;
+
+export const ABANDONT_CART_LIST = gql`
+    query AbandonedCarts($first: Int, $after: String, $last: Int, $before: String) {
+        abandonedCarts(first: $first, after: $after, last: $last, before: $before) {
+            edges {
+                node {
+                    id
+                    logNote
+                    time
+                    customer {
+                        email
+                        firstName
+                        lastName
+                    }
+                }
+            }
+            pageInfo {
+                endCursor
+                startCursor
+                hasNextPage
+                hasPreviousPage
+            }
+        }
+    }
+`;
+
 export const UPDATE_PAYMENT = gql`
     mutation PaymentGatewayCreate($id: ID!, $input: PaymentGatewayInput!) {
         paymentGatewayUpdate(id: $id, input: $input) {
@@ -14271,6 +15395,7 @@ export const PARENT_CATEGORY_LIST = gql`
                 node {
                     id
                     name
+                    level
                     description
                     children(first: 100) {
                         edges {
@@ -15133,6 +16258,188 @@ export const EXPORT_LIST = gql`
                     status
                     paymentStatus
                 }
+            }
+        }
+    }
+`;
+
+export const RELATED_PRODUCT = gql`
+    query MyQuery($id: ID!, $channel: String!) {
+        category(id: $id) {
+            id
+            products(channel: $channel, first: 10) {
+                edges {
+                    node {
+                        id
+                        name
+                        slug
+                        images {
+                            url
+                            alt
+                        }
+                        thumbnail(size: 1024, format: WEBP) {
+                            url
+                            alt
+                        }
+                        variants {
+                            id
+                        }
+                        pricing {
+                            priceRange {
+                                start {
+                                    gross {
+                                        amount
+                                        currency
+                                    }
+                                }
+                                stop {
+                                    gross {
+                                        amount
+                                        currency
+                                    }
+                                }
+                            }
+                            discount {
+                                currency
+                            }
+                        }
+                        description
+                        defaultVariant {
+                            id
+                            quantityAvailable
+                            costPrice
+                        }
+                        category {
+                            id
+                            name
+                        }
+                        metadata {
+                            key
+                            value
+                        }
+                    }
+                }
+            }
+        }
+    }
+`;
+
+export const YOU_MAY_LIKE = gql`
+    query MyQuery($productId: ID!, $channel: String!) {
+        product(id: $productId, channel: $channel) {
+            id
+            name
+            slug
+            pricing {
+                priceRange {
+                    start {
+                        gross {
+                            amount
+                            currency
+                        }
+                    }
+                    stop {
+                        gross {
+                            amount
+                            currency
+                        }
+                    }
+                }
+                discount {
+                    currency
+                }
+            }
+            category {
+                id
+                name
+            }
+            thumbnail(size: 1024, format: WEBP) {
+                url
+                alt
+            }
+            images {
+                url
+                alt
+            }
+            variants {
+                id
+                quantityAvailable
+                name
+                pricing {
+                    price {
+                        gross {
+                            amount
+                            currency
+                        }
+                    }
+                    costPrice {
+                        gross {
+                            amount
+                            currency
+                        }
+                    }
+                }
+                sku
+            }
+            created
+            description
+            images {
+                url
+            }
+            defaultVariant {
+                id
+                name
+                quantityAvailable
+                sku
+                costPrice
+            }
+            metadata {
+                key
+                value
+            }
+            tags {
+                name
+                id
+            }
+            productFinish {
+                id
+                name
+            }
+            productstyle {
+                id
+                name
+            }
+            prouctDesign {
+                id
+                name
+            }
+            productStoneType {
+                id
+                name
+            }
+            nextProduct
+            previousProduct
+            productSize {
+                id
+                name
+            }
+            productStonecolor {
+                id
+                name
+            }
+            productItemtype {
+                id
+                name
+            }
+            getUpsells {
+                name
+                productId
+                id
+            }
+            getCrosssells {
+                id
+                name
+                productId
             }
         }
     }

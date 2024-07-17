@@ -674,7 +674,7 @@ export const generatePresignedPost = (file) => {
             // 'x-amz-meta-description': metadata.description, // Description metadata
         },
         Conditions: [
-            ['content-length-range', 0, 1048576], // 1 MB limit
+            ['content-length-range', 0, 10485760], // 10 MB limit
             ['starts-with', '$Content-Type', ''], // Allow any content type
             ['eq', '$key', file.name],
             // ['eq', '$x-amz-meta-alt-text', metadata.altText], // Validate Alternative Text
@@ -744,4 +744,62 @@ export const separateFiles = (files) => {
     const videos = files.filter((file) => videoExtensions.includes(file.key.split('.').pop().toLowerCase()));
 
     return { images, videos };
+};
+
+export const generateRandomCode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+};
+
+export const dropdown = (arr: any[]) => {
+    const array = arr?.map((item) => ({ value: item, label: item }));
+    return array;
+};
+
+export const formatDateTimeLocal = (dateString) => {
+    const date: any = new Date(dateString);
+    const tzOffset = date.getTimezoneOffset() * 60000; // Offset in milliseconds
+    const localISOTime = new Date(date - tzOffset).toISOString().slice(0, 16);
+    return localISOTime;
+};
+
+export const matchData = (data, ids) => {
+    const result = [];
+
+    Object.keys(ids).forEach((key) => {
+        ids[key].forEach((id) => {
+            const edges = data[key]?.edges;
+            if (edges) {
+                const match = edges.find((edge) => edge.node.id === id);
+                if (match) {
+                    result.push({
+                        type: key,
+                        id: match.node.id,
+                        name: match.node.name,
+                    });
+                }
+            }
+        });
+    });
+
+    return result;
+};
+
+export const USDAmt = 0.013;
+
+export const DateToStringFormat = (inputDate, day = 9, hour = 16, minute = 9, second = 0, millisecond = 0, timezoneOffset = '+05:30') => {
+    const date = new Date(inputDate);
+    
+    date.setDate(day);
+    date.setHours(hour);
+    date.setMinutes(minute);
+    date.setSeconds(second);
+    date.setMilliseconds(millisecond);
+
+    const formattedDatetime = date.toISOString().slice(0, 19) + timezoneOffset;
+    return formattedDatetime;
 };

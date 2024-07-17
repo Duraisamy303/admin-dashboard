@@ -51,7 +51,6 @@ const App = ({ Component, pageProps }: AppPropsWithLayout) => {
 
     useEffect(() => {
         const token = localStorage.getItem('token');
-        console.log('✌️token --->', token);
     }, []);
     return (
         <ApolloProvider client={client}>

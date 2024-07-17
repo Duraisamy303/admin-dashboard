@@ -68,6 +68,7 @@ import Modal from '@/components/Modal';
 import IconLoader from '@/components/Icon/IconLoader';
 import moment from 'moment';
 import axios from 'axios';
+import { productPreview } from '@/store/authConfigSlice';
 const ProductAdd = () => {
     const router = useRouter();
     const isRtl = useSelector((state: any) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
@@ -82,6 +83,7 @@ const ProductAdd = () => {
     const [copied, setCopied] = useState(false);
 
     const [mediaTab, setMediaTab] = useState(0);
+    const [keyword, setKeyword] = useState('');
 
     const [isMounted, setIsMounted] = useState(false); //tabs
 
@@ -460,6 +462,33 @@ const ProductAdd = () => {
         name: Yup.string().required('Name is required'),
     });
 
+    const previewClick = async () => {
+        const savedContent = await editorInstance?.save();
+        const data = {
+            name: productName,
+            slug,
+            seoTittle,
+            seoDesc,
+            shortDescription,
+            description: savedContent,
+            category: selectedCat,
+            variants,
+            collection: selectedCollection,
+            tags: selectedTag,
+            upsell: selectedUpsell,
+            crossell: selectedCrosssell,
+            publish,
+            attibutes: selectedValues,
+            menuOrder,
+            label,
+            image: imageUrl,
+            productId: '',
+        };
+        dispatch(productPreview(data));
+        router.push('/apps/product/preview');
+        console.log('data: ', data);
+    };
+
     const CreateProduct = async () => {
         try {
             const savedContent = await editorInstance.save();
@@ -524,8 +553,8 @@ const ProductAdd = () => {
             const variantErrors = variants?.map((variant) => {
                 const errors: any = {};
                 if (!variant.sku) errors.sku = 'SKU cannot be empty';
-                if (variant.quantity <= 0 || isNaN(variant.quantity)) errors.quantity = 'Quantity must be a valid number and greater than 0';
-                if (variant.regularPrice <= 0 || isNaN(variant.regularPrice)) errors.regularPrice = 'Regular Price must be a valid number and greater than 0';
+                // if (variant.quantity <= 0 || isNaN(variant.quantity)) errors.quantity = 'Quantity must be a valid number and greater than 0';
+                // if (variant.regularPrice <= 0 || isNaN(variant.regularPrice)) errors.regularPrice = 'Regular Price must be a valid number and greater than 0';
                 if (!variant.stackMgmt) errors.stackMgmt = 'Check Stack Management';
                 setCreateLoading(false);
 
@@ -730,10 +759,10 @@ const ProductAdd = () => {
                 key: 'short_description',
                 value: shortDescription,
             });
-            // input.push({
-            //     key: 'description',
-            //     value: description,
-            // });
+            input.push({
+                key: 'keyword',
+                value: keyword,
+            });
             if (label?.value) {
                 input.push({
                     key: 'label',
@@ -998,7 +1027,7 @@ const ProductAdd = () => {
 
     const handleFileChange = async (e) => {
         try {
-            const presignedPostData:any = await generatePresignedPost(e.target.files[0]);
+            const presignedPostData: any = await generatePresignedPost(e.target.files[0]);
             console.log('Presigned POST data: ', presignedPostData);
 
             const formData = new FormData();
@@ -1054,6 +1083,7 @@ const ProductAdd = () => {
         clearTimeout(longPressTimeout.current);
         setIsLongPress(false);
     };
+
     return (
         <div>
             <div className="mt-6">
@@ -1112,7 +1142,7 @@ const ProductAdd = () => {
                         </div>
                         <div className="panel mb-5">
                             <label htmlFor="editor" className="block text-sm font-medium text-gray-700">
-                                Product description
+                                Product Description
                             </label>
                             <div className="" style={{ height: '250px', overflow: 'scroll' }}>
                                 <div ref={editorRef} className="border border-r-8 border-gray-200"></div>
@@ -1444,6 +1474,15 @@ const ProductAdd = () => {
                                 <Select placeholder="Select an label" options={options} value={label} onChange={(val: any) => setLabel(val)} isSearchable={true} />
                             </div>
                         </div>
+
+                        <div className="panel mt-5">
+                            <div className="mb-5 border-b border-gray-200 pb-2">
+                                <h5 className=" block text-lg font-medium text-gray-700">Keyword</h5>
+                            </div>
+                            <div className="mb-5">
+                                <textarea id="ctnTextarea" value={keyword} onChange={(e) => setKeyword(e.target.value)} rows={3} className="form-textarea mt-5" placeholder="Enter Keyword"></textarea>
+                            </div>
+                        </div>
                     </div>
                     <div className="col-span-12 md:col-span-3">
                         <div className="panel order-4 md:order-1">
@@ -1460,10 +1499,20 @@ const ProductAdd = () => {
                                     </select>
                                 </div>
                             </div>
-
-                            <button type="submit" className="btn btn-primary w-full" onClick={() => CreateProduct()}>
-                                {createLoading ? <IconLoader /> : 'Create'}
-                            </button>
+                            <div className="flex gap-5">
+                                <button type="submit" className="btn btn-primary w-full" onClick={() => CreateProduct()}>
+                                    {createLoading ? <IconLoader /> : 'Create'}
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="btn btn-outline-primary w-full"
+                                    onClick={() => {
+                                        previewClick();
+                                    }}
+                                >
+                                    {'Preview'}
+                                </button>
+                            </div>
                         </div>
 
                         <div className="panel order-2 mt-5 md:order-2">

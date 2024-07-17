@@ -361,6 +361,23 @@ const Sidebar = () => {
                                             </div>
                                         </Link>
                                     </li>
+                                    <li className="nav-item">
+                                        <Link href="/coupon" className="group">
+                                            <div className="flex items-center">
+                                                <IconMenuChat className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Coupons')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+
+                                    <li className="nav-item">
+                                        <Link href="/abandoneCart" className="group">
+                                            <div className="flex items-center">
+                                                <IconMenuChat className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Abandoned Carts')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
 
                                     {/* <li className="nav-item">
                                         <Link href="/shipping/shipping" className="group">

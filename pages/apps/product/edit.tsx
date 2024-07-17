@@ -82,6 +82,7 @@ import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import IconLoader from '@/components/Icon/IconLoader';
 import moment from 'moment';
 import axios from 'axios';
+import { productPreview } from '@/store/authConfigSlice';
 const ProductEdit = (props: any) => {
     const router = useRouter();
 
@@ -110,7 +111,7 @@ const ProductEdit = (props: any) => {
     const [selectedUpsell, setSelectedUpsell] = useState([]);
     const [selectedCrosssell, setSelectedCrosssell] = useState([]);
     const [mediaDate, setMediaDate] = useState('all');
-
+    const [keyword, setKeyword] = useState('');
     // ------------------------------------------New Data--------------------------------------------
 
     const [productName, setProductName] = useState('');
@@ -327,6 +328,7 @@ const ProductEdit = (props: any) => {
             if (productDetails) {
                 if (productDetails && productDetails?.product) {
                     const data = productDetails?.product;
+                    console.log('productDetails: ', data);
                     setProductData(data);
                     setSlug(data?.slug);
                     setSeoTittle(data?.seoTitle);
@@ -365,8 +367,12 @@ const ProductEdit = (props: any) => {
                     const shortDesc = getValueByKey(data?.metadata, 'short_description');
                     setShortDescription(shortDesc);
 
+                    const keywords = getValueByKey(data?.metadata, 'keyword');
+                    setKeyword(keywords);
+
                     const label = getValueByKey(data?.metadata, 'label');
                     setLabel({ value: label, label: label });
+
                     const desc = getValueByKey(data?.metadata, 'description');
                     setDescription(desc);
 
@@ -723,14 +729,14 @@ const ProductEdit = (props: any) => {
                             errors.sku = 'SKU cannot be empty';
                             hasError = true;
                         }
-                        if (variant.quantity <= 0 || isNaN(variant.quantity)) {
-                            errors.quantity = 'Quantity must be a valid number and greater than 0';
-                            hasError = true;
-                        }
-                        if (variant.regularPrice <= 0 || isNaN(variant.regularPrice)) {
-                            errors.regularPrice = 'Regular Price must be a valid number and greater than 0';
-                            hasError = true;
-                        }
+                        // if (variant.quantity <= 0 || isNaN(variant.quantity)) {
+                        //     errors.quantity = 'Quantity must be a valid number and greater than 0';
+                        //     hasError = true;
+                        // }
+                        // if (variant.regularPrice <= 0 || isNaN(variant.regularPrice)) {
+                        //     errors.regularPrice = 'Regular Price must be a valid number and greater than 0';
+                        //     hasError = true;
+                        // }
                         if (!variant.stackMgmt) {
                             errors.stackMgmt = 'Check Stack Management';
                             hasError = true;
@@ -938,6 +944,11 @@ const ProductEdit = (props: any) => {
                     value: shortDescription ? shortDescription : '',
                 });
             }
+
+            input.push({
+                key: 'keyword',
+                value: keyword,
+            });
             if (label?.value) {
                 input.push({
                     key: 'label',
@@ -1321,6 +1332,33 @@ const ProductEdit = (props: any) => {
         } else {
             getMediaImage();
         }
+    };
+
+    const previewClick = async () => {
+        const savedContent = await editorInstance.save();
+        const data = {
+            name: productName,
+            slug,
+            seoTittle,
+            seoDesc,
+            shortDescription,
+            description: savedContent,
+            category: selectedCat,
+            variants,
+            collection: selectedCollection,
+            tags: selectedTag,
+            upsell: selectedUpsell,
+            crossell: selectedCrosssell,
+            publish,
+            attibutes: selectedValues,
+            menuOrder,
+            label,
+            image: imageUrl,
+            productId: id,
+        };
+        dispatch(productPreview(data));
+        router.push('/apps/product/preview');
+        console.log('data: ', data);
     };
 
     return (
@@ -1914,6 +1952,14 @@ const ProductEdit = (props: any) => {
                                 <Select placeholder="Select an label" options={options} value={label} onChange={(val) => setLabel(val)} isSearchable={true} />
                             </div>
                         </div>
+                        <div className="panel mt-5">
+                            <div className="mb-5 border-b border-gray-200 pb-2">
+                                <h5 className=" block text-lg font-medium text-gray-700">Keyword</h5>
+                            </div>
+                            <div className="mb-5">
+                                <textarea id="ctnTextarea" value={keyword} onChange={(e) => setKeyword(e.target.value)} rows={3} className="form-textarea mt-5" placeholder="Enter Keyword"></textarea>
+                            </div>
+                        </div>
 
                         {/* <div className="panel mb-5">
                             <div className="grid grid-cols-12 gap-4">
@@ -1959,10 +2005,20 @@ const ProductEdit = (props: any) => {
                                     </select>
                                 </div>
                             </div>
-
-                            <button type="submit" className="btn btn-primary w-full " onClick={() => updateProducts()}>
-                                {updateLoading ? <IconLoader  className="mr-2 h-4 w-4 animate-spin" /> : 'Update'}
-                            </button>
+                            <div className="flex gap-5">
+                                <button type="submit" className="btn btn-primary w-full " onClick={() => updateProducts()}>
+                                    {updateLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Update'}
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="btn btn-outline-primary w-full"
+                                    onClick={() => {
+                                        previewClick();
+                                    }}
+                                >
+                                    {'Preview'}
+                                </button>
+                            </div>
                         </div>
 
                         <div className="panel mt-5">

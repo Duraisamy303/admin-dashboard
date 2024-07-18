@@ -12,8 +12,8 @@ const ProductImport = () => {
     const [state, setState] = useSetState({
         loading: false,
         file: null,
-        updateProducts: false,
         errors: [],
+        checked: { update_products: false, update_menu_order: false },
     });
 
     const fileInputRef = useRef(null);
@@ -33,14 +33,21 @@ const ProductImport = () => {
             return;
         }
 
+        if (getCheckedName() == undefined) {
+            Failure('Please select updated products type');
+            return;
+        }
+
         setState({ loading: true });
         console.log('state.file: ', state.file);
+        console.log('getCheckedName(): ', getCheckedName());
 
         try {
             const token = localStorage.getItem('token');
 
             let formData = new FormData();
-            formData.append('update_products', state.updateProducts ? 'update_products' : '');
+            //update_menu_order
+            formData.append('update_products', getCheckedName());
             formData.append('excel', state.file);
             console.log('formData: ', formData);
 
@@ -72,6 +79,19 @@ const ProductImport = () => {
         }
     };
 
+    const handleCheckboxChange = (e) => {
+        const { name, checked } = e.target;
+        setState({ checked: { [name]: checked } });
+        // setChecked({  [name]: checked });
+    };
+
+    const getCheckedName = () => {
+        let val = '';
+        val = Object.keys(state.checked).find((key) => state.checked[key]);
+        console.log("val: ", val);
+        return val;
+    };
+
     return (
         <div>
             <div className="panel mb-5 flex items-center justify-between gap-3 p-5 ">
@@ -88,15 +108,29 @@ const ProductImport = () => {
                             onChange={handleFileChange}
                         />
                     </div>
-                    <div className="mt-5 flex items-center gap-3">
-                        <input
-                            type="checkbox"
-                            checked={state.updateProducts}
-                            onChange={(e) => setState({ updateProducts: e.target.checked })}
-                            className="form-checkbox border-white-light dark:border-white-dark ltr:mr-0 rtl:ml-0"
-                        />
-                        <h3 className="text-md font-semibold dark:text-white-light">Update Products</h3>
+                    <div className="mt-5 flex  gap-3">
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="checkbox"
+                                name="update_products"
+                                checked={state.checked.update_products}
+                                onChange={handleCheckboxChange}
+                                className="form-checkbox border-white-light dark:border-white-dark ltr:mr-0 rtl:ml-0"
+                            />
+                            <h3 className="text-md font-semibold dark:text-white-light">Update Products</h3>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="checkbox"
+                                name="update_menu_order"
+                                checked={state.checked.update_menu_order}
+                                onChange={handleCheckboxChange}
+                                className="form-checkbox border-white-light dark:border-white-dark ltr:mr-0 rtl:ml-0"
+                            />
+                            <h3 className="text-md font-semibold dark:text-white-light">Update Menu Order</h3>
+                        </div>
                     </div>
+
                     <div className="mt-5 flex gap-5">
                         <div className="">
                             {state.loading ? (
@@ -116,7 +150,7 @@ const ProductImport = () => {
                                 className="btn btn-primary"
                                 onClick={() => {
                                     fileInputRef.current.value = '';
-                                    setState({ errors: {}, updateProducts: false, file: null });
+                                    setState({ errors: {}, checked: { update_products: false, update_menu_order: false }, file: null });
                                 }}
                             >
                                 Reset

@@ -12127,7 +12127,7 @@ export const PRODUCT_DETAILS = gql`
 
 export const PRODUCT_LIST_TAGS = gql`
     query TagList {
-        tags(first: 100) {
+        tags(first: 500) {
             edges {
                 node {
                     id
@@ -15390,7 +15390,7 @@ export const UPDATE_DRAFT_ORDER = gql`
 
 export const PARENT_CATEGORY_LIST = gql`
     query MyQuery {
-        categories(level: 0, first: 100) {
+        categories(level: 0, first: 200) {
             edges {
                 node {
                     id

@@ -106,6 +106,7 @@ const NewOrder = () => {
         updateAddressLoading: false,
         productLoading: false,
         updateProductLoad: false,
+        isFreeShipping: false,
         // error messages
     });
 
@@ -411,10 +412,19 @@ const NewOrder = () => {
             const isIndia = shippingCountry === 'IN';
 
             let shippingMethod = '';
-            if (isINR) {
-                shippingMethod = isIndia ? 'U2hpcHBpbmdNZXRob2Q6Mw==' : 'U2hpcHBpbmdNZXRob2Q6NA==';
+
+            if (state.isFreeShipping) {
+                if (isINR) {
+                    shippingMethod = 'U2hpcHBpbmdNZXRob2Q6MTk=';
+                } else {
+                    shippingMethod = 'U2hpcHBpbmdNZXRob2Q6MjA=';
+                }
             } else {
-                shippingMethod = isIndia ? 'U2hpcHBpbmdNZXRob2Q6OA==' : 'U2hpcHBpbmdNZXRob2Q6OQ==';
+                if (isINR) {
+                    shippingMethod = isIndia ? 'U2hpcHBpbmdNZXRob2Q6Mw==' : 'U2hpcHBpbmdNZXRob2Q6NA==';
+                } else {
+                    shippingMethod = isIndia ? 'U2hpcHBpbmdNZXRob2Q6OA==' : 'U2hpcHBpbmdNZXRob2Q6OQ==';
+                }
             }
 
             const res = await updateShippingCost({
@@ -690,44 +700,43 @@ const NewOrder = () => {
                 setCustomerErrMsg('Required this field');
             } else if (state.lineList.length == 0) {
                 Failure('Please add product to order');
-            }else{
-
-            const data = await updateDraftOrder({
-                variables: {
-                    id: orderId,
-                    input: {
-                        user: state.selectedCustomerId,
-                        billingAddress: {
-                            city: state.billingAddress.city,
-                            cityArea: '',
-                            companyName: state.billingAddress.company,
-                            country: state.billingAddress.country,
-                            countryArea: state.billingAddress.state,
-                            firstName: state.billingAddress.firstName,
-                            lastName: state.billingAddress.lastName,
-                            phone: state.billingAddress.phone,
-                            postalCode: state.billingAddress.pincode,
-                            streetAddress1: state.billingAddress.address_1,
-                            streetAddress2: state.billingAddress.address_2,
-                        },
-                        shippingAddress: {
-                            city: state.shippingAddress.city,
-                            cityArea: '',
-                            companyName: state.shippingAddress.company,
-                            country: state.shippingAddress.country,
-                            countryArea: state.shippingAddress.state,
-                            firstName: state.shippingAddress.firstName,
-                            lastName: state.shippingAddress.lastName,
-                            phone: state.shippingAddress.phone,
-                            postalCode: state.shippingAddress.pincode,
-                            streetAddress1: state.shippingAddress.address_1,
-                            streetAddress2: state.shippingAddress.address_2,
+            } else {
+                const data = await updateDraftOrder({
+                    variables: {
+                        id: orderId,
+                        input: {
+                            user: state.selectedCustomerId,
+                            billingAddress: {
+                                city: state.billingAddress.city,
+                                cityArea: '',
+                                companyName: state.billingAddress.company,
+                                country: state.billingAddress.country,
+                                countryArea: state.billingAddress.state,
+                                firstName: state.billingAddress.firstName,
+                                lastName: state.billingAddress.lastName,
+                                phone: state.billingAddress.phone,
+                                postalCode: state.billingAddress.pincode,
+                                streetAddress1: state.billingAddress.address_1,
+                                streetAddress2: state.billingAddress.address_2,
+                            },
+                            shippingAddress: {
+                                city: state.shippingAddress.city,
+                                cityArea: '',
+                                companyName: state.shippingAddress.company,
+                                country: state.shippingAddress.country,
+                                countryArea: state.shippingAddress.state,
+                                firstName: state.shippingAddress.firstName,
+                                lastName: state.shippingAddress.lastName,
+                                phone: state.shippingAddress.phone,
+                                postalCode: state.shippingAddress.pincode,
+                                streetAddress1: state.shippingAddress.address_1,
+                                streetAddress2: state.shippingAddress.address_2,
+                            },
                         },
                     },
-                },
-            });
-            finalizeNewOrder();
-        }
+                });
+                finalizeNewOrder();
+            }
         } catch (error) {
             console.log('error: ', error);
         }
@@ -1404,47 +1413,20 @@ const NewOrder = () => {
                                             {state.shippingAddress['shipping.phone'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.phone']}</div>}
                                         </div>
                                     </div>
-
-                                    {/* <div className="mt-5 grid grid-cols-12 gap-3">
-                                        <div className="col-span-12">
-                                            <label htmlFor="payments" className=" text-sm font-medium text-gray-700">
-                                                Payment method:
-                                            </label>
-                                            <select
-                                                className="form-select mr-3"
-                                                id="shippingpayments"
-                                                name="shipping.paymentMethod"
-                                                value={state.shippingAddress.paymentMethod}
-                                                onChange={handleShippingChange}
-                                            >
-                                                <option value="private-note">Private note</option>
-                                                <option value="note-customer">Note to customer</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-5 grid grid-cols-12 gap-3">
-                                        <div className="col-span-12">
-                                            <label htmlFor="transaction" className=" text-sm font-medium text-gray-700">
-                                                Transaction ID
-                                            </label>
-                                            <input type="text" className="form-input" name="shipping.transactionId" value={state.shippingAddress.transactionId} onChange={handleChange} />
-
-                                        </div>
-                                    </div>
-                                    <div className="mt-5 grid grid-cols-12 gap-3">
-                                        <div className="col-span-12">
-                                            <label htmlFor="phone" className=" text-sm font-medium text-gray-700">
-                                                Customer Provided note:
-                                            </label>
-                                            <textarea className="form-input" name="note" id="note" cols="30" rows="2"></textarea>
-                                        </div>
-                                    </div> */}
                                 </>
                             )}
                         </div>
-                        <div className="col-span-12 ">
-                            <div className="flex justify-end">
+                        <div className="col-span-12 flex  items-center justify-end gap-5">
+                            <div className="flex cursor-pointer items-center gap-3" onClick={() => setState({ isFreeShipping: !state.isFreeShipping })}>
+                                <input
+                                    type="checkbox"
+                                    checked={state.isFreeShipping}
+                                    onChange={(e) => setState({ isFreeShipping: e.target.checked })}
+                                    className="form-checkbox border-white-light dark:border-white-dark ltr:mr-0 rtl:ml-0"
+                                />
+                                <h3 className="text-md font-semibold dark:text-white-light">Free Shipping</h3>
+                            </div>
+                            <div className="">
                                 <button type="button" className="btn btn-primary" onClick={() => updateAddress()}>
                                     {state.updateAddressLoading ? <IconLoader /> : 'Update Address'}
                                 </button>
@@ -1645,7 +1627,7 @@ const NewOrder = () => {
                         </div>
                         <div className="mb-5 border-b border-gray-200 pb-2 ">
                             {state.notesList?.length > 0 ? (
-                                state.notesList?.map((data: any,index:number) => {
+                                state.notesList?.map((data: any, index: number) => {
                                     return (
                                         <div className="mb-5" key={index}>
                                             <div className="text-gray-500">

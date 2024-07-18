@@ -44,6 +44,7 @@ import {
     addCommasToNumber,
     channels,
     formatCurrency,
+    freeShipping,
     getCurrentDateTime,
     mintDateTime,
     objIsEmpty,
@@ -1009,7 +1010,12 @@ const Editorder = () => {
                     <div className=" col-span-9 mb-5  ">
                         <div className="panel mb-5 p-5">
                             <div className="flex justify-between">
-                                <h3 className="text-lg font-semibold">{`Order #${orderData?.number} Details`}</h3>
+                                <div className="flex gap-3 items-center">
+                                    <h3 className="text-lg font-semibold">{`Order #${orderData?.number} Details`}</h3>
+                                    {freeShipping?.includes(orderData?.shippingMethod?.id) && <h3 className="text-sm font-semibold bg-green-100 text-green-700 rounded-2xl p-2">
+        Free Shipping
+    </h3>}
+                                </div>
                                 {orderStatus == 'UNCONFIRMED' && (
                                     <button type="submit" className="btn btn-outline-primary" onClick={() => confirmOrder()}>
                                         {confirmLoading ? <IconLoader /> : ' Order Confirm'}

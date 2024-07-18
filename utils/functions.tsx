@@ -791,9 +791,11 @@ export const matchData = (data, ids) => {
 
 export const USDAmt = 0.013;
 
+export const freeShipping = ['U2hpcHBpbmdNZXRob2Q6MTk=', 'U2hpcHBpbmdNZXRob2Q6MjA='];
+
 export const DateToStringFormat = (inputDate, day = 9, hour = 16, minute = 9, second = 0, millisecond = 0, timezoneOffset = '+05:30') => {
     const date = new Date(inputDate);
-    
+
     date.setDate(day);
     date.setHours(hour);
     date.setMinutes(minute);

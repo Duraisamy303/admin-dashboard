@@ -258,6 +258,8 @@ const ProductEdit = (props: any) => {
             id: '',
         },
     ]);
+    console.log("variants: ", variants);
+
 
     const [selectedCat, setselectedCat] = useState<any>([]);
 
@@ -944,11 +946,12 @@ const ProductEdit = (props: any) => {
                     value: shortDescription ? shortDescription : '',
                 });
             }
-
-            input.push({
-                key: 'keyword',
-                value: keyword,
-            });
+            if (keyword) {
+                input.push({
+                    key: 'keyword',
+                    value: keyword,
+                });
+            }
             if (label?.value) {
                 input.push({
                     key: 'label',
@@ -1357,7 +1360,7 @@ const ProductEdit = (props: any) => {
             productId: id,
         };
         dispatch(productPreview(data));
-        router.push('/apps/product/preview');
+        // router.push('/apps/product/preview');
         console.log('data: ', data);
     };
 
@@ -1953,7 +1956,7 @@ const ProductEdit = (props: any) => {
                             </div>
                         </div>
                         <div className="panel mt-5">
-                            <div className="mb-5 border-b border-gray-200 pb-2">
+                            <div className=" border-b border-gray-200 pb-2">
                                 <h5 className=" block text-lg font-medium text-gray-700">Keyword</h5>
                             </div>
                             <div className="mb-5">
@@ -2009,7 +2012,7 @@ const ProductEdit = (props: any) => {
                                 <button type="submit" className="btn btn-primary w-full " onClick={() => updateProducts()}>
                                     {updateLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Update'}
                                 </button>
-                                <button
+                                {/* <button
                                     type="submit"
                                     className="btn btn-outline-primary w-full"
                                     onClick={() => {
@@ -2017,7 +2020,7 @@ const ProductEdit = (props: any) => {
                                     }}
                                 >
                                     {'Preview'}
-                                </button>
+                                </button> */}
                             </div>
                         </div>
 

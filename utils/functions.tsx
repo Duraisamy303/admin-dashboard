@@ -674,7 +674,7 @@ export const generatePresignedPost = (file) => {
             // 'x-amz-meta-description': metadata.description, // Description metadata
         },
         Conditions: [
-            ['content-length-range', 0, 10485760], // 10 MB limit
+            ['content-length-range', 0, 31457280], // 30 MB limit
             ['starts-with', '$Content-Type', ''], // Allow any content type
             ['eq', '$key', file.name],
             // ['eq', '$x-amz-meta-alt-text', metadata.altText], // Validate Alternative Text

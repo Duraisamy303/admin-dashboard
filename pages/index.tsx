@@ -190,11 +190,29 @@ const Index = () => {
         return stock;
     };
 
+    const productImg = (item) => {
+        let img = '';
+        console.log('item: ', item);
+        if (item?.thumbnail?.url?.endsWith('.mp4')) {
+            if (item?.media?.length > 0) {
+                const find = item?.media?.find((item) => item.url?.endsWith('.webp'));
+                img = find.url;
+            }
+        } else {
+            img = item?.thumbnail?.url;
+        }
+        console.log('img: ', img);
+
+        return img;
+    };
+
     const tableFormat = (products) => {
         const newData = products?.map((item) => ({
             ...item.node,
             product: item.node.products?.totalCount,
-            image: item.node.thumbnail?.url,
+            image: item?.node?.thumbnail?.url,
+            // image: productImg(item?.node),
+
             categories: item.node.category?.length > 0 ? item.node?.category?.map((cats) => cats?.name).join(',') : '-',
 
             // categories: item.node.category?.name ? item.node.category.name : '-',

@@ -16273,7 +16273,7 @@ export const RELATED_PRODUCT = gql`
                         id
                         name
                         slug
-                        images {
+                        media {
                             url
                             alt
                         }
@@ -16440,6 +16440,56 @@ export const YOU_MAY_LIKE = gql`
                 id
                 name
                 productId
+            }
+        }
+    }
+`;
+
+export const PRODUCT_LIST_BY_ID = gql`
+    query MyQuery($ids: [ID!]!, $channel: String!) {
+        products(filter: { ids: $ids }, channel: $channel, first: 10) {
+            edges {
+                node {
+                    id
+                    media {
+                        url
+                        alt
+                    }
+                    name
+                    description
+                    variants {
+                        id
+                        sku
+                    }
+                    thumbnail {
+                        url
+                        alt
+                    }
+                    category {
+                        id
+                        name
+                    }
+                    pricing {
+                        priceRange {
+                            start {
+                                gross {
+                                    amount
+                                }
+                            }
+                            stop {
+                                gross {
+                                    amount
+                                }
+                            }
+                        }
+                    }
+                    defaultVariant {
+                        id
+                        costPrice
+                        name
+                        quantityAvailable
+                    }
+                }
             }
         }
     }

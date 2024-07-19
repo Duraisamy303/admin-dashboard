@@ -54,6 +54,7 @@ import {
     PRODUCT_MEDIA_CREATE,
     PRODUCT_MEDIA_CREATE_NEW,
     PRODUCT_TYPE_LIST,
+    RELATED_PRODUCT,
     REMOVE_IMAGE,
     SIZE_LIST,
     STONE_LIST,
@@ -64,15 +65,18 @@ import {
     UPDATE_PRODUCT_CHANNEL,
     UPDATE_VARIANT,
     UPDATE_VARIANT_LIST,
+    PRODUCT_LIST_BY_ID,
 } from '@/query/product';
 import {
     Failure,
     Success,
+    addCommasToNumber,
     deleteImagesFromS3,
     fetchImagesFromS3,
     formatOptions,
     generatePresignedPost,
     getValueByKey,
+    isEmptyObject,
     objIsEmpty,
     sampleParams,
     showDeleteAlert,
@@ -83,6 +87,8 @@ import IconLoader from '@/components/Icon/IconLoader';
 import moment from 'moment';
 import axios from 'axios';
 import { productPreview } from '@/store/authConfigSlice';
+import { channel } from 'diagnostics_channel';
+import { endsWith } from 'lodash';
 const ProductEdit = (props: any) => {
     const router = useRouter();
 
@@ -158,9 +164,13 @@ const ProductEdit = (props: any) => {
         variables: { channel: 'india-channel', id: id },
     });
 
+    const { refetch: relatedProductsRefetch } = useQuery(RELATED_PRODUCT);
+
     const { data: tagsList } = useQuery(PRODUCT_LIST_TAGS, {
         variables: { channel: 'india-channel', id: id },
     });
+
+    const { refetch: productListRefetch } = useQuery(PRODUCT_LIST_BY_ID);
 
     const [createMedia] = useMutation(PRODUCT_MEDIA_CREATE_NEW);
 
@@ -229,6 +239,10 @@ const ProductEdit = (props: any) => {
     const [productType, setProductType] = useState([]);
     const [mediaData, setMediaData] = useState([]);
     const [productList, setProductList] = useState([]);
+    const [isOpenPreview, setIsOpenPreview] = useState(false);
+    const [previewLoading, setPreviewLoading] = useState(false);
+    const [productPreview, setPreviewData] = useState(null);
+    const [previewSelectedImg, setPreviewSelectedImg] = useState(null);
 
     const [imageUrl, setImageUrl] = useState([]);
 
@@ -258,8 +272,6 @@ const ProductEdit = (props: any) => {
             id: '',
         },
     ]);
-    console.log("variants: ", variants);
-
 
     const [selectedCat, setselectedCat] = useState<any>([]);
 
@@ -311,26 +323,11 @@ const ProductEdit = (props: any) => {
         setCategoryList(options);
     }, [parentList]);
 
-    const getProductByName = async () => {
-        try {
-            const res = await productSearchRefetch({
-                name: '',
-            });
-
-            const response = res?.data?.products?.edges;
-            const dropdownData = response?.map((item: any) => ({ value: item?.node?.id, label: item?.node?.name }));
-            setProductList(dropdownData);
-        } catch (error) {
-            console.log('error: ', error);
-        }
-    };
-
     const productsDetails = async () => {
         try {
             if (productDetails) {
                 if (productDetails && productDetails?.product) {
                     const data = productDetails?.product;
-                    console.log('productDetails: ', data);
                     setProductData(data);
                     setSlug(data?.slug);
                     setSeoTittle(data?.seoTitle);
@@ -739,10 +736,10 @@ const ProductEdit = (props: any) => {
                         //     errors.regularPrice = 'Regular Price must be a valid number and greater than 0';
                         //     hasError = true;
                         // }
-                        if (!variant.stackMgmt) {
-                            errors.stackMgmt = 'Check Stack Management';
-                            hasError = true;
-                        }
+                        // if (!variant.stackMgmt) {
+                        //     errors.stackMgmt = 'Check Stack Management';
+                        //     hasError = true;
+                        // }
 
                         newVariantErrors[index] = errors;
                     });
@@ -880,7 +877,7 @@ const ProductEdit = (props: any) => {
                 stocks: {
                     update: [
                         {
-                            quantity: item.stackMgmt ? item.quantity : 0,
+                            quantity: item.quantity,
                             stock: item.stockId,
                         },
                     ],
@@ -1165,25 +1162,6 @@ const ProductEdit = (props: any) => {
         }
     };
 
-    // const handleDragStart = (e, index) => {
-    //     e.dataTransfer.setData('dragIndex', index);
-    // };
-
-    // const handleDrop = (e, dropIndex) => {
-    //     const dragIndex = e.dataTransfer.getData('dragIndex');
-    //     if (dragIndex === '') return; // Check for invalid dragIndex
-
-    //     const newImageUrl = [...imageUrl];
-    //     const draggedItem = newImageUrl[dragIndex];
-    //     newImageUrl.splice(dragIndex, 1);
-    //     newImageUrl.splice(dropIndex, 0, draggedItem);
-    //     setImageUrl(newImageUrl);
-    // };
-
-    // const handleDragOver = (e) => {
-    //     e.preventDefault();
-    // };
-
     const getProductForUpsells = async () => {
         try {
             const res = await productSearchRefetch({
@@ -1318,7 +1296,6 @@ const ProductEdit = (props: any) => {
     };
 
     const filterMediaByMonth = (e) => {
-        console.log('e: ', e);
         setMediaDate(e);
 
         if (e != 'all') {
@@ -1337,8 +1314,101 @@ const ProductEdit = (props: any) => {
         }
     };
 
+    const getFullDetails = (selectedValues, arr) => {
+        return Object.keys(selectedValues).reduce((acc, key) => {
+            if (arr[key]) {
+                acc[key] = arr[key].edges.filter((edge) => selectedValues[key].includes(edge.node.id)).map((edge) => edge.node);
+            }
+            return acc;
+        }, {});
+    };
+
     const previewClick = async () => {
+        setPreviewLoading(true);
         const savedContent = await editorInstance.save();
+
+        const styleRes = await styleRefetch({
+            sampleParams,
+        });
+
+        const designRes = await designRefetch({
+            sampleParams,
+        });
+
+        const finishRes = await finishRefetch({
+            sampleParams,
+        });
+
+        const stoneTypeRes = await stoneRefetch({
+            sampleParams,
+        });
+
+        const stoneColorRes = await stoneColorRefetch({
+            sampleParams,
+        });
+
+        const typeRes = await typeRefetch({
+            sampleParams,
+        });
+
+        const sizeRes = await sizeRefetch({
+            sampleParams,
+        });
+        let youMayLike = [];
+
+        if (selectedCrosssell?.length > 0) {
+            const listById = await productListRefetch({
+                ids: selectedCrosssell?.map((item) => item?.value),
+                channel: 'india-channel',
+            });
+
+            const modify = listById?.data?.products?.edges;
+            if (modify.length > 0) {
+                youMayLike = modify?.map((item) => ({
+                    name: item?.node?.name,
+                    image: item?.node?.thumbnail?.url,
+                    price: item?.node?.pricing?.priceRange?.start?.gross?.amount,
+                }));
+            }
+        }
+
+        const arr1 = {
+            design: designRes?.data?.productDesigns,
+            style: styleRes?.data?.productStyles,
+            finish: finishRes?.data?.productFinishes,
+            stoneType: stoneTypeRes?.data?.productStoneTypes,
+            stoneColor: stoneColorRes?.data?.stoneColors,
+            type: typeRes?.data?.itemTypes,
+            size: sizeRes?.data?.sizes,
+        };
+        const attributes = getFullDetails(selectedValues, arr1);
+        const idSet = new Set(selectedCat.map((item) => item.value));
+        let parentCat = '';
+        let relateProducts = [];
+
+        // Step 2: Filter objects from the first array
+        const result = parentList?.categories?.edges.filter((item) => idSet.has(item.node.id) && item.node.level === 0).map((item) => item.node);
+
+        if (result.length > 0) {
+            parentCat = result[0]?.id;
+            const res = await relatedProductsRefetch({
+                channel: 'india-channel',
+                id: parentCat,
+            });
+
+            const response = res?.data?.category?.products?.edges;
+            if (response.length > 0) {
+                relateProducts = response?.map((item) => ({
+                    name: item?.node?.name,
+                    image: item?.node?.thumbnail?.url,
+                    price: item?.node?.pricing?.priceRange?.start?.gross?.amount,
+                }));
+            }
+        }
+        let img = [];
+        if (images?.length > 0) {
+            img = images?.filter((item) => !item.url.endsWith('.mp4'));
+        }
         const data = {
             name: productName,
             slug,
@@ -1353,15 +1423,17 @@ const ProductEdit = (props: any) => {
             upsell: selectedUpsell,
             crossell: selectedCrosssell,
             publish,
-            attibutes: selectedValues,
+            attributes,
             menuOrder,
             label,
-            image: imageUrl,
+            image: img,
             productId: id,
+            relateProducts,
+            youMayLike,
         };
-        dispatch(productPreview(data));
-        // router.push('/apps/product/preview');
-        console.log('data: ', data);
+        setPreviewData(data);
+        setIsOpenPreview(true);
+        setPreviewLoading(false);
     };
 
     return (
@@ -1731,28 +1803,28 @@ const ProductEdit = (props: any) => {
                                                                     {variantErrors[index]?.stackMgmt && <p className="error-message mt-1 text-red-500">{variantErrors[index].stackMgmt}</p>}
                                                                 </div>
                                                             </div>
-                                                            {item.stackMgmt && (
-                                                                <div className="active flex items-center">
-                                                                    <div className="mb-5 mr-4 " style={{ width: '20%' }}>
-                                                                        <label htmlFor={`quantity_${index}`} className="block  text-sm font-medium text-gray-700">
-                                                                            Quantity
-                                                                        </label>
-                                                                    </div>
-                                                                    <div className="mb-5" style={{ width: '80%' }}>
-                                                                        <input
-                                                                            type="number"
-                                                                            id={`quantity_${index}`}
-                                                                            name={`quantity_${index}`}
-                                                                            value={item?.quantity}
-                                                                            onChange={(e) => handleChange(index, 'quantity', parseInt(e.target.value))}
-                                                                            style={{ width: '100%' }}
-                                                                            placeholder="Enter Quantity"
-                                                                            className="form-input"
-                                                                        />
-                                                                        {variantErrors[index]?.quantity && <p className="error-message mt-1 text-red-500">{variantErrors[index].quantity}</p>}
-                                                                    </div>
+                                                            {/* {item.stackMgmt && ( */}
+                                                            <div className="active flex items-center">
+                                                                <div className="mb-5 mr-4 " style={{ width: '20%' }}>
+                                                                    <label htmlFor={`quantity_${index}`} className="block  text-sm font-medium text-gray-700">
+                                                                        Quantity
+                                                                    </label>
                                                                 </div>
-                                                            )}
+                                                                <div className="mb-5" style={{ width: '80%' }}>
+                                                                    <input
+                                                                        type="number"
+                                                                        id={`quantity_${index}`}
+                                                                        name={`quantity_${index}`}
+                                                                        value={item?.quantity}
+                                                                        onChange={(e) => handleChange(index, 'quantity', parseInt(e.target.value))}
+                                                                        style={{ width: '100%' }}
+                                                                        placeholder="Enter Quantity"
+                                                                        className="form-input"
+                                                                    />
+                                                                    {variantErrors[index]?.quantity && <p className="error-message mt-1 text-red-500">{variantErrors[index].quantity}</p>}
+                                                                </div>
+                                                            </div>
+                                                            {/* )} */}
                                                             <div className="active flex items-center">
                                                                 <div className="mb-5 mr-4" style={{ width: '20%' }}>
                                                                     <label htmlFor={`regularPrice_${index}`} className="block pr-5 text-sm font-medium text-gray-700">
@@ -1773,28 +1845,6 @@ const ProductEdit = (props: any) => {
                                                                     {variantErrors[index]?.regularPrice && <p className="error-message mt-1 text-red-500">{variantErrors[index].regularPrice}</p>}
                                                                 </div>
                                                             </div>
-                                                            {/* <div className="flex items-center">
-                                                                <div className="mb-5 mr-4" style={{ width: '20%' }}>
-                                                                    <label htmlFor={`salePrice_${index}`} className="block pr-10 text-sm font-medium text-gray-700">
-                                                                        Sale Price
-                                                                    </label>
-                                                                </div>
-                                                                <div className="mb-5" style={{ width: '80%' }}>
-                                                                    <input
-                                                                        type="number"
-                                                                        id={`salePrice_${index}`}
-                                                                        name={`salePrice_${index}`}
-                                                                        value={item.salePrice}
-                                                                        onChange={(e) => handleChange(index, 'salePrice', parseFloat(e.target.value))}
-                                                                        style={{ width: '100%' }}
-                                                                        placeholder="Enter Sale Price"
-                                                                        className="form-input"
-                                                                    />
-                                                                    {variantErrors[index]?.salePrice && <p className="error-message mt-1 text-red-500">{variantErrors[index].salePrice}</p>}
-
-                                                                    {salePriceErrMsg && <p className="error-message mt-1 text-red-500 ">{salePriceErrMsg}</p>}
-                                                                </div>
-                                                            </div> */}
                                                         </div>
                                                     );
                                                 })}
@@ -1803,37 +1853,6 @@ const ProductEdit = (props: any) => {
                                                         Add item
                                                     </button>
                                                 </div>
-
-                                                {/* <div>
-                                                    <div className="flex items-center">
-                                                        <div className="mb-5 mr-4">
-                                                            <label htmlFor="tax-status" className="block pr-8 text-sm font-medium text-gray-700">
-                                                                Tax Status
-                                                            </label>
-                                                        </div>
-                                                        <div className="mb-5">
-                                                            <select className="form-select w-52 flex-1" style={{ width: '100%' }} onChange={(e) => taxStatus(e.target.value)}>
-                                                                <option value="taxable">Taxable</option>
-                                                                <option value="shipping-only">Shipping Only</option>
-                                                                <option value="none">None</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center">
-                                                        <div className="mb-5 mr-4">
-                                                            <label htmlFor="tax-status" className="block pr-10 text-sm font-medium text-gray-700">
-                                                                Tax Class
-                                                            </label>
-                                                        </div>
-                                                        <div className="mb-5">
-                                                            <select className="form-select w-52 flex-1" style={{ width: '100%' }} onChange={(e) => taxClass(e.target.value)}>
-                                                                <option value="standard">Standard</option>
-                                                                <option value="reduced-rate">Reduced rate</option>
-                                                                <option value="zero-rate">Zero rate</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                </div> */}
                                             </Tab.Panel>
 
                                             <Tab.Panel>
@@ -1899,41 +1918,6 @@ const ProductEdit = (props: any) => {
                                                     </div>
                                                 </div>
                                             </Tab.Panel>
-
-                                            {/* <Tab.Panel>
-                                                <div className="active flex items-center">
-                                                    <div className="mb-20 mr-4">
-                                                        <label htmlFor="regularPrice" className="block pr-5 text-sm font-medium text-gray-700">
-                                                            Purchase note
-                                                        </label>
-                                                    </div>
-                                                    <div className="mb-5">
-                                                        <textarea rows={3} style={{ width: '100%' }} placeholder="Enter Regular Price" name="regularPrice" className="form-input" required />
-                                                    </div>
-                                                </div>
-
-                                                <div className="active flex items-center border-t border-gray-200 pt-5">
-                                                    <div className="mb-5 mr-4 pr-3">
-                                                        <label htmlFor="regularPrice" className="block pr-5 text-sm font-medium text-gray-700">
-                                                            Menu Order
-                                                        </label>
-                                                    </div>
-                                                    <div className="mb-5">
-                                                        <input type="number" style={{ width: '100%' }} placeholder="Enter Regular Price" name="regularPrice" className="form-input" required />
-                                                    </div>
-                                                </div>
-
-                                                <div className="active flex items-center border-t border-gray-200 pt-5">
-                                                    <div className="mb-5 mr-4 pr-3">
-                                                        <label htmlFor="review" className="block  text-sm font-medium text-gray-700">
-                                                            Enable reviews
-                                                        </label>
-                                                    </div>
-                                                    <div className="mb-5">
-                                                        <input type="checkbox" className="form-checkbox" defaultChecked />
-                                                    </div>
-                                                </div>
-                                            </Tab.Panel> */}
                                         </Tab.Panels>
                                     </Tab.Group>
                                 )}
@@ -1963,28 +1947,6 @@ const ProductEdit = (props: any) => {
                                 <textarea id="ctnTextarea" value={keyword} onChange={(e) => setKeyword(e.target.value)} rows={3} className="form-textarea mt-5" placeholder="Enter Keyword"></textarea>
                             </div>
                         </div>
-
-                        {/* <div className="panel mb-5">
-                            <div className="grid grid-cols-12 gap-4">
-                                <div className="col-span-6">
-                                    <h5 className="un mb-5 block text-lg font-medium text-gray-700 underline">Permanent "New" label</h5>
-                                    <label className="relative h-6 w-12">
-                                        <input type="checkbox" className="custom_switch peer absolute z-10 h-full w-full cursor-pointer opacity-0" id="custom_switch_checkbox1" />
-                                        <span className="block h-full rounded-full bg-[#ebedf2] before:absolute before:bottom-1 before:left-1 before:h-4 before:w-4 before:rounded-full before:bg-white before:transition-all before:duration-300 peer-checked:bg-primary peer-checked:before:left-7 dark:bg-dark dark:before:bg-white-dark dark:peer-checked:before:bg-white"></span>
-                                    </label>
-                                    <p className="mt-2 text-sm text-gray-500">Enable this option to make your product have "New" status forever.</p>
-                                </div>
-                                <div className="col-span-6">
-                                    <h5 className="un mb-5 block text-lg font-medium text-gray-700 underline">Mark product as "New" till date</h5>
-                                    <div>
-                                        <input type="date" style={{ width: '100%' }} placeholder="From.." name="new-label" className="form-input" required />
-                                        <p className="mt-2 text-sm text-gray-500">
-                                            Specify the end date when the "New" status will be retired. NOTE: "Permanent "New" label" option should be disabled if you use the exact date.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div> */}
                     </div>
                     <div className="col-span-3">
                         <div className="panel">
@@ -1992,18 +1954,10 @@ const ProductEdit = (props: any) => {
                                 <h5 className=" block text-lg font-medium text-gray-700">Publish</h5>
                             </div>
 
-                            {/* <p className="mb-5">
-                                Status: <span className="font-bold">Published</span>{' '}
-                                <span className="ml-2 cursor-pointer text-primary underline" onClick={() => statusEditClick()}>
-                                    {statusVisible ? 'Cancel' : 'Edit'}
-                                </span>
-                            </p> */}
-
                             <div className="active flex items-center">
                                 <div className="mb-5 w-full pr-3">
                                     <select className="form-select  flex-1 " value={publish} onChange={(e) => setPublish(e.target.value)}>
                                         <option value="published">Published</option>
-                                        {/* <option value="pending-reviews">Pending Reviews</option> */}
                                         <option value="draft">Draft</option>
                                     </select>
                                 </div>
@@ -2012,15 +1966,15 @@ const ProductEdit = (props: any) => {
                                 <button type="submit" className="btn btn-primary w-full " onClick={() => updateProducts()}>
                                     {updateLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Update'}
                                 </button>
-                                {/* <button
+                                <button
                                     type="submit"
                                     className="btn btn-outline-primary w-full"
                                     onClick={() => {
                                         previewClick();
                                     }}
                                 >
-                                    {'Preview'}
-                                </button> */}
+                                    {previewLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Preview'}
+                                </button>
                             </div>
                         </div>
 
@@ -2030,12 +1984,9 @@ const ProductEdit = (props: any) => {
                             </div>
 
                             <div className="grid grid-cols-12 gap-3">
-                                {/* {images?.length > 0 && */}
                                 {images?.length > 0 &&
                                     images?.map((item: any, index: any) => (
                                         <>
-                                            {/* <div className=" relative h-10 w-10  flex"> */}
-
                                             <div
                                                 key={item.id}
                                                 className="h-15 w-15 relative col-span-4 overflow-hidden bg-black"
@@ -2051,7 +2002,6 @@ const ProductEdit = (props: any) => {
                                                 ) : (
                                                     <img src={item?.url} alt="Product image" className=" h-full w-full" />
                                                 )}
-                                                {/* <img src={item?.url} alt="Selected" className=" h-full w-full overflow-auto object-contain" /> */}
 
                                                 <button className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white" onClick={() => multiImageDelete(item)}>
                                                     <IconTrashLines />
@@ -2071,9 +2021,6 @@ const ProductEdit = (props: any) => {
                             >
                                 Add product gallery images
                             </p>
-                            {/* <button type="button" className="btn btn-primary mt-5" onClick={() => finalImageData()}>
-                                + Video
-                            </button> */}
                         </div>
 
                         <div className="panel mt-5">
@@ -2083,113 +2030,8 @@ const ProductEdit = (props: any) => {
                             <div className="mb-5">
                                 <Select isMulti value={selectedCat} onChange={(e) => selectCat(e)} options={categoryList} placeholder="Select categories..." className="form-select" />
 
-                                {/* <select name="parentCategory" className="form-select" >
-                                    <option value="">Open this select</option>
-                                    {categoryList?.map((item) => (
-                                        <React.Fragment key={item?.node?.id}>
-                                            <option value={item?.node?.id}>{item.node?.name}</option>
-                                            {item?.node?.children?.edges?.map((child) => (
-                                                <option key={child?.node?.id} value={child?.node?.id} style={{ paddingLeft: '20px' }}>
-                                                    -- {child?.node?.name}
-                                                </option>
-                                            ))}
-                                        </React.Fragment>
-                                    ))}
-                                </select> */}
-                                {/* <Select placeholder="Select an category" options={categoryList} value={selectedCat} onChange={selectCat} isSearchable={true} /> */}
                                 {categoryErrMsg && <p className="error-message mt-1 text-red-500 ">{categoryErrMsg}</p>}
                             </div>
-                            {/* <div className="mb-5">
-                                {isMounted && (
-                                    <Tab.Group>
-                                        <Tab.List className="mt-3 flex flex-wrap border-b border-white-light dark:border-[#191e3a]">
-                                            <Tab as={Fragment}>
-                                                {({ selected }) => (
-                                                    <button
-                                                        className={`${selected ? '!border-white-light !border-b-white text-danger dark:!border-[#191e3a] dark:!border-b-black' : ''}
-                                                -mb-[1px] flex items-center border border-transparent p-3.5 py-2 !outline-none transition duration-300 hover:text-danger`}
-                                                    >
-                                                        All Categories
-                                                    </button>
-                                                )}
-                                            </Tab>
-                                            <Tab as={Fragment}>
-                                                {({ selected }) => (
-                                                    <button
-                                                        className={`${selected ? '!border-white-light !border-b-white text-danger dark:!border-[#191e3a] dark:!border-b-black' : ''}
-                                                -mb-[1px] flex items-center border border-transparent p-3.5 py-2 !outline-none transition duration-300 hover:text-danger`}
-                                                    >
-                                                        Most Used
-                                                    </button>
-                                                )}
-                                            </Tab>
-                                        </Tab.List>
-                                        <Tab.Panels className="flex-1 border border-t-0 border-white-light p-4 text-sm  dark:border-[#191e3a]">
-                                            <Tab.Panel>
-                                                <div className="active">
-                                                    <div className="pb-3">
-                                                        <input type="checkbox" className="form-checkbox" />
-                                                        <span>Anklets</span>
-                                                    </div>
-
-                                                    <div className="pb-3 pl-5">
-                                                        <input type="checkbox" className="form-checkbox" />
-                                                        <span>Kada</span>
-                                                    </div>
-
-                                                    <div className="pb-3 pl-5">
-                                                        <input type="checkbox" className="form-checkbox" />
-                                                        <span>Rope Anklet</span>
-                                                    </div>
-
-                                                    <div className="pb-3">
-                                                        <input type="checkbox" className="form-checkbox" />
-                                                        <span>Bangles & Bracelets</span>
-                                                    </div>
-                                                </div>
-                                            </Tab.Panel>
-                                            <Tab.Panel>
-                                                <div className="active">
-                                                    <div className="pb-3">
-                                                        <input type="checkbox" className="form-checkbox" />
-                                                        <span>Anklets</span>
-                                                    </div>
-
-                                                    <div className="pb-3">
-                                                        <input type="checkbox" className="form-checkbox" />
-                                                        <span>Kada</span>
-                                                    </div>
-
-                                                    <div className="pb-3">
-                                                        <input type="checkbox" className="form-checkbox" />
-                                                        <span>Rope Anklet</span>
-                                                    </div>
-                                                </div>
-                                            </Tab.Panel>
-
-                                            <Tab.Panel>Disabled</Tab.Panel>
-                                        </Tab.Panels>
-                                    </Tab.Group>
-                                )}
-                            </div> */}
-                            {/* <p className="cursor-pointer text-primary underline" onClick={() => addCategoryClick()}>
-                                {addCategory ? 'Cancel' : '+ Add New Category'}
-                            </p>
-                            {addCategory && (
-                                <>
-                                    <div>
-                                        <input type="text" className="form-input mt-3" placeholder="Category Name" />
-                                        <select name="parent-category" id="parent-category" className="form-select mt-3">
-                                            <option>Anklets</option>
-                                            <option>__Black Thread</option>
-                                            <option>__Kada</option>
-                                        </select>
-                                        <button type="button" className="btn btn-primary mt-3">
-                                            Add New Category
-                                        </button>
-                                    </div>
-                                </>
-                            )} */}
                         </div>
 
                         <div className="panel mt-5">
@@ -2199,41 +2041,6 @@ const ProductEdit = (props: any) => {
                             <div className="mb-5">
                                 <Select placeholder="Select an tags" isMulti options={tagList} value={selectedTag} onChange={(data: any) => setSelectedTag(data)} isSearchable={true} />
                             </div>
-                            {/* <div className="mb-5 flex">
-                                <input type="text" className="form-input mr-3 mt-3" placeholder="Product Tags" />
-                                <button type="button" className="btn btn-primary mt-3">
-                                    Add
-                                </button>
-                            </div> */}
-                            {/* <div>
-                                <p className="mb-5 text-sm text-gray-500">Separate tags with commas</p>
-                                <div className="flex flex-wrap gap-3">
-                                    <div className="flex items-center gap-1">
-                                        <IconX className="h-4 w-4 rounded-full border border-danger" />
-                                        <p> 925 silver jewellery</p>
-                                    </div>
-
-                                    <div className="flex items-center gap-1">
-                                        <IconX className="h-4 w-4 rounded-full border border-danger" />
-                                        <p>Chennai</p>
-                                    </div>
-
-                                    <div className="flex items-center gap-1">
-                                        <IconX className="h-4 w-4 rounded-full border border-danger" />
-                                        <p>jewels prade</p>
-                                    </div>
-
-                                    <div className="flex items-center gap-1">
-                                        <IconX className="h-4 w-4 rounded-full border border-danger" />
-                                        <p>Kundan Earrings</p>
-                                    </div>
-
-                                    <div className="flex items-center gap-1">
-                                        <IconX className="h-4 w-4 rounded-full border border-danger" />
-                                        <p>prade love</p>
-                                    </div>
-                                </div>
-                            </div> */}
                         </div>
                     </div>
                 </div>
@@ -2588,6 +2395,290 @@ const ProductEdit = (props: any) => {
                                             </>
                                         )}
                                     </div>
+                                </Dialog.Panel>
+                            </Transition.Child>
+                        </div>
+                    </div>
+                </Dialog>
+            </Transition>
+
+            {/* //Preview */}
+            <Transition appear show={isOpenPreview} as={Fragment}>
+                <Dialog as="div" open={isOpenPreview} onClose={() => setIsOpenPreview(false)}>
+                    <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
+                        <div className="fixed inset-0" />
+                    </Transition.Child>
+                    <div className="fixed inset-0 z-[999] overflow-y-auto bg-[black]/60">
+                        <div className="flex min-h-screen items-start justify-center px-4">
+                            <Transition.Child
+                                as={Fragment}
+                                enter="ease-out duration-300"
+                                enterFrom="opacity-0 scale-95"
+                                enterTo="opacity-100 scale-100"
+                                leave="ease-in duration-200"
+                                leaveFrom="opacity-100 scale-100"
+                                leaveTo="opacity-0 scale-95"
+                            >
+                                <Dialog.Panel as="div" className="panel my-8 w-full overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark">
+                                    <div className="flex items-center justify-between bg-[#fbfbfb] px-5 py-3 dark:bg-[#121c2c]">
+                                        <div className="text-lg font-bold">Preview</div>
+                                        <button type="button" className="text-white-dark hover:text-dark" onClick={() => setIsOpenPreview(false)}>
+                                            <IconX />
+                                        </button>
+                                    </div>
+                                    <div className="flex h-full w-full gap-3">
+                                        <div className="panel flex  h-[600px] w-2/12 flex-col items-center overflow-scroll">
+                                            {productPreview?.image?.length > 0 ? (
+                                                <div className="overflow-auto">
+                                                    {productPreview?.image?.map((item, index) => (
+                                                        <div key={index} className="h-100 w-[200px] cursor-pointer overflow-hidden p-2" onClick={() => setPreviewSelectedImg(item?.url)}>
+                                                            <img src={item?.url} alt="image" className="object-contain" />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="h-100 w-[200px] cursor-pointer overflow-hidden p-2">
+                                                    <img src={'/assets/images/placeholder.png'} alt="image" className="object-contain" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        {productPreview?.image?.length > 0 ? (
+                                            <div className="panel h-[500px] w-4/12">
+                                                <img src={previewSelectedImg ? previewSelectedImg : productPreview?.image[0]?.url} alt="image" style={{ width: '100%', height: '100%' }} />
+                                            </div>
+                                        ) : (
+                                            <div className="panel h-[500px] w-4/12">
+                                                <img src={'/assets/images/placeholder.png'} alt="image" style={{ width: '100%', height: '100%' }} />
+                                            </div>
+                                        )}
+
+                                        <div className="panel h-full w-5/12">
+                                            {productPreview?.name && (
+                                                <label htmlFor="name" className="block text-2xl font-medium text-gray-700">
+                                                    {productPreview?.name}
+                                                </label>
+                                            )}
+                                            {productPreview?.variants?.length > 0 && (
+                                                <div className="flex flex-wrap gap-4">
+                                                    {productPreview?.variants?.map(
+                                                        (item, index) =>
+                                                            item?.salePrice !== 0 && (
+                                                                <label key={index} htmlFor="name" className="block text-2xl font-medium text-gray-700">
+                                                                    ₹{addCommasToNumber(item?.salePrice)}
+                                                                </label>
+                                                            )
+                                                    )}
+                                                </div>
+                                            )}
+                                            {productPreview?.shortDescription && (
+                                                <label htmlFor="name" className="text-md block font-medium text-gray-700">
+                                                    {productPreview?.shortDescription}
+                                                </label>
+                                            )}
+                                            <div className="panel w-full ">
+                                                <div
+                                                    style={{
+                                                        borderBottom: '1px solid #EAEBED',
+                                                        paddingBottom: '15px',
+                                                        marginBottom: '15px',
+                                                    }}
+                                                >
+                                                    {productPreview?.description?.blocks?.length > 0 && (
+                                                        <div
+                                                            style={{
+                                                                display: 'flex',
+                                                                justifyContent: 'space-between',
+                                                                cursor: 'pointer',
+                                                            }}
+                                                        >
+                                                            <div className={`${productPreview?.description ? 'theme-color' : ''}`}>MAINTENANCE TIPS</div>
+                                                            {/* <div>{productPreview.description ? '▲' : '▼'}</div> */}
+                                                        </div>
+                                                    )}
+                                                    {productPreview?.description && (
+                                                        <>
+                                                            {productPreview?.description?.blocks?.map((block, index) => (
+                                                                <div key={index} style={{ marginTop: '10px' }}>
+                                                                    {block?.type === 'header' && <h5 style={{ fontWeight: '400' }}>{block?.data?.text}</h5>}
+                                                                    {block.type === 'paragraph' && (
+                                                                        <p style={{ color: 'gray', marginBottom: '5px' }}>
+                                                                            {block.data.text && (
+                                                                                <span
+                                                                                    dangerouslySetInnerHTML={{
+                                                                                        __html: block.data.text.includes('<b>') ? `<b>${block.data.text}</b>` : block.data.text,
+                                                                                    }}
+                                                                                />
+                                                                            )}
+                                                                        </p>
+                                                                    )}
+                                                                    {block.type === 'list' && (
+                                                                        <ul style={{ paddingLeft: '20px' }}>
+                                                                            {block.data.items?.map((item, itemIndex) => (
+                                                                                <li
+                                                                                    key={itemIndex}
+                                                                                    style={{ color: 'gray' }}
+                                                                                    dangerouslySetInnerHTML={{
+                                                                                        __html: item.includes('<b>') ? `<b>${item}</b>` : item,
+                                                                                    }}
+                                                                                />
+                                                                            ))}
+                                                                        </ul>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </>
+                                                    )}
+                                                </div>
+                                                {productPreview?.attributes && (
+                                                    <div
+                                                        style={{
+                                                            borderBottom: '1px solid #EAEBED',
+                                                            paddingBottom: '15px',
+                                                            marginBottom: '15px',
+                                                        }}
+                                                    >
+                                                        <div
+                                                            style={{
+                                                                display: 'flex',
+                                                                justifyContent: 'space-between',
+                                                                cursor: 'pointer',
+                                                            }}
+                                                        >
+                                                            <div>ADDITIONAL INFORMATION</div>
+                                                            {/* <div>▲</div> */}
+                                                        </div>
+                                                        <ul
+                                                            style={{
+                                                                listStyleType: 'none',
+                                                                paddingTop: '10px',
+                                                                gap: 5,
+                                                            }}
+                                                        >
+                                                            {Object.keys(productPreview?.attributes).map((key) => {
+                                                                const attribute = productPreview?.attributes[key];
+                                                                // Determine the label based on the attribute key
+                                                                let label;
+                                                                switch (key) {
+                                                                    case 'design':
+                                                                        label = 'Design';
+                                                                        break;
+                                                                    case 'style':
+                                                                        label = 'Style';
+                                                                        break;
+                                                                    case 'finish':
+                                                                        label = 'Finish';
+                                                                        break;
+                                                                    case 'stoneColor':
+                                                                        label = 'Stone Color';
+                                                                        break;
+                                                                    case 'type':
+                                                                        label = 'Type';
+                                                                        break;
+                                                                    case 'size':
+                                                                        label = 'Size';
+                                                                        break;
+                                                                    default:
+                                                                        label = key.charAt(0).toUpperCase() + key.slice(1); // Capitalize key if no specific label
+                                                                        break;
+                                                                }
+
+                                                                return (
+                                                                    <div className="flex flex-wrap gap-3" key={key}>
+                                                                        <span style={{ fontWeight: 'bold' }}>{label} : </span>
+                                                                        {attribute.map((item, index) => (
+                                                                            <span key={item.id} style={{ marginRight: '3px', cursor: 'pointer' }}>
+                                                                                {item.name}
+                                                                                {index < attribute.length - 1 ? ', ' : ''}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                                {productPreview?.variants?.length > 0 && productPreview?.variants[0]?.sku !== '' && (
+                                                    <div className="flex flex-wrap gap-3">
+                                                        <span style={{ fontWeight: 'bold' }}>SKU : </span>
+                                                        {productPreview?.variants?.map((item, index) => (
+                                                            <span key={item?.value} style={{ marginRight: '3px', cursor: 'pointer' }}>
+                                                                {item?.sku}
+                                                                {index < productPreview?.variants?.length - 1 ? ', ' : ''}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {productPreview?.category?.length > 0 && (
+                                                    <div className="flex flex-wrap  gap-3">
+                                                        <span style={{ fontWeight: 'bold' }}>Categories : </span>
+                                                        {productPreview?.category?.map((item, index) => (
+                                                            <span key={item?.value} style={{ marginRight: '3px', cursor: 'pointer' }}>
+                                                                {item?.label}
+                                                                {index < productPreview?.category?.length - 1 ? ', ' : ''}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {productPreview?.tags?.length > 0 && (
+                                                    <div className="flex flex-wrap  gap-3 ">
+                                                        <span style={{ fontWeight: 'bold' }}>Tags : </span>
+                                                        {productPreview?.tags?.map((item, index) => (
+                                                            <span key={item?.value} style={{ marginRight: '3px', cursor: 'pointer' }}>
+                                                                {item?.label}
+                                                                {index < productPreview?.tags?.length - 1 ? ', ' : ''}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {productPreview?.youMayLike?.length > 0 && (
+                                        <div className="p-5">
+                                            <div className="mb-5  border-b border-gray-200 pb-2">
+                                                <h5 className=" block text-lg font-medium text-gray-700">You May Also Like ..</h5>
+                                            </div>
+                                            <div className="flex gap-4 overflow-x-scroll">
+                                                {productPreview?.youMayLike?.map((item, index) => (
+                                                    <div className=" flex flex-col items-center ">
+                                                        <div key={index} className="h-100 w-[200px] cursor-pointer overflow-hidden p-2" onClick={() => setPreviewSelectedImg(item?.url)}>
+                                                            {item?.image ? (
+                                                                <img src={item?.image} alt="image" className="object-contain" />
+                                                            ) : (
+                                                                <img src={'/assets/images/placeholder.png'} alt="image" className="object-contain" />
+                                                            )}
+                                                        </div>
+                                                        <div>{item?.name}</div>
+                                                        <div>₹{addCommasToNumber(item?.price)}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {productPreview?.relateProducts?.length > 0 && (
+                                        <div className="p-5">
+                                            <div className="mb-5  border-b border-gray-200 pb-2">
+                                                <h5 className=" block text-lg font-medium text-gray-700">Related Products</h5>
+                                            </div>
+                                            <div className="flex gap-4 overflow-x-scroll">
+                                                {productPreview?.relateProducts?.map((item, index) => (
+                                                    <div className=" flex flex-col items-center ">
+                                                        <div key={index} className="h-100 w-[200px] cursor-pointer overflow-hidden p-2" onClick={() => setPreviewSelectedImg(item?.url)}>
+                                                            {item?.image ? (
+                                                                <img src={item?.image} alt="image" className="object-contain" />
+                                                            ) : (
+                                                                <img src={'/assets/images/placeholder.png'} alt="image" className="object-contain" />
+                                                            )}
+                                                        </div>
+                                                        <div>{item?.name}</div>
+                                                        <div>₹{addCommasToNumber(item?.price)}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </Dialog.Panel>
                             </Transition.Child>
                         </div>

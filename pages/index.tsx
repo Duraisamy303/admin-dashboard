@@ -58,13 +58,13 @@ const Index = () => {
     const [selectedCat, setSelectedCat] = useState([]);
     const [selectedTag, setSelectedTag] = useState([]);
     const [variantName, setVariantName] = useState('');
-    const [variantSku, setVariantSku] = useState('');
     const [variantIsStackMgmt, setVariantIsStackMgmt] = useState(false);
     const [variantQuantity, setVariantQuantity] = useState(0);
     const [variantPrice, setVariantPrice] = useState(0);
     const [variantStatus, setVariantStatus] = useState('');
     const [menuOrder, setMenuOrder] = useState(null);
     const [loadingRows, setLoadingRows] = useState({});
+    const [expandedRow, setExpandedRow] = useState(null);
     const [isBulkEdit, setIsBulkEdit] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [bulkEditLoading, setBulkEditLoading] = useState(false);
@@ -192,16 +192,17 @@ const Index = () => {
 
     const productImg = (item) => {
         let img = '';
-        console.log('item: ', item);
-        if (item?.thumbnail?.url?.endsWith('.mp4')) {
-            if (item?.media?.length > 0) {
-                const find = item?.media?.find((item) => item.url?.endsWith('.webp'));
-                img = find.url;
-            }
+        const mp4Formats = ['.mp4', '.webm'];
+        const imgFormats = ['.jpeg', '.png', '.jpg', '.webp'];
+
+        const endsWithAny = (url, formats) => formats.some((format) => url?.endsWith(format));
+
+        if (endsWithAny(item?.thumbnail?.url, mp4Formats)) {
+            const find = item?.media?.find((mediaItem) => endsWithAny(mediaItem.url, imgFormats));
+            img = find?.url || '';
         } else {
-            img = item?.thumbnail?.url;
+            img = item?.thumbnail?.url || '';
         }
-        console.log('img: ', img);
 
         return img;
     };
@@ -210,11 +211,8 @@ const Index = () => {
         const newData = products?.map((item) => ({
             ...item.node,
             product: item.node.products?.totalCount,
-            image: item?.node?.thumbnail?.url,
-            // image: productImg(item?.node),
-
+            image: productImg(item?.node),
             categories: item.node.category?.length > 0 ? item.node?.category?.map((cats) => cats?.name).join(',') : '-',
-
             // categories: item.node.category?.name ? item.node.category.name : '-',
             date: item.node.updatedAt
                 ? `Last Modified ${moment(item.node.updatedAt).format('YYYY/MM/DD [at] h:mm a')}`
@@ -591,7 +589,7 @@ const Index = () => {
                     stocks: [
                         {
                             warehouse: 'V2FyZWhvdXNlOmRmODMzODUzLTQyMGYtNGRkZi04YzQzLTVkMzdjMzI4MDRlYQ==',
-                            quantity: item?.stocks?.length > 0 ? item?.stocks[0]?.quantity : 1,
+                            quantity: item?.stocks?.length > 0 ? item?.stocks[0]?.quantity : 0,
                         },
                     ],
                 }));
@@ -990,9 +988,15 @@ const Index = () => {
                                 render: (row, index) => (
                                     <>
                                         <div className="">{row.name}</div>
-                                        <button onClick={() => duplicate(row)} className=" cursor-pointer text-blue-400 underline">
-                                            {loadingRows[row.id] ? '...Loading' : 'Duplicate'}
-                                        </button>
+                                        <div className="flex gap-3">
+                                            <button onClick={() => duplicate(row)} className=" cursor-pointer text-blue-400 underline">
+                                                {loadingRows[row.id] ? '...Loading' : 'Duplicate'}
+                                            </button>
+
+                                            <button onClick={() => setExpandedRow(row.id === expandedRow ? null : row.id)} className=" cursor-pointer text-blue-400 underline">
+                                                Quick Edit
+                                            </button>
+                                        </div>
                                     </>
                                 ),
                             },
@@ -1027,7 +1031,6 @@ const Index = () => {
                                             <button className="flex hover:text-info" onClick={() => router.push(`/apps/product/edit?id=${row.id}`)}>
                                                 <IconEdit className="h-4.5 w-4.5" />
                                             </button>
-                                            {/* {row?.status == 'Published' && ( */}
                                             <button
                                                 className="flex hover:text-info"
                                                 onClick={() => {
@@ -1038,10 +1041,8 @@ const Index = () => {
                                                     }
                                                 }}
                                             >
-                                                {/* <Link href="/apps/product/view" className="flex hover:text-primary"> */}
                                                 <IconEye />
                                             </button>
-                                            {/* )} */}
 
                                             <button type="button" className="flex hover:text-danger" onClick={() => DeleteProduct(row)}>
                                                 <IconTrashLines />
@@ -1062,8 +1063,12 @@ const Index = () => {
                                 transitionTimingFunction: 'ease-out',
                             },
                             allowMultiple: false,
-                            content: ({ record }) => <QuickEdit data={record} updateList={() => refresh()} />,
-                            // ...
+                            content: ({ record }) =>
+                                expandedRow === record.id ? (
+                                    <div>
+                                        <QuickEdit data={record} updateList={refresh} closeExpand={() => setExpandedRow(null)} />
+                                    </div>
+                                ) : null,
                         }}
                         highlightOnHover
                         totalRecords={recordsData?.length}

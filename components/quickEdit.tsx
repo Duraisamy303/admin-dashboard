@@ -14,10 +14,10 @@ import {
 } from '@/query/product';
 import { useMutation, useQuery } from '@apollo/client';
 import Select from 'react-select';
+import IconLoader from './Icon/IconLoader';
 
 export default function QuickEdit(props: any) {
-    const { data, updateList } = props;
-    console.log('data: ', data);
+    const { data, updateList, closeExpand } = props;
 
     const [deleteVarient] = useMutation(DELETE_VARIENT);
 
@@ -54,6 +54,7 @@ export default function QuickEdit(props: any) {
         publish: 'published',
         productData: null,
         menuOrder: null,
+        loading: false,
     });
 
     useEffect(() => {
@@ -181,6 +182,7 @@ export default function QuickEdit(props: any) {
 
     const updateProducts = async () => {
         try {
+            setState({ loading: true });
             let upsells = [];
             if (state.productData?.getUpsells?.length > 0) {
                 upsells = state.productData?.getUpsells?.map((item: any) => item?.productId);
@@ -232,7 +234,7 @@ export default function QuickEdit(props: any) {
                 upsells,
                 crosssells,
                 slug: state.productData?.slug,
-                order_no:state.menuOrder,
+                order_no: state.menuOrder,
                 prouctDesign: design,
                 productstyle: style,
                 productFinish: finish,
@@ -250,10 +252,12 @@ export default function QuickEdit(props: any) {
 
             if (res?.data?.productUpdate?.errors?.length > 0) {
                 Failure(data?.productUpdate?.errors[0]?.message);
+                setState({ loading: false });
             } else {
                 productChannelListUpdate();
             }
         } catch (error) {
+            setState({ loading: false });
         } finally {
         }
     };
@@ -279,10 +283,13 @@ export default function QuickEdit(props: any) {
             });
             if (res?.data?.productChannelListingUpdate?.errors?.length > 0) {
                 Failure(data?.productChannelListingUpdate?.errors[0]?.message);
+                setState({ loading: false });
             } else {
                 variantListUpdate();
             }
         } catch (error) {
+            setState({ loading: false });
+
             console.log('error: ', error);
         }
     };
@@ -307,7 +314,7 @@ export default function QuickEdit(props: any) {
                 stocks: {
                     update: [
                         {
-                            quantity: item.stackMgmt ? item.quantity : 0,
+                            quantity: item.quantity,
                             stock: item.stockId,
                         },
                     ],
@@ -330,6 +337,8 @@ export default function QuickEdit(props: any) {
                 });
 
                 if (res?.data?.productVariantBulkUpdate?.errors?.length > 0) {
+                    setState({ loading: false });
+
                     Failure(res?.data?.productVariantBulkUpdate?.errors[0]?.message);
                 } else {
                     const results = res?.data?.productVariantBulkUpdate?.results || [];
@@ -352,10 +361,14 @@ export default function QuickEdit(props: any) {
                             // updateMetaData();
                         }
                     }
+                    closeExpand();
                     updateList();
+                    setState({ loading: false });
                 }
             }
         } catch (error) {
+            setState({ loading: false });
+
             console.log('error: ', error);
         }
     };
@@ -377,7 +390,7 @@ export default function QuickEdit(props: any) {
                 stocks: [
                     {
                         warehouse: 'V2FyZWhvdXNlOmRmODMzODUzLTQyMGYtNGRkZi04YzQzLTVkMzdjMzI4MDRlYQ==',
-                        quantity: item.stackMgmt ? item.quantity : 0,
+                        quantity: item.quantity,
                     },
                 ],
             }));
@@ -390,6 +403,8 @@ export default function QuickEdit(props: any) {
             });
 
             if (res?.data?.productVariantBulkCreate?.errors?.length > 0) {
+                setState({ loading: false });
+
                 Failure(res?.data?.productVariantBulkCreate?.errors[0]?.message);
             } else {
                 const resVariants = res?.data?.productVariantBulkCreate?.productVariants;
@@ -397,11 +412,17 @@ export default function QuickEdit(props: any) {
                     resVariants?.map((item: any) => {
                         variantChannelListUpdate(item.id, NewAddedVariant);
                     });
+                    setState({ loading: false });
                 } else {
+                    setState({ loading: false });
+
+                    closeExpand();
                     updateList();
                 }
             }
         } catch (error) {
+            setState({ loading: false });
+
             console.log('error: ', error);
         }
     };
@@ -422,10 +443,16 @@ export default function QuickEdit(props: any) {
             });
             if (data?.productVariantChannelListingUpdate?.errors?.length > 0) {
                 Failure(data?.productVariantChannelListingUpdate?.errors[0]?.message);
+                setState({ loading: false });
             } else {
+                closeExpand();
+
                 updateList();
+                setState({ loading: false });
             }
         } catch (error) {
+            setState({ loading: false });
+
             console.log('error: ', error);
         }
     };
@@ -510,28 +537,26 @@ export default function QuickEdit(props: any) {
                                         {/* {variantErrors[index]?.stackMgmt && <p className="error-message mt-1 text-red-500">{variantErrors[index].stackMgmt}</p>} */}
                                     </div>
                                 </div>
-                                {item.stackMgmt && (
-                                    <div className="active flex items-center">
-                                        <div className="mb-5 mr-4 " style={{ width: '20%' }}>
-                                            <label htmlFor={`quantity_${index}`} className="block  text-sm font-medium text-gray-700">
-                                                Quantity
-                                            </label>
-                                        </div>
-                                        <div className="mb-5" style={{ width: '80%' }}>
-                                            <input
-                                                type="number"
-                                                id={`quantity_${index}`}
-                                                name={`quantity_${index}`}
-                                                value={item?.quantity}
-                                                onChange={(e) => handleVariantChange(index, 'quantity', parseInt(e.target.value))}
-                                                style={{ width: '100%' }}
-                                                placeholder="Enter Quantity"
-                                                className="form-input"
-                                            />
-                                            {/* {variantErrors[index]?.quantity && <p className="error-message mt-1 text-red-500">{variantErrors[index].quantity}</p>} */}
-                                        </div>
+                                <div className="active flex items-center">
+                                    <div className="mb-5 mr-4 " style={{ width: '20%' }}>
+                                        <label htmlFor={`quantity_${index}`} className="block  text-sm font-medium text-gray-700">
+                                            Quantity
+                                        </label>
                                     </div>
-                                )}
+                                    <div className="mb-5" style={{ width: '80%' }}>
+                                        <input
+                                            type="number"
+                                            id={`quantity_${index}`}
+                                            name={`quantity_${index}`}
+                                            value={item?.quantity}
+                                            onChange={(e) => handleVariantChange(index, 'quantity', parseInt(e.target.value))}
+                                            style={{ width: '100%' }}
+                                            placeholder="Enter Quantity"
+                                            className="form-input"
+                                        />
+                                        {/* {variantErrors[index]?.quantity && <p className="error-message mt-1 text-red-500">{variantErrors[index].quantity}</p>} */}
+                                    </div>
+                                </div>
                                 <div className="active flex items-center">
                                     <div className="mb-5 mr-4" style={{ width: '20%' }}>
                                         <label htmlFor={`regularPrice_${index}`} className="block pr-5 text-sm font-medium text-gray-700">
@@ -624,9 +649,9 @@ export default function QuickEdit(props: any) {
                 </div>
                 <div className="mb-5 flex gap-5">
                     <button type="button" className=" btn btn-primary flex justify-end" onClick={updateProducts}>
-                        Update
+                        {state.loading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Update'}
                     </button>
-                    <button type="button" className=" btn btn-outline-primary flex justify-end" onClick={() => {}}>
+                    <button type="button" className=" btn btn-outline-primary flex justify-end" onClick={() => closeExpand()}>
                         Cancel
                     </button>
                 </div>

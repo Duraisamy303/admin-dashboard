@@ -59,6 +59,8 @@ import {
     UPDATE_VARIANT_LIST,
     PRODUCT_BY_NAME,
     PRODUCT_MEDIA_CREATE_NEW,
+    PRODUCT_LIST_BY_ID,
+    RELATED_PRODUCT,
 } from '@/query/product';
 import {
     Failure,
@@ -81,7 +83,6 @@ import Modal from '@/components/Modal';
 import IconLoader from '@/components/Icon/IconLoader';
 import moment from 'moment';
 import axios from 'axios';
-import { productPreview } from '@/store/authConfigSlice';
 const ProductAdd = () => {
     const router = useRouter();
     const isRtl = useSelector((state: any) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
@@ -146,9 +147,11 @@ const ProductAdd = () => {
     const [variantErrors, setVariantErrors] = useState<any>([]);
     const [createLoading, setCreateLoading] = useState(false);
     const [isLongPress, setIsLongPress] = useState(false);
-    const [previewData, setPreviewData] = useState(null);
     const [previewSelectedImg, setPreviewSelectedImg] = useState(null);
     const [isPreview, setIsPreview] = useState(false);
+    const [previewLoading, setPreviewLoading] = useState(false);
+    const [isOpenPreview, setIsOpenPreview] = useState(false);
+    const [productPreview, setPreviewData] = useState(null);
 
     // error message end
 
@@ -197,34 +200,37 @@ const ProductAdd = () => {
     const optionsVal = arr.map((item) => ({ value: item.type, label: item.type }));
 
     // -------------------------------------New Added-------------------------------------------------------
+    const { refetch: productListRefetch } = useQuery(PRODUCT_LIST_BY_ID);
+
+    const { refetch: relatedProductsRefetch } = useQuery(RELATED_PRODUCT);
 
     const { error, data: orderDetails } = useQuery(CHANNEL_LIST, {
         variables: sampleParams,
     });
-    const { data: finishData } = useQuery(FINISH_LIST, {
+    const { data: finishData, refetch: finishRefetch } = useQuery(FINISH_LIST, {
         variables: sampleParams,
     });
 
-    const { data: stoneData } = useQuery(STONE_LIST, {
+    const { data: stoneData, refetch: stoneRefetch } = useQuery(STONE_LIST, {
         variables: sampleParams,
     });
-    const { data: designData } = useQuery(DESIGN_LIST, {
+    const { data: designData, refetch: designRefetch } = useQuery(DESIGN_LIST, {
         variables: sampleParams,
     });
 
-    const { data: styleData } = useQuery(STYLE_LIST, {
+    const { data: styleData, refetch: styleRefetch } = useQuery(STYLE_LIST, {
         variables: sampleParams,
     });
     // -----------------New --------------------------------
-    const { data: stoneColorData } = useQuery(COLOR_LIST, {
+    const { data: stoneColorData, refetch: stoneColorRefetch } = useQuery(COLOR_LIST, {
         variables: sampleParams,
     });
 
-    const { data: typeData } = useQuery(TYPE_LIST, {
+    const { data: typeData, refetch: typeRefetch } = useQuery(TYPE_LIST, {
         variables: sampleParams,
     });
 
-    const { data: sizeData } = useQuery(SIZE_LIST, {
+    const { data: sizeData, refetch: sizeRefetch } = useQuery(SIZE_LIST, {
         variables: sampleParams,
     });
 
@@ -479,8 +485,102 @@ const ProductAdd = () => {
         name: Yup.string().required('Name is required'),
     });
 
+    const getFullDetails = (selectedValues, arr) => {
+        return Object.keys(selectedValues).reduce((acc, key) => {
+            if (arr[key]) {
+                acc[key] = arr[key].edges.filter((edge) => selectedValues[key].includes(edge.node.id)).map((edge) => edge.node);
+            }
+            return acc;
+        }, {});
+    };
+
     const previewClick = async () => {
-        const savedContent = await editorInstance?.save();
+        setPreviewLoading(true);
+        const savedContent = await editorInstance.save();
+
+        const styleRes = await styleRefetch({
+            sampleParams,
+        });
+
+        const designRes = await designRefetch({
+            sampleParams,
+        });
+
+        const finishRes = await finishRefetch({
+            sampleParams,
+        });
+
+        const stoneTypeRes = await stoneRefetch({
+            sampleParams,
+        });
+
+        const stoneColorRes = await stoneColorRefetch({
+            sampleParams,
+        });
+
+        const typeRes = await typeRefetch({
+            sampleParams,
+        });
+
+        const sizeRes = await sizeRefetch({
+            sampleParams,
+        });
+        let youMayLike = [];
+
+        if (selectedCrosssell?.length > 0) {
+            const listById = await productListRefetch({
+                ids: selectedCrosssell?.map((item) => item?.value),
+                channel: 'india-channel',
+            });
+
+            const modify = listById?.data?.products?.edges;
+            if (modify.length > 0) {
+                youMayLike = modify?.map((item) => ({
+                    name: item?.node?.name,
+                    image: item?.node?.thumbnail?.url,
+                    price: item?.node?.pricing?.priceRange?.start?.gross?.amount,
+                }));
+            }
+        }
+
+        const arr1 = {
+            design: designRes?.data?.productDesigns,
+            style: styleRes?.data?.productStyles,
+            finish: finishRes?.data?.productFinishes,
+            stoneType: stoneTypeRes?.data?.productStoneTypes,
+            stoneColor: stoneColorRes?.data?.stoneColors,
+            type: typeRes?.data?.itemTypes,
+            size: sizeRes?.data?.sizes,
+        };
+        const attributes = getFullDetails(selectedValues, arr1);
+        const idSet = new Set(selectedCat.map((item) => item.value));
+        let parentCat = '';
+        let relateProducts = [];
+
+        // Step 2: Filter objects from the first array
+        const result = parentList?.categories?.edges.filter((item) => idSet.has(item.node.id) && item.node.level === 0).map((item) => item.node);
+
+        if (result.length > 0) {
+            parentCat = result[0]?.id;
+            const res = await relatedProductsRefetch({
+                channel: 'india-channel',
+                id: parentCat,
+            });
+
+            const response = res?.data?.category?.products?.edges;
+            if (response.length > 0) {
+                relateProducts = response?.map((item) => ({
+                    name: item?.node?.name,
+                    image: item?.node?.thumbnail?.url,
+                    price: item?.node?.pricing?.priceRange?.start?.gross?.amount,
+                }));
+            }
+        }
+        let img = [];
+        if (imageUrl?.length > 0) {
+            img = imageUrl?.filter((item) => !item.endsWith('.mp4'));
+        }
+
         const data = {
             name: productName,
             slug,
@@ -495,19 +595,18 @@ const ProductAdd = () => {
             upsell: selectedUpsell,
             crossell: selectedCrosssell,
             publish,
-            attibutes: selectedValues,
+            attributes,
             menuOrder,
             label,
-            image: imageUrl,
-            productId: '',
+            image: img,
+            // productId: id,
+            relateProducts,
+            youMayLike,
         };
-        console.log('data: ', data);
 
         setPreviewData(data);
-        dispatch(productPreview(data));
-        setIsPreview(true);
-        // router.push('/apps/product/preview');
-        console.log('data: ', data);
+        setIsOpenPreview(true);
+        setPreviewLoading(false);
     };
 
     const CreateProduct = async () => {
@@ -576,7 +675,7 @@ const ProductAdd = () => {
                 if (!variant.sku) errors.sku = 'SKU cannot be empty';
                 // if (variant.quantity <= 0 || isNaN(variant.quantity)) errors.quantity = 'Quantity must be a valid number and greater than 0';
                 // if (variant.regularPrice <= 0 || isNaN(variant.regularPrice)) errors.regularPrice = 'Regular Price must be a valid number and greater than 0';
-                if (!variant.stackMgmt) errors.stackMgmt = 'Check Stack Management';
+                // if (!variant.stackMgmt) errors.stackMgmt = 'Check Stack Management';
                 setCreateLoading(false);
 
                 return errors;
@@ -1524,15 +1623,15 @@ const ProductAdd = () => {
                                 <button type="submit" className="btn btn-primary w-full" onClick={() => CreateProduct()}>
                                     {createLoading ? <IconLoader /> : 'Create'}
                                 </button>
-                                {/* <button
+                                <button
                                     type="submit"
                                     className="btn btn-outline-primary w-full"
                                     onClick={() => {
                                         previewClick();
                                     }}
                                 >
-                                    {'Preview'}
-                                </button> */}
+                                    {previewLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Preview'}
+                                </button>
                             </div>
                         </div>
 
@@ -1598,216 +1697,6 @@ const ProductAdd = () => {
                     </div>
                 </div>
             </div>
-
-            <Transition appear show={isPreview} as={Fragment}>
-                <Dialog
-                    as="div"
-                    open={isPreview}
-                    onClose={() => {
-                        setIsPreview(false);
-                    }}
-                >
-                    <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-                        <div className="fixed inset-0" />
-                    </Transition.Child>
-                    <div className="fixed inset-0 z-[999] bg-[black]/60">
-                        <div className="flex min-h-screen items-start justify-center px-4">
-                            <Transition.Child
-                                as={Fragment}
-                                enter="ease-out duration-300"
-                                enterFrom="opacity-0 scale-95"
-                                enterTo="opacity-100 scale-100"
-                                leave="ease-in duration-200"
-                                leaveFrom="opacity-100 scale-100"
-                                leaveTo="opacity-0 scale-95"
-                            >
-                                <Dialog.Panel className="panel max-w-8xl my-8 w-full overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark">
-                                    <div className="flex items-center justify-between bg-[#fbfbfb] px-5 py-3 dark:bg-[#121c2c]">
-                                        <h5 className="text-lg font-bold">{'Product Preview'}</h5>
-                                        <button
-                                            onClick={() => {
-                                                setModal2(false);
-                                            }}
-                                            type="button"
-                                            className="text-white-dark hover:text-dark"
-                                        >
-                                            <IconX />
-                                        </button>
-                                    </div>
-                                    <div className="flex h-full w-full gap-3 overflow-scroll bg-black">
-                                        <div className="panel flex h-full w-2/12 flex-col items-center overflow-scroll ">
-                                            {previewData?.image?.length > 0 ? (
-                                                previewData?.image?.map((item, index) => (
-                                                    <div key={index} className="h-100 w-[200px] cursor-pointer overflow-hidden p-2" onClick={() => setPreviewSelectedImg(item)}>
-                                                        <img src={item} alt="image" className="object-contain" />
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <div className="h-100 w-[200px] cursor-pointer overflow-hidden p-2">
-                                                    <img src={'/assets/images/placeholder.png'} alt="image" className="object-contain" />
-                                                </div>
-                                            )}
-                                        </div>
-                                        {previewData?.image?.length > 0 ? (
-                                            <div className="panel h-[500px] w-4/12">
-                                                <img src={previewSelectedImg ? previewSelectedImg : previewData?.image[0]} alt="image" style={{ width: '100%', height: '100%' }} />
-                                            </div>
-                                        ) : (
-                                            <div className="panel h-[500px] w-4/12">
-                                                <img src={'/assets/images/placeholder.png'} alt="image" style={{ width: '100%', height: '100%' }} />
-                                            </div>
-                                        )}
-                                        <div className="panel h-full w-5/12">
-                                            {previewData?.name && (
-                                                <label htmlFor="name" className="block text-2xl font-medium text-gray-700">
-                                                    {previewData?.name}
-                                                </label>
-                                            )}
-                                            {previewData?.variants?.length > 0 && (
-                                                <div className="flex gap-4">
-                                                    {previewData?.variants?.map(
-                                                        (item, index) =>
-                                                            item?.salePrice !== 0 && (
-                                                                <label key={index} htmlFor="name" className="block text-2xl font-medium text-gray-700">
-                                                                    ₹{addCommasToNumber(item?.salePrice)}
-                                                                </label>
-                                                            )
-                                                    )}
-                                                </div>
-                                            )}
-                                            {previewData?.shortDescription && (
-                                                <label htmlFor="name" className="block text-2xl font-medium text-gray-700">
-                                                    {previewData?.shortDescription}
-                                                </label>
-                                            )}
-                                            <div className="panel w-full">
-                                                <div
-                                                    style={{
-                                                        borderBottom: '1px solid #EAEBED',
-                                                        paddingBottom: '15px',
-                                                        marginBottom: '15px',
-                                                    }}
-                                                >
-                                                    {previewData?.description?.blocks?.length > 0 && (
-                                                        <div
-                                                            style={{
-                                                                display: 'flex',
-                                                                justifyContent: 'space-between',
-                                                                cursor: 'pointer',
-                                                            }}
-                                                        >
-                                                            <div className={`${previewData?.description ? 'theme-color' : ''}`}>MAINTENANCE TIPS</div>
-                                                            <div>{previewData.description ? '▲' : '▼'}</div>
-                                                        </div>
-                                                    )}
-                                                    {previewData?.description && (
-                                                        <>
-                                                            {previewData?.description?.blocks?.map((block, index) => (
-                                                                <div key={index} style={{ marginTop: '10px' }}>
-                                                                    {block?.type === 'header' && <h5 style={{ fontWeight: '400' }}>{block?.data?.text}</h5>}
-                                                                    {block.type === 'paragraph' && (
-                                                                        <p style={{ color: 'gray', marginBottom: '5px' }}>
-                                                                            {block.data.text && (
-                                                                                <span
-                                                                                    dangerouslySetInnerHTML={{
-                                                                                        __html: block.data.text.includes('<b>') ? `<b>${block.data.text}</b>` : block.data.text,
-                                                                                    }}
-                                                                                />
-                                                                            )}
-                                                                        </p>
-                                                                    )}
-                                                                    {block.type === 'list' && (
-                                                                        <ul style={{ paddingLeft: '20px' }}>
-                                                                            {block.data.items?.map((item, itemIndex) => (
-                                                                                <li
-                                                                                    key={itemIndex}
-                                                                                    style={{ color: 'gray' }}
-                                                                                    dangerouslySetInnerHTML={{
-                                                                                        __html: item.includes('<b>') ? `<b>${item}</b>` : item,
-                                                                                    }}
-                                                                                />
-                                                                            ))}
-                                                                        </ul>
-                                                                    )}
-                                                                </div>
-                                                            ))}
-                                                        </>
-                                                    )}
-                                                </div>
-                                                {/* {!isEmptyObject(previewData?.attibutes) && ( */}
-                                                {previewData?.attibutes && (
-                                                    <div
-                                                        style={{
-                                                            borderBottom: '1px solid #EAEBED',
-                                                            paddingBottom: '15px',
-                                                            marginBottom: '15px',
-                                                        }}
-                                                    >
-                                                        <div
-                                                            style={{
-                                                                display: 'flex',
-                                                                justifyContent: 'space-between',
-                                                                cursor: 'pointer',
-                                                            }}
-                                                        >
-                                                            <div>ADDITIONAL INFORMATION</div>
-                                                            <div>▲</div>
-                                                        </div>
-                                                        <ul
-                                                            style={{
-                                                                listStyleType: 'none',
-                                                                paddingTop: '10px',
-                                                                gap: 5,
-                                                            }}
-                                                        >
-                                                            {Object.keys(previewData?.attibutes).map(
-                                                                (key) =>
-                                                                    previewData?.attibutes?.[key]?.length > 0 && (
-                                                                        <li key={key}>
-                                                                            <span style={{ fontWeight: 'bold' }}>{previewData?.attibutes[key]}: </span>
-                                                                            {previewData?.attibutes?.[key]?.map((item, index) => (
-                                                                                <span key={item} style={{ marginRight: '3px', cursor: 'pointer' }}>
-                                                                                    {item}
-                                                                                    {index < previewData?.attibutes?.[key]?.length - 1 ? ', ' : ''}
-                                                                                </span>
-                                                                            ))}
-                                                                        </li>
-                                                                    )
-                                                            )}
-                                                        </ul>
-                                                    </div>
-                                                )}
-                                                {previewData?.variants?.length > 0 && previewData?.variants[0]?.sku !== '' && (
-                                                    <div className="flex gap-3">
-                                                        <span style={{ fontWeight: 'bold' }}>SKU : </span>
-                                                        {previewData?.variants?.map((item, index) => (
-                                                            <span key={item?.value} style={{ marginRight: '3px', cursor: 'pointer' }}>
-                                                                {item?.sku}
-                                                                {index < previewData?.variants?.length - 1 ? ', ' : ''}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                                {previewData?.category?.length > 0 && (
-                                                    <div className="flex gap-3">
-                                                        <span style={{ fontWeight: 'bold' }}>Categories : </span>
-                                                        {previewData?.category?.map((item, index) => (
-                                                            <span key={item?.value} style={{ marginRight: '3px', cursor: 'pointer' }}>
-                                                                {item?.label}
-                                                                {index < previewData?.category?.length - 1 ? ', ' : ''}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Dialog.Panel>
-                            </Transition.Child>
-                        </div>
-                    </div>
-                </Dialog>
-            </Transition>
 
             <Transition appear show={modal2} as={Fragment}>
                 <Dialog
@@ -2324,6 +2213,290 @@ const ProductAdd = () => {
                                             )}
                                         </Formik>
                                     </div>
+                                </Dialog.Panel>
+                            </Transition.Child>
+                        </div>
+                    </div>
+                </Dialog>
+            </Transition>
+
+            {/* //Preview */}
+            <Transition appear show={isOpenPreview} as={Fragment}>
+                <Dialog as="div" open={isOpenPreview} onClose={() => setIsOpenPreview(false)}>
+                    <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
+                        <div className="fixed inset-0" />
+                    </Transition.Child>
+                    <div className="fixed inset-0 z-[999] overflow-y-auto bg-[black]/60">
+                        <div className="flex min-h-screen items-start justify-center px-4">
+                            <Transition.Child
+                                as={Fragment}
+                                enter="ease-out duration-300"
+                                enterFrom="opacity-0 scale-95"
+                                enterTo="opacity-100 scale-100"
+                                leave="ease-in duration-200"
+                                leaveFrom="opacity-100 scale-100"
+                                leaveTo="opacity-0 scale-95"
+                            >
+                                <Dialog.Panel as="div" className="panel my-8 w-full overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark">
+                                    <div className="flex items-center justify-between bg-[#fbfbfb] px-5 py-3 dark:bg-[#121c2c]">
+                                        <div className="text-lg font-bold">Preview</div>
+                                        <button type="button" className="text-white-dark hover:text-dark" onClick={() => setIsOpenPreview(false)}>
+                                            <IconX />
+                                        </button>
+                                    </div>
+                                    <div className="flex h-full w-full gap-3">
+                                        <div className="panel flex  h-[600px] w-2/12 flex-col items-center overflow-scroll">
+                                            {productPreview?.image?.length > 0 ? (
+                                                <div className="overflow-auto">
+                                                    {productPreview?.image?.map((item, index) => (
+                                                        <div key={index} className="h-100 w-[200px] cursor-pointer overflow-hidden p-2" onClick={() => setPreviewSelectedImg(item)}>
+                                                            <img src={item} alt="image" className="object-contain" />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="h-100 w-[200px] cursor-pointer overflow-hidden p-2">
+                                                    <img src={'/assets/images/placeholder.png'} alt="image" className="object-contain" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        {productPreview?.image?.length > 0 ? (
+                                            <div className="panel h-[500px] w-4/12">
+                                                <img src={previewSelectedImg ? previewSelectedImg : productPreview?.image[0]} alt="image" style={{ width: '100%', height: '100%' }} />
+                                            </div>
+                                        ) : (
+                                            <div className="panel h-[500px] w-4/12">
+                                                <img src={'/assets/images/placeholder.png'} alt="image" style={{ width: '100%', height: '100%' }} />
+                                            </div>
+                                        )}
+
+                                        <div className="panel h-full w-5/12">
+                                            {productPreview?.name && (
+                                                <label htmlFor="name" className="block text-2xl font-medium text-gray-700">
+                                                    {productPreview?.name}
+                                                </label>
+                                            )}
+                                            {productPreview?.variants?.length > 0 && (
+                                                <div className="flex flex-wrap gap-4">
+                                                    {productPreview?.variants?.map(
+                                                        (item, index) =>
+                                                            item?.regularPrice !== 0 && (
+                                                                <label key={index} htmlFor="name" className="block text-2xl font-medium text-gray-700">
+                                                                    ₹{addCommasToNumber(item?.regularPrice)}
+                                                                </label>
+                                                            )
+                                                    )}
+                                                </div>
+                                            )}
+                                            {productPreview?.shortDescription && (
+                                                <label htmlFor="name" className="text-md block font-medium text-gray-700">
+                                                    {productPreview?.shortDescription}
+                                                </label>
+                                            )}
+                                            <div className="panel w-full ">
+                                                <div
+                                                    style={{
+                                                        borderBottom: '1px solid #EAEBED',
+                                                        paddingBottom: '15px',
+                                                        marginBottom: '15px',
+                                                    }}
+                                                >
+                                                    {productPreview?.description?.blocks?.length > 0 && (
+                                                        <div
+                                                            style={{
+                                                                display: 'flex',
+                                                                justifyContent: 'space-between',
+                                                                cursor: 'pointer',
+                                                            }}
+                                                        >
+                                                            <div className={`${productPreview?.description ? 'theme-color' : ''}`}>MAINTENANCE TIPS</div>
+                                                            {/* <div>{productPreview.description ? '▲' : '▼'}</div> */}
+                                                        </div>
+                                                    )}
+                                                    {productPreview?.description && (
+                                                        <>
+                                                            {productPreview?.description?.blocks?.map((block, index) => (
+                                                                <div key={index} style={{ marginTop: '10px' }}>
+                                                                    {block?.type === 'header' && <h5 style={{ fontWeight: '400' }}>{block?.data?.text}</h5>}
+                                                                    {block.type === 'paragraph' && (
+                                                                        <p style={{ color: 'gray', marginBottom: '5px' }}>
+                                                                            {block.data.text && (
+                                                                                <span
+                                                                                    dangerouslySetInnerHTML={{
+                                                                                        __html: block.data.text.includes('<b>') ? `<b>${block.data.text}</b>` : block.data.text,
+                                                                                    }}
+                                                                                />
+                                                                            )}
+                                                                        </p>
+                                                                    )}
+                                                                    {block.type === 'list' && (
+                                                                        <ul style={{ paddingLeft: '20px' }}>
+                                                                            {block.data.items?.map((item, itemIndex) => (
+                                                                                <li
+                                                                                    key={itemIndex}
+                                                                                    style={{ color: 'gray' }}
+                                                                                    dangerouslySetInnerHTML={{
+                                                                                        __html: item.includes('<b>') ? `<b>${item}</b>` : item,
+                                                                                    }}
+                                                                                />
+                                                                            ))}
+                                                                        </ul>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </>
+                                                    )}
+                                                </div>
+                                                {productPreview?.attributes && (
+                                                    <div
+                                                        style={{
+                                                            borderBottom: '1px solid #EAEBED',
+                                                            paddingBottom: '15px',
+                                                            marginBottom: '15px',
+                                                        }}
+                                                    >
+                                                        <div
+                                                            style={{
+                                                                display: 'flex',
+                                                                justifyContent: 'space-between',
+                                                                cursor: 'pointer',
+                                                            }}
+                                                        >
+                                                            <div>ADDITIONAL INFORMATION</div>
+                                                            {/* <div>▲</div> */}
+                                                        </div>
+                                                        <ul
+                                                            style={{
+                                                                listStyleType: 'none',
+                                                                paddingTop: '10px',
+                                                                gap: 5,
+                                                            }}
+                                                        >
+                                                            {Object.keys(productPreview?.attributes).map((key) => {
+                                                                const attribute = productPreview?.attributes[key];
+                                                                // Determine the label based on the attribute key
+                                                                let label;
+                                                                switch (key) {
+                                                                    case 'design':
+                                                                        label = 'Design';
+                                                                        break;
+                                                                    case 'style':
+                                                                        label = 'Style';
+                                                                        break;
+                                                                    case 'finish':
+                                                                        label = 'Finish';
+                                                                        break;
+                                                                    case 'stoneColor':
+                                                                        label = 'Stone Color';
+                                                                        break;
+                                                                    case 'type':
+                                                                        label = 'Type';
+                                                                        break;
+                                                                    case 'size':
+                                                                        label = 'Size';
+                                                                        break;
+                                                                    default:
+                                                                        label = key.charAt(0).toUpperCase() + key.slice(1); // Capitalize key if no specific label
+                                                                        break;
+                                                                }
+
+                                                                return (
+                                                                    <div className="flex flex-wrap gap-3" key={key}>
+                                                                        <span style={{ fontWeight: 'bold' }}>{label} : </span>
+                                                                        {attribute.map((item, index) => (
+                                                                            <span key={item.id} style={{ marginRight: '3px', cursor: 'pointer' }}>
+                                                                                {item.name}
+                                                                                {index < attribute.length - 1 ? ', ' : ''}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                                {productPreview?.variants?.length > 0 && productPreview?.variants[0]?.sku !== '' && (
+                                                    <div className="flex flex-wrap gap-3">
+                                                        <span style={{ fontWeight: 'bold' }}>SKU : </span>
+                                                        {productPreview?.variants?.map((item, index) => (
+                                                            <span key={item?.value} style={{ marginRight: '3px', cursor: 'pointer' }}>
+                                                                {item?.sku}
+                                                                {index < productPreview?.variants?.length - 1 ? ', ' : ''}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {productPreview?.category?.length > 0 && (
+                                                    <div className="flex flex-wrap  gap-3">
+                                                        <span style={{ fontWeight: 'bold' }}>Categories : </span>
+                                                        {productPreview?.category?.map((item, index) => (
+                                                            <span key={item?.value} style={{ marginRight: '3px', cursor: 'pointer' }}>
+                                                                {item?.label}
+                                                                {index < productPreview?.category?.length - 1 ? ', ' : ''}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {productPreview?.tags?.length > 0 && (
+                                                    <div className="flex flex-wrap  gap-3 ">
+                                                        <span style={{ fontWeight: 'bold' }}>Tags : </span>
+                                                        {productPreview?.tags?.map((item, index) => (
+                                                            <span key={item?.value} style={{ marginRight: '3px', cursor: 'pointer' }}>
+                                                                {item?.label}
+                                                                {index < productPreview?.tags?.length - 1 ? ', ' : ''}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {productPreview?.youMayLike?.length > 0 && (
+                                        <div className="p-5">
+                                            <div className="mb-5  border-b border-gray-200 pb-2">
+                                                <h5 className=" block text-lg font-medium text-gray-700">You May Also Like ..</h5>
+                                            </div>
+                                            <div className="flex gap-4 overflow-x-scroll">
+                                                {productPreview?.youMayLike?.map((item, index) => (
+                                                    <div className=" flex flex-col items-center ">
+                                                        <div key={index} className="h-100 w-[200px] cursor-pointer overflow-hidden p-2" onClick={() => setPreviewSelectedImg(item?.url)}>
+                                                            {item?.image ? (
+                                                                <img src={item?.image} alt="image" className="object-contain" />
+                                                            ) : (
+                                                                <img src={'/assets/images/placeholder.png'} alt="image" className="object-contain" />
+                                                            )}
+                                                        </div>
+                                                        <div>{item?.name}</div>
+                                                        <div>₹{addCommasToNumber(item?.price)}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {productPreview?.relateProducts?.length > 0 && (
+                                        <div className="p-5">
+                                            <div className="mb-5  border-b border-gray-200 pb-2">
+                                                <h5 className=" block text-lg font-medium text-gray-700">Related Products</h5>
+                                            </div>
+                                            <div className="flex gap-4 overflow-x-scroll">
+                                                {productPreview?.relateProducts?.map((item, index) => (
+                                                    <div className=" flex flex-col items-center ">
+                                                        <div key={index} className="h-100 w-[200px] cursor-pointer overflow-hidden p-2" onClick={() => setPreviewSelectedImg(item?.url)}>
+                                                            {item?.image ? (
+                                                                <img src={item?.image} alt="image" className="object-contain" />
+                                                            ) : (
+                                                                <img src={'/assets/images/placeholder.png'} alt="image" className="object-contain" />
+                                                            )}
+                                                        </div>
+                                                        <div>{item?.name}</div>
+                                                        <div>₹{addCommasToNumber(item?.price)}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </Dialog.Panel>
                             </Transition.Child>
                         </div>

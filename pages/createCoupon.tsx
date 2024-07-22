@@ -36,8 +36,8 @@ const CreateCoupon = () => {
         minimumReqOption: [],
         usageOption: [],
         couponValue: '',
-        usageLimit: '',
-        minimumReq: '',
+        usageLimit: { value: 'Limit number of times this discount can be used in total', label: 'Limit number of times this discount can be used in total' },
+        minimumReq: { value: 'None', label: 'None' },
         minimumReqValue: '',
         usageValue: '',
         isEndDate: false,
@@ -45,8 +45,11 @@ const CreateCoupon = () => {
         endDate: '',
         description: '',
         codeType: { value: 'Fixed Amount', label: 'Fixed Amount' },
+        manualCode: '',
+        manualCodeErr: '',
+        errors: null,
     });
-    console.log(state.codeType);
+    console.log(state.errors);
 
     useEffect(() => {
         codeType();
@@ -55,7 +58,7 @@ const CreateCoupon = () => {
     const handleMenuClick = (e) => {
         setState({ visible: false, typeOfCode: e.key });
         if (e.key === 'manual') {
-            setState({ isOpen: true, couponNameErr: '', couponName: '' });
+            setState({ isOpen: true, couponNameErr: '' });
         } else {
             setState({ autoCode: true, autoCodeNumber: '', autoCodeNumberErr: '' });
         }
@@ -69,10 +72,10 @@ const CreateCoupon = () => {
     );
 
     const addManualCode = () => {
-        if (state.couponName == '') {
-            setState({ couponNameErr: 'Please enter coupon code' });
+        if (state.manualCode == '') {
+            setState({ manualCodeErr: 'Please enter coupon code' });
         } else {
-            setState({ isOpen: false, couponNameErr: '', couponName: '', generatedCodes: [...state.generatedCodes, state.couponName] });
+            setState({ isOpen: false, manualCodeErr: '', manualCode: '', generatedCodes: [...state.generatedCodes, state.manualCode], errors: { generatedCodesError: '' } });
         }
     };
 
@@ -93,6 +96,7 @@ const CreateCoupon = () => {
                 generatedCodes: [...state.generatedCodes, ...codes],
                 autoCodeNumberErr: '',
                 autoCode: false,
+                errors: { generatedCodesError: '' },
             });
         }
     };
@@ -112,25 +116,53 @@ const CreateCoupon = () => {
     const handleEndDateChange = (e) => {
         setState({
             endDate: e.target.value,
+            errors: { endDateError: '' },
         });
     };
 
     const CreateCoupon = async () => {
         try {
+            let errors: any = {};
+
+            const { couponName, generatedCodes, codeType, couponValue, minimumReq, minimumReqValue, usageLimit, usageValue, isEndDate, endDate, startDate } = state;
+
+            if (!couponName) {
+                errors.nameError = 'Coupon name is required';
+            }
+            if (generatedCodes.length === 0) {
+                errors.generatedCodesError = 'At least one coupon code is required';
+            }
+            if (codeType.value !== 'Free Shipping' && !couponValue) {
+                errors.couponValueError = 'Coupon value is required';
+            }
+            if (minimumReq.value !== 'None' && !minimumReqValue) {
+                errors.minimumReqValueError = 'Minimum requirement value is required';
+            }
+            if (usageLimit.value === 'Limit number of times this discount can be used in total' && !usageValue) {
+                errors.usageValueError = 'Usage limit value is required';
+            }
+            if (isEndDate && !endDate) {
+                errors.endDateError = 'End date is required';
+            }
+
+            if (Object.keys(errors).length > 0) {
+                setState({ errors });
+                return;
+            }
+
             const body = {
-                name: state.couponName,
-                applyOncePerCustomer: state.usageLimit?.value == 'Limit to one use per customer' ? true : false,
-                // applyOncePerOrder: state.usageLimit?.value == 'Limit to one use per customer' ? true : false,
+                name: couponName,
+                applyOncePerCustomer: usageLimit.value === 'Limit to one use per customer',
                 applyOncePerOrder: false,
-                onlyForStaff: state.usageLimit?.value == 'Limit to staff only' ? true : false,
-                addCodes: state.generatedCodes,
-                discountValueType: state.codeType?.value == 'Fixed Amount' ? 'FIXED' : 'PERCENTAGE',
-                endDate: state.isEndDate ? state.endDate : null,
-                minCheckoutItemsQuantity: state.minimumReq?.value == 'Minimum quantity of items' ? state.minimumReqValue : 0,
-                startDate: state.startDate,
-                type: state.codeType?.value == 'Free Shipping' ? 'SHIPPING' : 'ENTIRE_ORDER',
-                usageLimit: state.usageLimit?.value == 'Limit number of times this discount can be used in total' ? state.usageValue : null,
-                singleUse: state.usageLimit?.value == 'Limit to voucher code use once' ? true : false,
+                onlyForStaff: usageLimit.value === 'Limit to staff only',
+                addCodes: generatedCodes,
+                discountValueType: codeType.value === 'Fixed Amount' ? 'FIXED' : 'PERCENTAGE',
+                endDate: isEndDate ? endDate : null,
+                minCheckoutItemsQuantity: minimumReq.value === 'Minimum quantity of items' ? minimumReqValue : 0,
+                startDate: startDate,
+                type: codeType.value === 'Free Shipping' ? 'SHIPPING' : 'ENTIRE_ORDER',
+                usageLimit: usageLimit.value === 'Limit number of times this discount can be used in total' ? usageValue : null,
+                singleUse: usageLimit.value === 'Limit to voucher code use once',
             };
 
             const res = await createCoupons({
@@ -138,10 +170,11 @@ const CreateCoupon = () => {
                     input: body,
                 },
             });
+
             if (res?.data?.voucherCreate?.errors?.length > 0) {
-                Failure(res?.data?.voucherCreate?.errors[0]?.message);
+                Failure(res.data.voucherCreate.errors[0].message);
             } else {
-                const couponId = res?.data?.voucherCreate?.voucher?.id;
+                const couponId = res.data.voucherCreate.voucher.id;
                 channelListUpdate(couponId);
             }
         } catch (error) {
@@ -232,11 +265,6 @@ const CreateCoupon = () => {
         <>
             <div className="panel mb-5 flex items-center justify-between gap-5">
                 <h5 className="text-lg font-semibold dark:text-white-light">Create Coupon</h5>
-                <div>
-                    <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => CreateCoupon()}>
-                        {createLoading || chennelLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : '+ Create'}
-                    </button>
-                </div>
             </div>
             <div className="panel mb-5 flex ">
                 <div className="flex w-full flex-wrap  items-center ">
@@ -247,21 +275,23 @@ const CreateCoupon = () => {
                         <input
                             type="text"
                             value={state.couponName}
-                            onChange={(e) => setState({ couponName: e.target.value })}
+                            onChange={(e) => setState({ couponName: e.target.value,errors:{nameError:""} })}
                             placeholder="Enter Coupon Name"
                             name="name"
                             className="form-input"
                             required
                         />
-                        {state.nameError && <p className="error-message mt-1 text-red-500">{state.nameError}</p>}
+                        {state.errors?.nameError && <p className="mt-[4px] text-[14px] text-red-600">{state.errors?.nameError}</p>}
                     </div>
-
                     <div className="mt-4 flex w-full justify-end md:w-6/12">
-                        <Dropdown overlay={menu} trigger={['click']} onVisibleChange={(flag) => setState({ visible: flag })} visible={state.visible}>
-                            <Button className="btn btn-primary h-[42px]  w-full md:mb-0 md:w-auto" onClick={(e) => e.preventDefault()}>
-                                Create Code <DownOutlined />
-                            </Button>
-                        </Dropdown>
+                        <div className="  ">
+                            <Dropdown overlay={menu} trigger={['click']} onVisibleChange={(flag) => setState({ visible: flag })} visible={state.visible}>
+                                <Button className="btn btn-primary h-[42px]  w-full md:mb-0 md:w-auto" onClick={(e) => e.preventDefault()}>
+                                    Create Code <DownOutlined />
+                                </Button>
+                            </Dropdown>
+                            {state.errors?.generatedCodesError && <p className="mt-[4px] text-[14px] text-red-600">{state.errors?.generatedCodesError}</p>}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -356,9 +386,9 @@ const CreateCoupon = () => {
                               </label>
                               <div className="flex items-center gap-4">
                                   <input
-                                      type="text"
+                                      type="number"
                                       value={state.couponValue}
-                                      onChange={(e) => setState({ couponValue: e.target.value })}
+                                      onChange={(e) => setState({ couponValue: e.target.value, errors: { couponValueError: '' } })}
                                       placeholder="Enter Coupon value"
                                       name="name"
                                       className="form-input"
@@ -370,6 +400,7 @@ const CreateCoupon = () => {
                                       </label>
                                   )}
                               </div>
+                              {state.errors?.couponValueError && <p className="mt-[4px] text-[14px] text-red-600">{state.errors?.couponValueError}</p>}
                           </div>
                       )
                     : null}
@@ -400,13 +431,14 @@ const CreateCoupon = () => {
                                   <input
                                       type="number"
                                       value={state.minimumReqValue}
-                                      onChange={(e) => setState({ minimumReqValue: e.target.value })}
+                                      onChange={(e) => setState({ minimumReqValue: e.target.value, errors: { minimumReqValueError: '' } })}
                                       placeholder={state.minimumReq?.value == 'Minimal order value' ? 'Enter minimal order value' : 'Enter Minimum quantity of items'}
                                       name="name"
                                       className="form-input"
                                       required
                                   />
                               </div>
+                              {state.errors?.minimumReqValueError && <p className="mt-[4px] text-[14px] text-red-600">{state.errors?.minimumReqValueError}</p>}
                           </div>
                       )
                     : null}
@@ -437,60 +469,73 @@ const CreateCoupon = () => {
                                   <input
                                       type="number"
                                       value={state.usageValue}
-                                      onChange={(e) => setState({ usageValue: e.target.value })}
+                                      onChange={(e) => setState({ usageValue: e.target.value, errors: { usageValueError: '' } })}
                                       placeholder="Limit of Uses"
                                       name="name"
                                       className="form-input"
                                       required
                                   />
                               </div>
+                              {state.errors?.usageValueError && <p className="mt-[4px] text-[14px] text-red-600">{state.errors?.usageValueError}</p>}
                           </div>
                       )
                     : null}
             </div>
-            <div className="panel panel flex w-full gap-5 pt-5">
-                <div className="col-6 md:w-6/12">
-                    <label htmlFor="name" className="block text-lg font-medium text-gray-700">
-                        Active Dates
-                    </label>
+            <div className="panel">
+                <div className=" flex w-full gap-5 pt-5">
+                    <div className="col-6 md:w-6/12">
+                        <label htmlFor="name" className="block text-lg font-medium text-gray-700">
+                            Active Dates
+                        </label>
 
-                    <input
-                        value={state.startDate}
-                        onChange={handleStartDateChange}
-                        type="datetime-local"
-                        id="startDate"
-                        name="startDate"
-                        className="form-input"
-                        required
-                        min={new Date().toISOString().slice(0, 16)}
-                    />
-                </div>
-                <div className="col-6 flex flex-col items-center  justify-center md:w-6/12">
-                    <div className="mb-3 flex items-center gap-3">
                         <input
-                            type="checkbox"
-                            checked={state.isEndDate}
-                            onChange={(e) => setState({ isEndDate: e.target.checked })}
-                            className="form-checkbox border-white-light dark:border-white-dark ltr:mr-0 rtl:ml-0"
-                        />
-                        <h3 className="text-md font-semibold dark:text-white-light">End Date</h3>
-                    </div>
-                    {state.isEndDate && (
-                        <input
-                            value={state.endDate}
-                            onChange={handleEndDateChange}
+                            value={state.startDate}
+                            onChange={handleStartDateChange}
                             type="datetime-local"
-                            id="endDate"
-                            name="endDate"
+                            id="startDate"
+                            name="startDate"
                             className="form-input"
                             required
-                            min={state.startDate}
-                            max={new Date(new Date(state.startDate).setFullYear(new Date(state.startDate).getFullYear() + 1)).toISOString().slice(0, 16)}
+                            min={new Date().toISOString().slice(0, 16)}
                         />
-                    )}
+                    </div>
+                    <div className="col-6 flex flex-col  justify-center md:w-6/12">
+                        <div className="mb-3 flex items-center gap-3">
+                            <input
+                                type="checkbox"
+                                checked={state.isEndDate}
+                                onChange={(e) => setState({ isEndDate: e.target.checked })}
+                                className="form-checkbox border-white-light dark:border-white-dark ltr:mr-0 rtl:ml-0"
+                            />
+                            <h3 className="text-md font-semibold dark:text-white-light">End Date</h3>
+                        </div>
+                        {state.isEndDate && (
+                            <>
+                                <input
+                                    value={state.endDate}
+                                    onChange={handleEndDateChange}
+                                    type="datetime-local"
+                                    id="endDate"
+                                    name="endDate"
+                                    className="form-input"
+                                    required
+                                    min={state.startDate}
+                                    max={new Date(new Date(state.startDate).setFullYear(new Date(state.startDate).getFullYear() + 1)).toISOString().slice(0, 16)}
+                                />
+                            </>
+                        )}
+                        {state.errors?.endDateError && <p className="mt-[4px] text-[14px] text-red-600">{state.errors?.endDateError}</p>}
+                    </div>
+                </div>
+                <div className="mt-5 flex items-center justify-end gap-4">
+                    <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => CreateCoupon()}>
+                        {createLoading || chennelLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Submit'}
+                    </button>
+                    <button type="button" className="btn btn-danger  w-full md:mb-0 md:w-auto" onClick={() => router.push('/coupon')}>
+                        {'Cancel'}
+                    </button>
                 </div>
             </div>
-
             <Modal
                 addHeader={'Enter Coupon Code'}
                 open={state.isOpen}
@@ -499,14 +544,14 @@ const CreateCoupon = () => {
                     <div className=" p-5">
                         <input
                             type="text"
-                            value={state.couponName}
-                            onChange={(e) => setState({ couponName: e.target.value })}
+                            value={state.manualCode}
+                            onChange={(e) => setState({ manualCode: e.target.value })}
                             placeholder="Enter Coupon Code"
                             name="name"
                             className="form-input"
                             required
                         />
-                        {state.couponNameErr && <p className="error-message mt-1 text-red-500">{state.couponNameErr}</p>}
+                        {state.manualCodeErr && <p className="error-message mt-1 text-red-500">{state.manualCodeErr}</p>}
 
                         <div className="flex items-center justify-end gap-5 pt-5">
                             <button type="button" className="btn btn-outline-primary  w-full md:mb-0 md:w-auto" onClick={() => setState({ isOpen: false })}>

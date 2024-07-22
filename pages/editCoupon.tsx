@@ -16,6 +16,7 @@ import {
     COUPON_META_DATA,
     CREATE_COUPEN,
     PRODUCT_BY_NAME,
+    REMOVE_TO_COUPON,
     SEARCH_CATEGORIES,
     SEARCH_PRODUCT,
     UPDATED_PRODUCT_PAGINATION,
@@ -23,6 +24,7 @@ import {
 } from '@/query/product';
 import { Description } from '@headlessui/react/dist/components/description/description';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
+import IconLoader from '@/components/Icon/IconLoader';
 
 const EditCoupon = () => {
     const router = useRouter();
@@ -30,10 +32,11 @@ const EditCoupon = () => {
     const [updateCoupons] = useMutation(UPDATE_COUPON);
     const [channelUpdate, { loading: chennelLoading }] = useMutation(COUPON_CHANNEL_UPDATE);
     const { data: couponDetail, refetch: coupenRefetch, loading } = useQuery(COUPEN_DETAILS);
-    // const { data: productSearch, refetch: productSearchRefetch } = useQuery(SEARCH_PRODUCT);
     const { data: productCat, refetch: categorySearchRefetch } = useQuery(SEARCH_CATEGORIES);
     const { data: productSearch, refetch: productSearchRefetch } = useQuery(PRODUCT_BY_NAME);
-    const [assignDataRefetch] = useMutation(ASSIGN_TO_COUPON);
+    const [removeDataFromCoupon, { loading: removeLoading }] = useMutation(REMOVE_TO_COUPON);
+
+    const [assignDataRefetch, { loading: assignLoading }] = useMutation(ASSIGN_TO_COUPON);
     const [metaData, { loading: metaLoading }] = useMutation(COUPON_META_DATA);
 
     const { data: codeList, refetch: codeListRefetch } = useQuery(COUPON_CODES);
@@ -69,9 +72,12 @@ const EditCoupon = () => {
         catOption: [],
         selectedCategory: [],
         selectedProduct: [],
+        selectedExcludeCategory: [],
         searchProduct: '',
         productList: [],
-        selectedExcludeCategory: [],
+        oldCat: [],
+        oldProduct: [],
+        oldExcludeCat: [],
     });
 
     useEffect(() => {
@@ -95,7 +101,7 @@ const EditCoupon = () => {
                 includeProducts: true,
             });
             const data = res?.data?.voucher;
-            console.log("data: ", data);
+            console.log('data: ', data);
             const endDate = data?.endDate;
             if (endDate) {
                 setState({ isEndDate: true, endDate: formatDateTimeLocal(endDate) });
@@ -103,30 +109,27 @@ const EditCoupon = () => {
             let category = data?.categories?.edges;
             if (category?.length > 0) {
                 const res = category?.map((item) => item?.node)?.map((val) => ({ value: val?.id, label: val?.name }));
-                setState({ selectedCategory: res });
+                setState({ selectedCategory: res, oldCat: res });
             }
 
             let excludeCategories = data?.excludeCategories?.edges;
             if (excludeCategories?.length > 0) {
                 const res = excludeCategories?.map((item) => item?.node)?.map((val) => ({ value: val?.id, label: val?.name }));
-                setState({ selectedExcludeCategory: res });
+                setState({ selectedExcludeCategory: res, oldExcludeCat: res });
             }
-
-            
 
             let product = data?.products?.edges;
             if (product?.length > 0) {
                 const res = product?.map((item) => item?.node)?.map((val) => ({ value: val?.id, label: val?.name }));
-                setState({ selectedProduct: res });
+                setState({ selectedProduct: res, oldProduct: res });
             }
-            if(data?.metadata?.length>0){
+            if (data?.metadata?.length > 0) {
                 setState({ description: data?.metadata[0]?.value });
-
             }
             setState({
                 couponName: data?.name,
                 codeType:
-                    data?.type === 'SPECIFIC_PRODUCT'
+                    data?.type === 'SPECIFIC_PRODUCT' || data?.type === 'ENTIRE_ORDER'
                         ? data.discountValueType === 'FIXED'
                             ? { value: 'Fixed Amount', label: 'Fixed Amount' }
                             : data.discountValueType === 'PERCENTAGE'
@@ -253,6 +256,33 @@ const EditCoupon = () => {
 
     const updateCoupon = async () => {
         try {
+            let errors: any = {};
+
+            const { couponName, generatedCodes, codeType, couponValue, minimumReq, minimumReqValue, usageLimit, usageValue, isEndDate, endDate, startDate } = state;
+
+            if (!couponName) {
+                errors.nameError = 'Coupon name is required';
+            }
+            if (generatedCodes.length === 0) {
+                errors.generatedCodesError = 'At least one coupon code is required';
+            }
+            if (codeType.value !== 'Free Shipping' && !couponValue) {
+                errors.couponValueError = 'Coupon value is required';
+            }
+            if (minimumReq.value !== 'None' && !minimumReqValue) {
+                errors.minimumReqValueError = 'Minimum requirement value is required';
+            }
+            if (usageLimit.value === 'Limit number of times this discount can be used in total' && !usageValue) {
+                errors.usageValueError = 'Usage limit value is required';
+            }
+            if (isEndDate && !endDate) {
+                errors.endDateError = 'End date is required';
+            }
+
+            if (Object.keys(errors).length > 0) {
+                setState({ errors });
+                return;
+            }
             const set1 = new Set(state.oldCodes);
             const pendingList = state.generatedCodes.filter((item) => !set1.has(item));
             const body = {
@@ -329,7 +359,10 @@ const EditCoupon = () => {
                 }
 
                 if (state.specificInfo?.value == 'Specific products') {
-                    assignData(id);
+                    extraDatas(id);
+                }
+                if (state.specificInfo?.value == 'All products') {
+                    setState({ selectedExcludeCategory: [], selectedCategory: [], selectedProduct: [] });
                 }
 
                 if (state.description == '' && state.specificInfo?.value != 'Specific products') {
@@ -341,6 +374,33 @@ const EditCoupon = () => {
             console.log('res: ', res);
         } catch (error) {
             console.log('error: ', error);
+        }
+    };
+
+    const extraDatas = (id: any) => {
+        const oldCat = state.oldCat?.map((val) => val.value) || [];
+        const selectedCategory = state.selectedCategory?.map((val) => val.value) || [];
+
+        const oldProduct = state.oldProduct?.map((val) => val.value) || [];
+        const selectedProduct = state.selectedProduct?.map((val) => val.value) || [];
+
+        const oldExcludeCat = state.oldExcludeCat?.map((val) => val.value) || [];
+        const selectedExcludeCategory = state.selectedExcludeCategory?.map((val) => val.value) || [];
+
+        const newlyAddedCat = selectedCategory.filter((item) => !oldCat.includes(item));
+        const removedCat = oldCat.filter((item) => !selectedCategory.includes(item));
+
+        const newlyAddedProduct = selectedProduct.filter((item) => !oldProduct.includes(item));
+        const removedProduct = oldProduct.filter((item) => !selectedProduct.includes(item));
+
+        const newlyAddedExCat = selectedExcludeCategory.filter((item) => !oldExcludeCat.includes(item));
+        const removedExCat = oldExcludeCat.filter((item) => !selectedExcludeCategory.includes(item));
+
+        if (newlyAddedCat?.length > 0 || newlyAddedProduct?.length > 0 || newlyAddedExCat?.length > 0) {
+            assignData(id, newlyAddedCat, newlyAddedProduct, newlyAddedExCat);
+        }
+        if (removedCat?.length > 0 || removedProduct?.length > 0 || removedExCat?.length > 0) {
+            removeData(id, removedCat, removedProduct, removedExCat);
         }
     };
 
@@ -366,7 +426,7 @@ const EditCoupon = () => {
         }
     };
 
-    const assignData = async (id: any) => {
+    const assignData = async (id: any, categories: any, products: any, exclude_categories: any) => {
         try {
             const res = await assignDataRefetch({
                 variables: {
@@ -376,17 +436,44 @@ const EditCoupon = () => {
                     includeProducts: false,
                     id,
                     input: {
-                        categories: state?.selectedCategory?.map((item) => item?.value),
-                        products: state?.selectedProduct?.map((item) => item?.value),
-                        exclude_categories: state.selectedExcludeCategory?.map((item) => item?.value),
+                        categories,
+                        products,
+                        exclude_categories,
                     },
                 },
             });
             console.log('assignData: ', res);
 
-            // if (res?.data?.voucherChannelListingUpdate?.errors?.length > 0) {
-            //     Failure(res?.data?.voucherChannelListingUpdate?.errors[0]?.message);
-            // }
+            router.push(`/coupon`);
+            Success('Coupon Updated Successfully');
+            setState({ selectedExcludeCategory: [], selectedCategory: [], selectedProduct: [] });
+
+            console.log('res: ', res);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
+    const removeData = async (id: any, categories: any, products: any, exclude_categories: any) => {
+        try {
+            const res = await removeDataFromCoupon({
+                variables: {
+                    first: 20,
+                    includeCategories: true,
+                    includeCollections: false,
+                    includeProducts: false,
+                    id,
+                    input: {
+                        categories,
+                        products,
+                        exclude_categories,
+                    },
+                },
+            });
+
+            router.push(`/coupon`);
+            Success('Coupon Updated Successfully');
+            setState({ selectedExcludeCategory: [], selectedCategory: [], selectedProduct: [] });
 
             console.log('res: ', res);
         } catch (error) {
@@ -421,11 +508,6 @@ const EditCoupon = () => {
         <>
             <div className="panel mb-5 flex items-center justify-between gap-5">
                 <h5 className="text-lg font-semibold dark:text-white-light">Edit Coupon</h5>
-                <div>
-                    <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => updateCoupon()}>
-                        Update
-                    </button>
-                </div>
             </div>
             <div className="panel mb-5 flex ">
                 <div className="flex w-full flex-wrap  items-center ">
@@ -442,7 +524,7 @@ const EditCoupon = () => {
                             className="form-input"
                             required
                         />
-                        {state.nameError && <p className="error-message mt-1 text-red-500">{state.nameError}</p>}
+                        {state.errors?.nameError && <p className="mt-[4px] text-[14px] text-red-600">{state.errors?.nameError}</p>}
                     </div>
 
                     <div className="mt-4 flex w-full justify-end md:w-6/12">
@@ -560,6 +642,7 @@ const EditCoupon = () => {
                                       </label>
                                   )}
                               </div>
+                              {state.errors?.couponValueError && <p className="mt-[4px] text-[14px] text-red-600">{state.errors?.couponValueError}</p>}
                           </div>
                       )
                     : null}
@@ -661,6 +744,7 @@ const EditCoupon = () => {
                                       required
                                   />
                               </div>
+                              {state.errors?.minimumReqValueError && <p className="mt-[4px] text-[14px] text-red-600">{state.errors?.minimumReqValueError}</p>}
                           </div>
                       )
                     : null}
@@ -698,50 +782,65 @@ const EditCoupon = () => {
                                       required
                                   />
                               </div>
+                              {state.errors?.usageValueError && <p className="mt-[4px] text-[14px] text-red-600">{state.errors?.usageValueError}</p>}
                           </div>
                       )
                     : null}
             </div>
-            <div className="panel panel mt-5 flex w-full gap-5">
-                <div className="col-6 md:w-6/12">
-                    <label htmlFor="name" className="block text-lg font-medium text-gray-700">
-                        Active Dates
-                    </label>
+            <div className="panel  gap-5">
+                <div className="  mt-5 flex w-full gap-5">
+                    <div className="col-6 md:w-6/12">
+                        <label htmlFor="name" className="block text-lg font-medium text-gray-700">
+                            Active Dates
+                        </label>
 
-                    <input
-                        value={state.startDate}
-                        onChange={handleStartDateChange}
-                        type="datetime-local"
-                        id="startDate"
-                        name="startDate"
-                        className="form-input"
-                        required
-                        min={new Date().toISOString().slice(0, 16)}
-                    />
-                </div>
-                <div className="col-6 flex flex-col items-center  justify-center md:w-6/12">
-                    <div className="mb-3 flex items-center gap-3">
                         <input
-                            type="checkbox"
-                            checked={state.isEndDate}
-                            onChange={(e) => setState({ isEndDate: e.target.checked })}
-                            className="form-checkbox border-white-light dark:border-white-dark ltr:mr-0 rtl:ml-0"
-                        />
-                        <h3 className="text-md font-semibold dark:text-white-light">End Date</h3>
-                    </div>
-                    {state.isEndDate && (
-                        <input
-                            value={state.endDate}
-                            onChange={handleEndDateChange}
+                            value={state.startDate}
+                            onChange={handleStartDateChange}
                             type="datetime-local"
-                            id="endDate"
-                            name="endDate"
+                            id="startDate"
+                            name="startDate"
                             className="form-input"
                             required
-                            min={state.startDate}
-                            max={new Date(new Date(state.startDate).setFullYear(new Date(state.startDate).getFullYear() + 1)).toISOString().slice(0, 16)}
+                            min={new Date().toISOString().slice(0, 16)}
                         />
-                    )}
+                    </div>
+                    <div className="col-6 flex flex-col items-center  justify-center md:w-6/12">
+                        <div className="mb-3 flex items-center gap-3">
+                            <input
+                                type="checkbox"
+                                checked={state.isEndDate}
+                                onChange={(e) => setState({ isEndDate: e.target.checked })}
+                                className="form-checkbox border-white-light dark:border-white-dark ltr:mr-0 rtl:ml-0"
+                            />
+                            <h3 className="text-md font-semibold dark:text-white-light">End Date</h3>
+                        </div>
+                        {state.isEndDate && (
+                            <>
+                                <input
+                                    value={state.endDate}
+                                    onChange={handleEndDateChange}
+                                    type="datetime-local"
+                                    id="endDate"
+                                    name="endDate"
+                                    className="form-input"
+                                    required
+                                    min={state.startDate}
+                                    max={new Date(new Date(state.startDate).setFullYear(new Date(state.startDate).getFullYear() + 1)).toISOString().slice(0, 16)}
+                                />
+                                {state.errors?.endDateError && <p className="mt-[4px] text-[14px] text-red-600">{state.errors?.endDateError}</p>}
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                <div className="mt-5 flex items-center justify-end gap-4">
+                    <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => updateCoupon()}>
+                        {loading || chennelLoading || assignLoading || removeLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Submit'}
+                    </button>
+                    <button type="button" className="btn btn-danger  w-full md:mb-0 md:w-auto" onClick={() => router.push('/coupon')}>
+                        {'Cancel'}
+                    </button>
                 </div>
             </div>
 

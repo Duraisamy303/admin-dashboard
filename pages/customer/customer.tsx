@@ -80,7 +80,6 @@ const CustomerList = () => {
         },
         // variables: { channel: 'india-channel', first: 100, direction: 'DESC', field: 'CREATED_AT' }, // Pass variables here
     });
-    console.log('customerData: ', customerData);
 
     const [customerList, setCustomerList] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -100,7 +99,6 @@ const CustomerList = () => {
                     orderCount: item?.node?.orders?.totalCount,
                     dateJoined: moment(item?.node?.dateJoined).format('YYYY-MM-DD'),
                 }));
-                console.log('newData: ', newData);
 
                 // const sorting: any = sortBy(newData, 'id');
                 setCustomerList(newData);
@@ -203,7 +201,6 @@ const CustomerList = () => {
     };
 
     const DeleteProduct = async (record: any) => {
-        console.log('record: ', record);
         showDeleteAlert(
             async () => {
                 const { data }: any = deleteCustomer({

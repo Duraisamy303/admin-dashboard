@@ -101,7 +101,6 @@ const EditCoupon = () => {
                 includeProducts: true,
             });
             const data = res?.data?.voucher;
-            console.log('data: ', data);
             const endDate = data?.endDate;
             if (endDate) {
                 setState({ isEndDate: true, endDate: formatDateTimeLocal(endDate) });
@@ -300,7 +299,6 @@ const EditCoupon = () => {
                 usageLimit: state.usageLimit?.value == 'Limit number of times this discount can be used in total' ? state.usageValue : null,
                 singleUse: state.usageLimit?.value == 'Limit to voucher code use once' ? true : false,
             };
-            console.log('body: ', body);
 
             const res = await updateCoupons({
                 variables: {
@@ -315,7 +313,6 @@ const EditCoupon = () => {
 
                 channelListUpdate(couponId);
             }
-            console.log('res: ', res);
         } catch (error) {
             console.log('error: ', error);
         }
@@ -371,7 +368,6 @@ const EditCoupon = () => {
                 }
             }
 
-            console.log('res: ', res);
         } catch (error) {
             console.log('error: ', error);
         }
@@ -442,13 +438,11 @@ const EditCoupon = () => {
                     },
                 },
             });
-            console.log('assignData: ', res);
 
             router.push(`/coupon`);
             Success('Coupon Updated Successfully');
             setState({ selectedExcludeCategory: [], selectedCategory: [], selectedProduct: [] });
 
-            console.log('res: ', res);
         } catch (error) {
             console.log('error: ', error);
         }
@@ -475,7 +469,6 @@ const EditCoupon = () => {
             Success('Coupon Updated Successfully');
             setState({ selectedExcludeCategory: [], selectedCategory: [], selectedProduct: [] });
 
-            console.log('res: ', res);
         } catch (error) {
             console.log('error: ', error);
         }

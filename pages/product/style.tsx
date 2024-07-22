@@ -145,7 +145,6 @@ const Style = () => {
 
     // form submit
     const onSubmit = async (record: any, { resetForm }: any) => {
-        console.log('record: ', record);
         setCreateStyleLoader(true);
         setUpdateStyleLoader(true);
         try {
@@ -158,10 +157,8 @@ const Style = () => {
             };
 
             const { data } = await (modalTitle ? updateFinish({ variables: { ...variables, id: modalContant.id } }) : addFinish({ variables }));
-            console.log('data: ', data);
 
             const newData = modalTitle ? data?.productStyleUpdate?.productStyle : data?.productStyleCreate?.productStyle;
-            console.log('newData: ', newData);
             await styleRefetch();
 
             // if (!newData) {

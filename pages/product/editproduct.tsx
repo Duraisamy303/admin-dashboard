@@ -100,11 +100,9 @@ const ProductEdit = () => {
 
     // tax onchange
     const taxStatus = (value: any) => {
-        console.log('✌️value --->', value);
     };
 
     const taxClass = (value: any) => {
-        console.log('✌️value --->', value);
     };
 
     // track stock

@@ -68,7 +68,6 @@ const AddCoupon = () => {
     });
     const [salePrice, setSalePrice] = useState('');
     const [menuOrder, setMenuOrder] = useState(0);
-    console.log('menuOrder: ', menuOrder);
 
     // ------------------------------------------New Data--------------------------------------------
 
@@ -93,7 +92,6 @@ const AddCoupon = () => {
     const [openAccordion, setOpenAccordion] = useState('');
     const [chooseType, setChooseType] = useState<any>('');
     const [selectedValues, setSelectedValues] = useState<any>({});
-    console.log('selectedValues: ', selectedValues);
     const [dropdowndata, setDropdownData] = useState<any>([]);
 
     // error message
@@ -326,7 +324,6 @@ const AddCoupon = () => {
 
     const selectCat = (cat: any) => {
         setselectedCat(cat);
-        console.log('cat: ', cat);
     };
 
     const selectedCollections = (data: any) => {
@@ -334,8 +331,6 @@ const AddCoupon = () => {
     };
 
     const CreateProduct = async () => {
-        console.log('selectedCat', selectedCat);
-
         setProductNameErrMsg('');
         setSlugErrMsg('');
         setSeoTittleErrMsg('');
@@ -446,7 +441,6 @@ const AddCoupon = () => {
             if (data?.productChannelListingUpdate?.errors?.length > 0) {
                 console.log('error: ', data?.productChannelListingUpdate?.errors[0]?.message);
             } else {
-                console.log('productChannelListUpdate: ', data);
 
                 variantCreate(productId);
             }
@@ -473,7 +467,6 @@ const AddCoupon = () => {
             if (data?.productVariantCreate?.errors?.length > 0) {
                 console.log('error: ', data?.productChannelListingUpdate?.errors[0]?.message);
             } else {
-                console.log('variantCreate: ', data);
                 const variantId = data?.productVariantCreate?.productVariant?.id;
                 variantListUpdate(variantId, productId);
             }
@@ -500,7 +493,6 @@ const AddCoupon = () => {
             if (data?.productVariantCreate?.errors?.length > 0) {
                 console.log('error: ', data?.productChannelListingUpdate?.errors[0]?.message);
             } else {
-                console.log('variantCreate: ', data);
                 // const variantId = data?.productVariantCreate?.productVariant?.id;
                 updateMetaData(productId);
             }
@@ -510,7 +502,6 @@ const AddCoupon = () => {
     };
 
     const updateMetaData = async (productId: any) => {
-        console.log('label: ', label);
         try {
             const { data } = await updateMedatData({
                 variables: {
@@ -534,7 +525,6 @@ const AddCoupon = () => {
             } else {
                 if (selectedTag?.length > 0) {
                     assignsTagToProduct(productId);
-                    console.log('success: ', data);
                 }
             }
         } catch (error) {
@@ -548,7 +538,6 @@ const AddCoupon = () => {
             if (selectedCollection?.length > 0) {
                 tagId = selectedTag?.map((item:any) => item.value);
             }
-            console.log('tagId: ', tagId);
 
             const { data } = await assignTagToProduct({
                 variables: {
@@ -563,7 +552,6 @@ const AddCoupon = () => {
                 console.log('error: ', data?.updateMetadata?.errors[0]?.message);
             } else {
                 router.push('/product/product');
-                console.log('success: ', data);
             }
         } catch (error) {
             console.log('error: ', error);

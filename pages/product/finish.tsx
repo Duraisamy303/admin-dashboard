@@ -83,11 +83,6 @@ const Finish = () => {
         setInitialRecords(finishList);
     }, [finishList]);
 
-    // Log initialRecords when it changes
-    useEffect(() => {
-        console.log('initialRecords: ', initialRecords);
-    }, [initialRecords]);
-
     const [selectedRecords, setSelectedRecords] = useState<any>([]);
 
     const [search, setSearch] = useState('');
@@ -108,7 +103,6 @@ const Finish = () => {
     const [deleteDesign] = useMutation(DELETE_FINISH);
     const [bulkDelete] = useMutation(DELETE_FINISH);
 
-    console.log('finishList: ', finishList);
     useEffect(() => {
         setPage(1);
     }, [pageSize]);
@@ -122,7 +116,6 @@ const Finish = () => {
     useEffect(() => {
         setInitialRecords(() => {
             return finishList.filter((item: any) => {
-                console.log('✌️item --->', item);
                 return (
                     item.id.toString().includes(search.toLowerCase()) ||
                     // item.image.toLowerCase().includes(search.toLowerCase()) ||
@@ -153,7 +146,6 @@ const Finish = () => {
 
     // form submit
     const onSubmit = async (record: any, { resetForm }: any) => {
-        console.log('record: ', record);
         setCreateFinishLoader(true);
         setUpdateFinishLoader(true);
         try {
@@ -166,10 +158,8 @@ const Finish = () => {
             setCreateFinishLoader(true);
             setUpdateFinishLoader(true);
             const { data } = await (modalTitle ? updateFinish({ variables: { ...variables, id: modalContant.id } }) : addFinish({ variables }));
-            console.log('data: ', data);
 
             const newData = modalTitle ? data?.productFinishUpdate?.productFinish : data?.productFinishCreate?.productFinish;
-            console.log('newData: ', newData);
             await finishRefetch();
 
             const toast = Swal.mixin({

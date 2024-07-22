@@ -89,7 +89,6 @@ const Shipping = () => {
     });
 
     const onSubmit = async (record: any, { resetForm }: any) => {
-        console.log('record: ', record);
         setModal1(false);
         resetForm();
     };
@@ -133,8 +132,6 @@ const Shipping = () => {
     };
 
     const DeleteProduct = (record: any) => {
-        console.log('✌️record --->', record);
-        console.log('recordsData', recordsData);
         showDeleteAlert(
             () => {
                 const updatedRecordsData = recordsData.filter((dataRecord: any) => dataRecord.id !== record.id);
@@ -146,8 +143,6 @@ const Shipping = () => {
             }
         );
     };
-
-    console.log('modal content: ', modalContant);
 
     return (
         <div>

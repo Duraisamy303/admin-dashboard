@@ -68,7 +68,6 @@ const ProductList = () => {
             setLoading(false);
         }
     };
-    console.log('productList: ', productList);
 
     const dispatch = useDispatch();
     useEffect(() => {
@@ -99,10 +98,6 @@ const ProductList = () => {
         setInitialRecords(sortBy(productList, 'id'));
     }, [productList]);
 
-    // Log initialRecords when it changes
-    useEffect(() => {
-        console.log('initialRecords: ', initialRecords);
-    }, [initialRecords]);
 
     useEffect(() => {
         setPage(1);
@@ -138,7 +133,6 @@ const ProductList = () => {
 
     // form submit
     const onSubmit = (record: any, { resetForm }: any) => {
-        console.log('record', record);
 
         const toast = Swal.mixin({
             toast: true,
@@ -223,7 +217,6 @@ const ProductList = () => {
 
     // top Filter Category change
     const CategoryChange = (selectedCategory: string) => {
-        console.log('Selected Category:', selectedCategory);
         // Update the state with the selected category
         setFilterFormData((prevState) => ({
             ...prevState,
@@ -232,7 +225,6 @@ const ProductList = () => {
     };
 
     const StockStatusChange = (selectedStockStatus: string) => {
-        console.log('Selected Stock Status:', selectedStockStatus);
         // Update the state with the selected stock status
         setFilterFormData((prevState) => ({
             ...prevState,
@@ -241,7 +233,6 @@ const ProductList = () => {
     };
 
     const productTypeChange = (selectedProductType: string) => {
-        console.log('Selected Product Type:', selectedProductType);
         // Update the state with the selected product type
         setFilterFormData((prevState) => ({
             ...prevState,
@@ -251,8 +242,6 @@ const ProductList = () => {
 
     const onFilterSubmit = (e: any) => {
         e.preventDefault();
-        console.log('filterFormData', filterFormData);
-
         setFilterFormData({
             category: '',
             stock: '',

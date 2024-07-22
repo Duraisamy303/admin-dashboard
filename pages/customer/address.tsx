@@ -317,7 +317,6 @@ const Address=()=> {
                                         onClick={() => {
                                             handleSettingsClick(index);
                                             setState({ selectedAddress: address });
-                                            console.log('address: ', address);
                                         }}
                                     >
                                         <IconSettings />
@@ -376,8 +375,6 @@ const Address=()=> {
                                                         });
 
                                                         const filter = res?.data?.addressValidationRules?.countryAreaChoices?.find((item: any) => item.raw == address?.countryArea);
-                                                        console.log('filter: ', filter);
-                                                        console.log('address: ', address);
 
                                                         setState({
                                                             isOpen: true,

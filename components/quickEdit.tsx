@@ -70,7 +70,6 @@ export default function QuickEdit(props: any) {
                 id: data.id,
             });
             const response = res?.data?.product;
-            console.log('response: ', response);
 
             setState({ name: response?.name, productData: response });
             if (response?.variants?.length > 0) {

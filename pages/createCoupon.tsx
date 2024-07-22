@@ -49,7 +49,6 @@ const CreateCoupon = () => {
         manualCodeErr: '',
         errors: null,
     });
-    console.log(state.errors);
 
     useEffect(() => {
         codeType();
@@ -223,7 +222,6 @@ const CreateCoupon = () => {
                 }
             }
 
-            console.log('res: ', res);
         } catch (error) {
             console.log('error: ', error);
         }
@@ -309,7 +307,6 @@ const CreateCoupon = () => {
                                 accessor: 'code',
                                 sortable: true,
                                 render: (row, index) => {
-                                    console.log('row: ', row);
                                     return (
                                         <>
                                             <div className="">{row}</div>

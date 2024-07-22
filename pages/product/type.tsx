@@ -87,10 +87,7 @@ const Type = () => {
         setInitialRecords(typeList);
     }, [typeList]);
 
-    // Log initialRecords when it changes
-    useEffect(() => {
-        console.log('initialRecords: ', initialRecords);
-    }, [initialRecords]);
+   
 
     const [selectedRecords, setSelectedRecords] = useState<any>([]);
 
@@ -125,7 +122,6 @@ const Type = () => {
     useEffect(() => {
         setInitialRecords(() => {
             return typeList.filter((item: any) => {
-                console.log('✌️item --->', item);
                 return (
                     item.id.toString().includes(search.toLowerCase()) ||
                     // item.image.toLowerCase().includes(search.toLowerCase()) ||
@@ -155,7 +151,6 @@ const Type = () => {
 
     // form submit
     const onSubmit = async (record: any, { resetForm }: any) => {
-        console.log('record: ', record);
         setCreateTypeLoader(true);
         setUpdateTypeLoader(true);
         try {
@@ -169,7 +164,6 @@ const Type = () => {
             };
 
             const { data } = await (modalTitle ? updateType({ variables: { ...variables, id: modalContant.id } }) : addType({ variables }));
-            console.log('✌️data --->', data);
             await typeRefetch();
 
             // const newData = modalTitle ? data?.productTypeTypeUpdate?.productTypeType : data?.productTypeTypeCreate?.productTypeType;

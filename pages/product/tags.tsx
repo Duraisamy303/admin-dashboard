@@ -37,7 +37,6 @@ const Tags = () => {
     });
 
     const { error, data: tagData, refetch: tagListRefetch } = useQuery(PRODUCT_LIST_TAGS);
-    console.log('tagData: ', tagData);
 
     const [tagList, setTagList] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -68,7 +67,6 @@ const Tags = () => {
     const PAGE_SIZES = [10, 20, 30, 50, 100];
     const [pageSize, setPageSize] = useState(PAGE_SIZES[0]);
     const [initialRecords, setInitialRecords] = useState([]); // Initialize initialRecords with an empty array
-    console.log('initialRecords: ', initialRecords);
     const [recordsData, setRecordsData] = useState([]);
 
     // Update initialRecords whenever finishList changes
@@ -76,11 +74,6 @@ const Tags = () => {
         // Sort finishList by 'id' and update initialRecords
         setInitialRecords(tagList);
     }, [tagList]);
-
-    // Log initialRecords when it changes
-    useEffect(() => {
-        console.log('initialRecords: ', initialRecords);
-    }, [initialRecords]);
 
     const [selectedRecords, setSelectedRecords] = useState<any>([]);
 
@@ -102,7 +95,6 @@ const Tags = () => {
     const [deleteCategory] = useMutation(DELETE_TAG);
     const [bulkDelete] = useMutation(DELETE_TAG);
 
-    console.log('tagList: ', tagList);
     useEffect(() => {
         setPage(1);
     }, [pageSize]);
@@ -116,7 +108,6 @@ const Tags = () => {
     useEffect(() => {
         setInitialRecords(() => {
             return tagList.filter((item: any) => {
-                console.log('✌️item --->', item);
                 return (
                     item.id.toString().includes(search.toLowerCase()) ||
                     // item.image.toLowerCase().includes(search.toLowerCase()) ||
@@ -141,7 +132,6 @@ const Tags = () => {
 
     // form submit
     const onSubmit = async (record: any, { resetForm }: any) => {
-        console.log('record: ', record);
         try {
             setLoading(true);
             const variables = {

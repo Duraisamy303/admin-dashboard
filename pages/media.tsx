@@ -238,7 +238,6 @@ export default function Media() {
                                                     onMouseLeave={handleMouseLeave}
                                                     onClick={() => {
                                                         setState({ selectImg: item });
-                                                        console.log('onClick: ');
                                                         if (!state.longPress) {
                                                             handleImageSelect(item);
                                                         }

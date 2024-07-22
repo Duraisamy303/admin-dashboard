@@ -259,7 +259,6 @@ const Editorder = () => {
         setLoading(true);
         if (orderDetails) {
             if (orderDetails && orderDetails?.order) {
-                console.log('orderDetails: ', orderDetails);
                 //Invoice
 
                 if (orderDetails?.order?.invoices?.length > 0) {
@@ -276,7 +275,6 @@ const Editorder = () => {
                 const coupenData = orderDetails?.order?.giftCards;
                 if (coupenData?.length > 0) {
                     const coupenValue = sumOldCurrentBalance(coupenData);
-                    console.log('coupenAmt: ', coupenValue[0]);
                     setCoupenAmt(coupenValue[0]);
                 }
 
@@ -570,7 +568,6 @@ const Editorder = () => {
                         warehouse: data?.warehouse?.id,
                     })),
                 }));
-                console.log('modify: ', modify);
 
                 const res = await updateFullfillStatus({
                     variables: {
@@ -822,7 +819,6 @@ const Editorder = () => {
 
     const stocks = (item: any) => {
         const stock = item?.quantity + item?.variant?.stocks[0]?.quantity - item?.variant?.stocks[0]?.quantityAllocated;
-        console.log('stock: ', stock);
         if (stock > 0) {
             return stock;
         } else {
@@ -922,11 +918,9 @@ const Editorder = () => {
                     keysToDelete: [],
                 },
             });
-            console.log('generatePayslip: ', res);
             const response = await createPayslip({
                 variables: { orderId: id },
             });
-            console.log('after: ', res);
             getOrderDetails();
             setSlipLoading(false);
 

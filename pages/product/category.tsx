@@ -171,11 +171,9 @@ const Category = () => {
     };
 
     const DeleteCategory = (record: any) => {
-        console.log('record: ', record);
         showDeleteAlert(
             async () => {
                 const { data } = await deleteCategory({ variables: { id: record.id } });
-                console.log('data: ', data);
                 const updatedRecordsData = categoryList.filter((dataRecord: any) => dataRecord.id !== record.id);
                 setRecordsData(updatedRecordsData);
                 setCategoryList(updatedRecordsData);

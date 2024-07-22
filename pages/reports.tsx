@@ -277,7 +277,6 @@ const Reports = () => {
 
             if (state.orderDateFilter == 'Year') {
                 const { start, end } = getDateRange('Year');
-                console.log('start, end: ', start, end);
                 (startDate = start), (endDate = end);
             }
 
@@ -344,8 +343,6 @@ const Reports = () => {
                 { accessor: 'codAmountList', title: 'COD Amount' },
                 { accessor: 'giftwrapAmountList', title: 'Gif Wrap Amount' },
             ];
-            console.log('response: ', response);
-
             const tableData = salesBydateTable(response);
 
             setState({ tableData, salesByDate, tableColumn });

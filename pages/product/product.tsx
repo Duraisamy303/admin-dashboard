@@ -75,7 +75,6 @@ const ProductList = () => {
             setLoading(false);
         }
     };
-    console.log('productList: ', productList);
 
     const dispatch = useDispatch();
     useEffect(() => {
@@ -110,11 +109,6 @@ const ProductList = () => {
         // Sort finishList by 'id' and update initialRecords
         setInitialRecords(productList);
     }, [productList]);
-
-    // Log initialRecords when it changes
-    useEffect(() => {
-        console.log('initialRecords: ', initialRecords);
-    }, [initialRecords]);
 
     useEffect(() => {
         setPage(1);
@@ -175,7 +169,6 @@ const ProductList = () => {
     });
 
     const CategoryFilterList = () => {
-        console.log('FilterCategoryList', FilterCategoryList);
         // const getFilterCategoryList = FilterCategoryList?.products?.edges;
         // console.log('✌️getFilterCategoryList --->', getFilterCategoryList);
         // setRecordsData(getFilterCategoryList);
@@ -199,7 +192,6 @@ const ProductList = () => {
                     tags: item?.node?.tags?.length > 0 ? item?.node?.tags?.map((item: any) => item.name)?.join(',') : '-',
                     // shipmentTracking: item?.node?.shipments?.length>0?item
                 }));
-                console.log('newData: ', newData);
 
                 // const sorting: any = sortBy(newData, 'id');
                 setProductList(newData);
@@ -225,12 +217,10 @@ const ProductList = () => {
             getProductList();
         }
 
-        console.log('productListproductList', productList);
     };
 
     // form submit
     const onSubmit = (record: any, { resetForm }: any) => {
-        console.log('record', record);
 
         const toast = Swal.mixin({
             toast: true,
@@ -283,7 +273,6 @@ const ProductList = () => {
     };
 
     const BulkDeleteProduct = async () => {
-        console.log('recordsData: ', selectedRecords);
 
         showDeleteAlert(
             () => {
@@ -309,7 +298,6 @@ const ProductList = () => {
     };
 
     const DeleteProduct = (record: any) => {
-        console.log('record: ', record);
         showDeleteAlert(
             () => {
                 const { data }: any = deleteProducts({
@@ -317,7 +305,6 @@ const ProductList = () => {
                         ids: [record.id],
                     },
                 });
-                console.log('DELETE: ', data);
 
                 const updatedRecordsData = recordsData.filter((dataRecord: any) => dataRecord.id !== record.id);
                 setRecordsData(updatedRecordsData);
@@ -331,7 +318,6 @@ const ProductList = () => {
 
     // top Filter Category change
     const CategoryChange = (selectedCategory: string) => {
-        console.log('Selected Category:', selectedCategory);
         // Update the state with the selected category
         setSelectedCategory(selectedCategory);
         // setFilterFormData((prevState) => ({
@@ -341,7 +327,6 @@ const ProductList = () => {
     };
 
     const StockStatusChange = (selectedStockStatus: string) => {
-        console.log('Selected Stock Status:', selectedStockStatus);
         // Update the state with the selected stock status
         // setFilterFormData((prevState) => ({
         //     ...prevState,
@@ -350,7 +335,6 @@ const ProductList = () => {
     };
 
     const productTypeChange = (selectedProductType: string) => {
-        console.log('Selected Product Type:', selectedProductType);
         // Update the state with the selected product type
         setFilterFormData((prevState) => ({
             ...prevState,

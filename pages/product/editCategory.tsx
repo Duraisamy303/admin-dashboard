@@ -47,7 +47,6 @@ const EditCategory = () => {
 
     const [description, setDescription] = useState('');
 
-    console.log('catData: ', catData);
 
     const { data: parentList } = useQuery(PARENT_CATEGORY_LIST, {
         variables: { channel: 'india-channel' },

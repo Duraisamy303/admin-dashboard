@@ -12,7 +12,7 @@ import {
     UPDATE_VARIANT_LIST,
 } from '@/query/product';
 import { useQuery, useLazyQuery, useMutation } from '@apollo/client';
-import { DataTable, DataTableSortStatus } from 'mantine-datatable';
+import { DataTable } from 'mantine-datatable';
 import moment from 'moment';
 import { useRouter } from 'next/router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -27,11 +27,8 @@ import IconArrowLeft from '@/components/Icon/IconArrowLeft';
 import IconArrowBackward from '@/components/Icon/IconArrowBackward';
 import IconArrowForward from '@/components/Icon/IconArrowForward';
 import IconLoader from '@/components/Icon/IconLoader';
-import { sortBy } from 'lodash';
-import PrivateRouter from '@/components/Layouts/PrivateRouter';
-import QuickEdit from '@/components/quickEdit';
 
-const Index = () => {
+export default function LowStock() {
     const PAGE_SIZE = 20;
 
     const router = useRouter();
@@ -46,14 +43,7 @@ const Index = () => {
     const [status, setStatus] = useState('');
     const [parentLists, setParentLists] = useState([]);
     const [selectedRecords, setSelectedRecords] = useState([]);
-    const [isBulkEdit, setIsBulkEdit] = useState(false);
-    const [isEditOpen, setIsEditOpen] = useState(false);
-
     const [loadingRows, setLoadingRows] = useState({});
-    const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
-        columnAccessor: 'id',
-        direction: 'asc',
-    });
 
     const [deleteProducts] = useMutation(DELETE_PRODUCTS);
     const { data: productDetails, refetch: productDetailsRefetch } = useQuery(PRODUCT_FULL_DETAILS);
@@ -80,11 +70,6 @@ const Index = () => {
         return filter;
     };
 
-    useEffect(() => {
-        const data = sortBy(recordsData, sortStatus.columnAccessor);
-        setRecordsData(recordsData);
-    }, [sortStatus]);
-
     const { loading: getLoading, refetch: fetchLowStockList } = useQuery(UPDATED_PRODUCT_PAGINATION, {
         variables: {
             channel: 'india-channel',
@@ -95,7 +80,6 @@ const Index = () => {
         },
         onCompleted: (data) => {
             const products = data?.products?.edges || [];
-
             setRecordsData(tableFormat(products));
             setStartCursor(data?.products?.pageInfo?.startCursor || null);
             setEndCursor(data?.products?.pageInfo?.endCursor || null);
@@ -131,18 +115,15 @@ const Index = () => {
             ...item.node,
             product: item.node.products?.totalCount,
             image: item.node.thumbnail?.url,
-            categories: item.node.category?.length > 0 ? item.node?.category?.map((cats) => cats?.name).join(',') : '-',
-
-            // categories: item.node.category?.name ? item.node.category.name : '-',
+            categories: item.node.category?.name ? item.node.category.name : '-',
             date: item.node.updatedAt
                 ? `Last Modified ${moment(item.node.updatedAt).format('YYYY/MM/DD [at] h:mm a')}`
                 : `Published ${moment(item.node.channelListings[0]?.publishedAt).format('YYYY/MM/DD [at] h:mm a')}`,
             price: `${formatCurrency(item.node.pricing?.priceRange?.start?.gross?.currency)}${roundOff(item.node.pricing?.priceRange?.start?.gross?.amount)}`,
             status: item.node.channelListings[0]?.isPublished ? 'Published' : 'Draft',
             sku: item.node.defaultVariant ? item.node.defaultVariant.sku : '-',
-            tags: item.node.tags?.length > 0 ? item.node?.tags?.map((tag) => tag?.name).join(',') : '-',
+            tags: item.node.tags?.length > 0 ? item.node.tags.map((tag) => tag.name).join(',') : '-',
             stock: checkStock(item.node.variants) ? 'In stock' : 'Out of stock',
-            id: item.node.id,
         }));
 
         return newData;
@@ -210,6 +191,7 @@ const Index = () => {
 
     const handleCategoryChange = (e) => {
         setSelectedCategory(e.target.value);
+        console.log('e.target.value: ', e.target.value);
         fetchLowStockList({
             variables: {
                 channel: 'india-channel',
@@ -348,6 +330,7 @@ const Index = () => {
     };
 
     const duplicate = async (row: any) => {
+        console.log("row: ", row);
         try {
             setLoadingRows((prev) => ({ ...prev, [row.id]: true }));
             // productDetailsRefetch()
@@ -413,7 +396,7 @@ const Index = () => {
                 variables: {
                     input: {
                         attributes: [],
-                        category: row?.category?.map((item) => item.id),
+                        category: row?.category?.id,
                         collections: collectionId,
                         description: row.description,
                         tags: tagId,
@@ -439,6 +422,8 @@ const Index = () => {
 
             if (data?.productCreate?.errors?.length > 0) {
                 Failure(data?.productCreate?.errors[0]?.message);
+                console.log('error: ', data?.productCreate?.errors[0]?.message);
+                
                 setLoadingRows((prev) => ({ ...prev, [row.id]: false }));
             } else {
                 const productId = data?.productCreate?.product?.id;
@@ -478,8 +463,8 @@ const Index = () => {
             if (data?.productChannelListingUpdate?.errors?.length > 0) {
                 console.log('error: ', data?.productChannelListingUpdate?.errors[0]?.message);
                 Failure(data?.productChannelListingUpdate?.errors[0]?.message);
-                deleteDuplicateProduct(productId, row);
-
+                deleteDuplicateProduct(productId,row);
+                
                 setLoadingRows((prev) => ({ ...prev, [row.id]: false }));
             } else {
                 console.log('productChannelListUpdate: ', data);
@@ -526,8 +511,8 @@ const Index = () => {
             });
             if (data?.productVariantBulkCreate?.errors?.length > 0) {
                 Failure(data?.productVariantBulkCreate?.errors[0]?.message);
-                deleteDuplicateProduct(productId, row);
-
+                deleteDuplicateProduct(productId,row);
+                
                 setLoadingRows((prev) => ({ ...prev, [row.id]: false }));
             } else {
                 const resVariants = data?.productVariantBulkCreate?.productVariants;
@@ -580,8 +565,8 @@ const Index = () => {
             });
             if (data?.productVariantChannelListingUpdate?.errors?.length > 0) {
                 Failure(data?.productVariantChannelListingUpdate?.errors[0]?.message);
-                deleteDuplicateProduct(productId, row);
-
+                deleteDuplicateProduct(productId,row);
+                
                 setLoadingRows((prev) => ({ ...prev, [row.id]: false }));
             } else {
                 updateMetaData(productId, row);
@@ -607,9 +592,9 @@ const Index = () => {
             });
             if (data?.updateMetadata?.errors?.length > 0) {
                 Failure(data?.updateMetadata?.errors[0]?.message);
-                deleteDuplicateProduct(productId, row);
+                deleteDuplicateProduct(productId,row);
                 console.log('error: ', data?.updateMetadata?.errors[0]?.message);
-
+                
                 setLoadingRows((prev) => ({ ...prev, [row.id]: false }));
             } else {
                 // if (selectedTag?.length > 0) {
@@ -624,33 +609,17 @@ const Index = () => {
         }
     };
 
-    const deleteDuplicateProduct = async (productId: any, row: any) => {
+    const deleteDuplicateProduct = async (productId: any,row:any) => {
         try {
             const { data }: any = deleteProducts({
                 variables: {
                     ids: [productId],
                 },
             });
-
+            
             setLoadingRows((prev) => ({ ...prev, [row.id]: false }));
         } catch (error) {
             console.log('error: ', error);
-        }
-    };
-
-    const selectedRows = (val) => {
-        const hasMultipleVariants = val?.some((item) => item?.variants.length > 1);
-        setIsBulkEdit(hasMultipleVariants);
-        setSelectedRecords(val);
-    };
-
-    const bulkEdit = () => {
-        if (selectedRecords?.length == 0) {
-            Failure('Please select products');
-        } else if (isBulkEdit) {
-            Failure('selected products is multi variants');
-        } else {
-            setIsEditOpen(true);
         }
     };
 
@@ -687,11 +656,6 @@ const Index = () => {
                         }
                     >
                         <ul className="!min-w-[170px]">
-                            <li>
-                                <button type="button" onClick={() => bulkEdit()}>
-                                    Edit
-                                </button>
-                            </li>
                             <li>
                                 <button type="button" onClick={() => BulkDeleteProduct()}>
                                     Delete
@@ -733,11 +697,11 @@ const Index = () => {
                             {
                                 accessor: 'name',
                                 sortable: true,
-                                render: (row, index) => (
+                                render: (row,index) => (
                                     <>
                                         <div className="">{row.name}</div>
                                         <button onClick={() => duplicate(row)} className=" cursor-pointer text-blue-400 underline">
-                                            {loadingRows[row.id] ? '...Loading' : 'Duplicate'}
+                                            {loadingRows[row.id]  ? "...Loading" : 'Duplicate'}
                                         </button>
                                     </>
                                 ),
@@ -746,18 +710,13 @@ const Index = () => {
                             { accessor: 'stock', sortable: false },
                             { accessor: 'status', sortable: true },
                             { accessor: 'price', sortable: true },
+                            { accessor: 'categories', sortable: true },
                             {
-                                accessor: 'categories',
+                                accessor: 'tags',
                                 sortable: true,
-
-                                render: (row) => <div style={{ whiteSpace: 'normal', wordWrap: 'break-word', overflow: 'hidden', width: '200px' }}>{row.categories}</div>,
+                                width: 200,
+                                render: (row) => <div style={{ whiteSpace: 'normal', wordWrap: 'break-word', overflow: 'hidden', width: '200px' }}>{row.tags}</div>,
                             },
-                            // {
-                            //     accessor: 'tags',
-                            //     sortable: true,
-                            //     width: 200,
-                            //     render: (row) => <div style={{ whiteSpace: 'normal', wordWrap: 'break-word', overflow: 'hidden', width: '200px' }}>{row.tags}</div>,
-                            // },
                             {
                                 accessor: 'date',
                                 sortable: true,
@@ -797,16 +756,6 @@ const Index = () => {
                                 ),
                             },
                         ]}
-                        rowExpansion={{
-                            collapseProps: {
-                                transitionDuration: 500,
-                                animateOpacity: false,
-                                transitionTimingFunction: 'ease-out',
-                            },
-                            allowMultiple: false,
-                            content: ({ record }) => <QuickEdit data={record} />,
-                            // ...
-                        }}
                         highlightOnHover
                         totalRecords={recordsData?.length}
                         recordsPerPage={PAGE_SIZE}
@@ -814,12 +763,10 @@ const Index = () => {
                         page={null}
                         onPageChange={(p) => {}}
                         withBorder={true}
-                        sortStatus={sortStatus}
-                        onSortStatusChange={setSortStatus}
+                        sortStatus={null}
+                        onSortStatusChange={()=>{}}
                         selectedRecords={selectedRecords}
-                        onSelectedRecordsChange={(val) => {
-                            selectedRows(val);
-                        }}
+                        onSelectedRecordsChange={(val) => setSelectedRecords(val)}
                         paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
                     />
                 )}
@@ -834,5 +781,4 @@ const Index = () => {
             </div>
         </div>
     );
-};
-export default PrivateRouter(Index);
+}

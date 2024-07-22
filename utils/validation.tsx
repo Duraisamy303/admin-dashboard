@@ -87,6 +87,5 @@ export const AddressValidation = (state: any) => {
     // } else if (!emailRegex.test(state.shippingAddress.email)) {
     //     newShippingErrMsg.email = 'invalid email';
     // }
-    console.log('newshippingerror: ', newShippingErrMsg);
     return { billingAddress: newBillingErrMsg, shippingAddress: newShippingErrMsg };
 };

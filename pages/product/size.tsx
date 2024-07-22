@@ -56,15 +56,12 @@ const Size = () => {
 
     const getDesignList = () => {
         setLoading(true);
-        console.log('sizeData.data?.sizes?.edges: ', sizeData);
-
         if (sizeData) {
             if (sizeData && sizeData.sizes?.edges?.length > 0) {
                 const newData = sizeData?.sizes?.edges?.map((item: any) => ({
                     ...item.node,
                     name: item?.node?.name,
                 }));
-                console.log('newData: ', newData);
 
                 // const sorting: any = sortBy(newData, 'id');
                 setSizeList(newData);
@@ -91,11 +88,6 @@ const Size = () => {
         setInitialRecords(sizeList);
     }, [sizeList]);
 
-    // Log initialRecords when it changes
-    useEffect(() => {
-        console.log('initialRecords: ', initialRecords);
-    }, [initialRecords]);
-
     const [selectedRecords, setSelectedRecords] = useState<any>([]);
 
     const [search, setSearch] = useState('');
@@ -116,7 +108,6 @@ const Size = () => {
     const [deleteSize] = useMutation(DELETE_SIZE);
     const [bulkDelete] = useMutation(DELETE_SIZE);
 
-    console.log('finishList: ', sizeList);
     useEffect(() => {
         setPage(1);
     }, [pageSize]);
@@ -130,7 +121,6 @@ const Size = () => {
     useEffect(() => {
         setInitialRecords(() => {
             return sizeList.filter((item: any) => {
-                console.log('✌️item --->', item);
                 return (
                     item.id.toString().includes(search.toLowerCase()) ||
                     // item.image.toLowerCase().includes(search.toLowerCase()) ||
@@ -160,7 +150,6 @@ const Size = () => {
 
     // form submit
     const onSubmit = async (record: any, { resetForm }: any) => {
-        console.log('record: ', record);
         setCreateSizeLoader(true);
         setUpdateSizeLoader(true);
         try {

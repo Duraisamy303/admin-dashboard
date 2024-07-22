@@ -264,7 +264,6 @@ const Index = () => {
     };
 
     const handleSearchChange = (e) => {
-        console.log('handleSearchChange: ');
         setSearch(e);
         fetchLowStockList({
             variables: {
@@ -279,7 +278,6 @@ const Index = () => {
 
     const handleCategoryChange = (e) => {
         setSelectedCategory(e.target.value);
-        console.log('e.target.value: ', e.target.value);
         fetchLowStockList({
             variables: {
                 channel: 'india-channel',
@@ -424,7 +422,6 @@ const Index = () => {
     };
 
     const duplicate = async (row: any) => {
-        console.log('row: ', row);
         try {
             setLoadingRows((prev) => ({ ...prev, [row.id]: true }));
             // productDetailsRefetch()
@@ -555,13 +552,11 @@ const Index = () => {
                 // variables: { email: formData.email, password: formData.password },
             });
             if (data?.productChannelListingUpdate?.errors?.length > 0) {
-                console.log('error: ', data?.productChannelListingUpdate?.errors[0]?.message);
                 Failure(data?.productChannelListingUpdate?.errors[0]?.message);
                 deleteDuplicateProduct(productId, row);
 
                 setLoadingRows((prev) => ({ ...prev, [row.id]: false }));
             } else {
-                console.log('productChannelListUpdate: ', data);
 
                 variantListUpdate(productId, row);
             }
@@ -610,7 +605,6 @@ const Index = () => {
                 setLoadingRows((prev) => ({ ...prev, [row.id]: false }));
             } else {
                 const resVariants = data?.productVariantBulkCreate?.productVariants;
-                console.log('resVariants: ', resVariants);
 
                 // const varArr = row?.variants.forEach((variant) => {
                 //     variant.channelListings.forEach((channelListing) => {
@@ -624,11 +618,9 @@ const Index = () => {
                         ...variant,
                         variantId: resVariants[index]?.id || null,
                     }));
-                    console.log('mergedVariants: ', mergedVariants);
                     const varArr = mergedVariants.forEach((variant) => {
                         variant.channelListings.forEach((channelListing) => {
                             if (channelListing.channel.name === 'India Channel') {
-                                console.log('channelListing: ', channelListing);
                                 variantChannelListUpdate(channelListing?.price?.amount, productId, variant.variantId, row);
                             }
                         });
@@ -687,8 +679,6 @@ const Index = () => {
             if (data?.updateMetadata?.errors?.length > 0) {
                 Failure(data?.updateMetadata?.errors[0]?.message);
                 deleteDuplicateProduct(productId, row);
-                console.log('error: ', data?.updateMetadata?.errors[0]?.message);
-
                 setLoadingRows((prev) => ({ ...prev, [row.id]: false }));
             } else {
                 // if (selectedTag?.length > 0) {
@@ -751,7 +741,6 @@ const Index = () => {
             setBulkEditLoading(true);
             selectedRecords?.map(async (item) => {
                 const res = await getProductDetailsById(item.id);
-                console.log('res: ', res);
                 const input = {
                     attributes: [],
                     category: selectedCat?.map((item) => item?.value),
@@ -776,7 +765,6 @@ const Index = () => {
                     productSize: res?.productSize?.length > 0 ? res?.productSize?.map((item) => item.id) : [],
                     productStonecolor: res?.productStonecolor?.length > 0 ? res?.productStonecolor?.map((item) => item.id) : [],
                 };
-                console.log('input: ', input);
 
                 const { data } = await updateProduct({
                     variables: {

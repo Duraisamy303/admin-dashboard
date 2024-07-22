@@ -86,11 +86,6 @@ const StoneColor = () => {
         setInitialRecords(stonList);
     }, [stonList]);
 
-    // Log initialRecords when it changes
-    useEffect(() => {
-        console.log('initialRecords: ', initialRecords);
-    }, [initialRecords]);
-
     const [selectedRecords, setSelectedRecords] = useState<any>([]);
 
     const [search, setSearch] = useState('');
@@ -111,7 +106,6 @@ const StoneColor = () => {
     const [deleteColor] = useMutation(DELETE_COLOR);
     const [bulkDelete] = useMutation(DELETE_COLOR);
 
-    console.log('finishList: ', stonList);
     useEffect(() => {
         setPage(1);
     }, [pageSize]);
@@ -125,7 +119,6 @@ const StoneColor = () => {
     useEffect(() => {
         setInitialRecords(() => {
             return stonList.filter((item: any) => {
-                console.log('✌️item --->', item);
                 return (
                     item.id.toString().includes(search.toLowerCase()) ||
                     // item.image.toLowerCase().includes(search.toLowerCase()) ||
@@ -155,7 +148,6 @@ const StoneColor = () => {
 
     // form submit
     const onSubmit = async (record: any, { resetForm }: any) => {
-        console.log('record: ', record);
         setCreateColorLoader(true);
         setUpdateColorLoader(true);
         try {

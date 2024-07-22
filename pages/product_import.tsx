@@ -39,8 +39,6 @@ const ProductImport = () => {
         }
 
         setState({ loading: true });
-        console.log('state.file: ', state.file);
-        console.log('getCheckedName(): ', getCheckedName());
 
         try {
             const token = localStorage.getItem('token');
@@ -49,7 +47,6 @@ const ProductImport = () => {
             //update_menu_order
             formData.append('update_products', getCheckedName());
             formData.append('excel', state.file);
-            console.log('formData: ', formData);
 
             let config = {
                 method: 'post',
@@ -63,7 +60,6 @@ const ProductImport = () => {
             };
 
             const response = await axios.request(config);
-            console.log('Response: ', JSON.stringify(response.data));
             if (response.data.errors && response.data.errors.length > 0) {
                 setState({ errors: response.data.errors });
             } else {
@@ -88,7 +84,6 @@ const ProductImport = () => {
     const getCheckedName = () => {
         let val = '';
         val = Object.keys(state.checked).find((key) => state.checked[key]);
-        console.log("val: ", val);
         return val;
     };
 

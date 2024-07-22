@@ -31,7 +31,6 @@ const Product_export = () => {
         variables: { channel: 'india-channel' },
     });
 
-    console.log('category: ', state.category);
 
     const ArrayToString = (array) => {
         let label = '';
@@ -90,8 +89,6 @@ const Product_export = () => {
                 hasNextPage = pageInfo.hasNextPage;
             }
             setState({ loading: false });
-
-            console.log("allData: ", allData);
 
             const excelData = allData?.map((item: any) => {
                 const data = item?.node;

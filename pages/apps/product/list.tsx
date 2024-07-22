@@ -63,7 +63,7 @@ const rowData = [
 ];
 const ProductList = () => {
     const router = useRouter();
-    const isRtl = useSelector((state:any) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
+    const isRtl = useSelector((state: any) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
 
     const dispatch = useDispatch();
     useEffect(() => {
@@ -123,8 +123,6 @@ const ProductList = () => {
 
     // form submit
     const onSubmit = (record: any, { resetForm }: any) => {
-        console.log('record', record);
-
         const toast = Swal.mixin({
             toast: true,
             position: 'top',
@@ -208,7 +206,6 @@ const ProductList = () => {
 
     // top Filter Category change
     const CategoryChange = (selectedCategory: string) => {
-        console.log('Selected Category:', selectedCategory);
         // Update the state with the selected category
         setFilterFormData((prevState) => ({
             ...prevState,
@@ -217,7 +214,6 @@ const ProductList = () => {
     };
 
     const StockStatusChange = (selectedStockStatus: string) => {
-        console.log('Selected Stock Status:', selectedStockStatus);
         // Update the state with the selected stock status
         setFilterFormData((prevState) => ({
             ...prevState,
@@ -226,7 +222,6 @@ const ProductList = () => {
     };
 
     const productTypeChange = (selectedProductType: string) => {
-        console.log('Selected Product Type:', selectedProductType);
         // Update the state with the selected product type
         setFilterFormData((prevState) => ({
             ...prevState,
@@ -236,7 +231,6 @@ const ProductList = () => {
 
     const onFilterSubmit = (e: any) => {
         e.preventDefault();
-        console.log('filterFormData', filterFormData);
 
         setFilterFormData({
             category: '',
@@ -302,7 +296,7 @@ const ProductList = () => {
                                 <option value="In Stock">In Stock</option>
                                 <option value="Out Of Stock">Out Of Stock</option>
                             </select>
-                            
+
                             <select className="form-select flex-1" onChange={(e) => productTypeChange(e.target.value)}>
                                 <option value="sample-product">Simple Product</option>
                                 <option value="variable-product">Variable Product</option>
@@ -343,7 +337,7 @@ const ProductList = () => {
                                             {/* <Link href="/apps/product/view" className="flex hover:text-primary"> */}
                                             <button type="button" className="flex hover:text-primary" onClick={() => router.push(`/apps/product/view/${row.id}`)}>
                                                 <IconEye />
-                                                </button> 
+                                            </button>
                                             {/* </Link> */}
 
                                             <button type="button" className="flex hover:text-danger" onClick={() => DeleteProduct(row)}>

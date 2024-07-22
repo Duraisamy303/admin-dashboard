@@ -251,7 +251,6 @@ export const duplicateUploadImage = async (productId, imageUrl) => {
 };
 
 export const categoryImageUpload = async (categoryId, imageUrl) => {
-    console.log('categoryId, imageUrl: ', categoryId, imageUrl);
     try {
         const res = await fetch(imageUrl);
         const blob = await res.blob();
@@ -565,10 +564,8 @@ export const getDateRange = (rangeType) => {
     } else {
         throw new Error("Invalid rangeType. Use 'thisMonth', 'lastMonth', 'last7Days', or 'lastYear'.");
     }
-    console.log('startDate: ', startDate);
 
     const start = moment(startDate).format('YYYY-MM-DD');
-    console.log('start: ', start);
     const end = moment(endDate).format('YYYY-MM-DD');
 
     return { start, end };
@@ -625,7 +622,6 @@ export const fetchImagesFromS3 = async () => {
     };
     try {
         const data = await s3.listObjectsV2(params).promise();
-        console.log('datasss: ', data);
         const imageUrls = data.Contents.map((item) => ({
             url: `https://prade.blr1.cdn.digitaloceanspaces.com/${item.Key}`,
             key: item.Key,

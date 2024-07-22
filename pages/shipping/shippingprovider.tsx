@@ -73,11 +73,6 @@ const ShippingProvider = () => {
         setInitialRecords(shippingList);
     }, [shippingList]);
 
-    // Log initialRecords when it changes
-    useEffect(() => {
-        console.log('initialRecords: ', initialRecords);
-    }, [initialRecords]);
-
     const [selectedRecords, setSelectedRecords] = useState<any>([]);
 
     const [search, setSearch] = useState('');
@@ -136,7 +131,6 @@ const ShippingProvider = () => {
 
     // form submit
     const onSubmit = async (record: any, { resetForm }: any) => {
-        console.log('record: ', record);
         setCreateShippingLoader(true);
         setUpdateShippingLoader(true);
         try {

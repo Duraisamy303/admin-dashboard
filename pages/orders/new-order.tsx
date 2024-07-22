@@ -306,7 +306,6 @@ const NewOrder = () => {
     const handleSearch = async () => {
         try {
             if (state.search !== '') {
-                console.log('if: ');
                 let channel = '';
                 if (channels() == 'INR') {
                     channel = 'india-channel';
@@ -317,13 +316,10 @@ const NewOrder = () => {
                     channel,
                     query: state.search,
                 });
-                console.log('res: ', res);
 
                 setState({ productList: res?.data?.products?.edges?.map((item: any) => item.node) });
             } else {
-                console.log('else: ');
                 const funRes = await productsDropdown(productData);
-                console.log('funRes: ', funRes);
                 setState({ productList: funRes, loading: false });
             }
         } catch (error) {

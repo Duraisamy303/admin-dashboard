@@ -344,7 +344,6 @@ const ProductAdd = () => {
     const getMediaImage = async () => {
         try {
             const res = await fetchImagesFromS3();
-            console.log('res: ', res);
             setMediaImages(res);
         } catch (error) {
             console.log('error: ', error);
@@ -444,7 +443,6 @@ const ProductAdd = () => {
             return;
         }
 
-        console.log('value: ', value);
         // Dynamically import the EditorJS module
         import('@editorjs/editorjs').then(({ default: EditorJS }) => {
             // Create a new instance of EditorJS with the appropriate configuration
@@ -734,14 +732,12 @@ const ProductAdd = () => {
                 setCreateLoading(false);
 
                 Failure(data?.productCreate?.errors[0]?.message);
-                console.log('Error: ', data?.productCreate?.errors[0]?.message);
             } else {
                 const productId = data?.productCreate?.product?.id;
                 productChannelListUpdate(productId);
                 if (imageUrl?.length > 0) {
                     imageUrl.forEach(async (item) => {
                         createMediaData(productId, item);
-                        console.log('imageUrl: ', imageUrl);
 
                         // const imageUpload = await uploadImage(productId, item);
                         // console.log('Image upload: ', imageUpload);
@@ -775,7 +771,6 @@ const ProductAdd = () => {
             });
             if (data?.productChannelListingUpdate?.errors?.length > 0) {
                 setCreateLoading(false);
-                console.log('error: ', data?.productChannelListingUpdate?.errors[0]?.message);
                 Failure(data?.productChannelListingUpdate?.errors[0]?.message);
                 deleteProduct(productId);
             } else {
@@ -822,7 +817,6 @@ const ProductAdd = () => {
                 deleteProduct(productId);
             } else {
                 const resVariants = data?.productVariantBulkCreate?.productVariants;
-                console.log('resVariants: ', resVariants);
                 // if (resVariants?.length > 0) {
                 //     resVariants?.map((item: any) => {
                 //         variantChannelListUpdate(productId, item.id);
@@ -926,7 +920,6 @@ const ProductAdd = () => {
                     alt: '',
                 },
             });
-            console.log('createMediaData: ', data);
         } catch (error) {
             setCreateLoading(false);
             console.log('error: ', error);
@@ -971,7 +964,6 @@ const ProductAdd = () => {
 
     // form submit
     const createNewCategory = async () => {
-        console.log('createNewCategory: ');
         setCreateCategoryLoader(true);
         try {
             setCreateCategoryLoader(true);
@@ -987,7 +979,6 @@ const ProductAdd = () => {
             };
 
             const { data } = await addCategory({ variables });
-            console.log('data: ', data);
             categoryListRefetch();
             setIsOpenCat(false);
             setCreateCategoryLoader(false);
@@ -1148,7 +1139,6 @@ const ProductAdd = () => {
     const handleFileChange = async (e) => {
         try {
             const presignedPostData: any = await generatePresignedPost(e.target.files[0]);
-            console.log('Presigned POST data: ', presignedPostData);
 
             const formData = new FormData();
             Object.keys(presignedPostData.fields).forEach((key) => {
@@ -1161,11 +1151,9 @@ const ProductAdd = () => {
                     'Content-Type': 'multipart/form-data',
                 },
             });
-            console.log('response: ', response);
 
             getMediaImage();
             setMediaTab(1);
-            console.log('File uploaded successfully', response);
         } catch (error) {
             console.error('Error uploading file:', error);
         }

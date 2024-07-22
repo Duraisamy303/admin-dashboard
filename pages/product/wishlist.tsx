@@ -80,10 +80,7 @@ const Wishlist = () => {
         setInitialRecords(sortBy(categoryList, 'id'));
     }, [categoryList]);
 
-    // Log initialRecords when it changes
-    useEffect(() => {
-        console.log('initialRecords: ', initialRecords);
-    }, [initialRecords]);
+  
 
     const [selectedRecords, setSelectedRecords] = useState<any>([]);
 
@@ -105,7 +102,6 @@ const Wishlist = () => {
     const [deleteCategory] = useMutation(DELETE_CATEGORY);
     const [bulkDelete] = useMutation(DELETE_CATEGORY);
 
-    console.log('categoryList: ', categoryList);
     useEffect(() => {
         setPage(1);
     }, [pageSize]);
@@ -119,7 +115,6 @@ const Wishlist = () => {
     useEffect(() => {
         setInitialRecords(() => {
             return categoryList.filter((item: any) => {
-                console.log('✌️item --->', item);
                 return (
                     item.id.toString().includes(search.toLowerCase()) ||
                     // item.image.toLowerCase().includes(search.toLowerCase()) ||
@@ -149,10 +144,8 @@ const Wishlist = () => {
 
     // form submit
     const onSubmit = async (record: any, { resetForm }: any) => {
-        console.log('record: ', record);
         try {
             const Description = JSON.stringify({ time: Date.now(), blocks: [{ id: 'some-id', data: { text: record.description }, type: 'paragraph' }], version: '2.24.3' });
-            console.log('✌️Description --->', Description);
 
             const variables = {
                 input: {
@@ -162,10 +155,8 @@ const Wishlist = () => {
             };
 
             const { data } = await (modalTitle ? updateCategory({ variables: { ...variables, id: modalContant.id } }) : addCategory({ variables }));
-            console.log('data: ', data);
 
             const newData = modalTitle ? data?.categoryUpdate?.category : data?.categoryCreate?.category;
-            console.log('newData: ', newData);
             if (!newData) {
                 console.error('Error: New data is undefined.');
                 return;
@@ -174,13 +165,11 @@ const Wishlist = () => {
             const jsonObject = JSON.parse(newData.description || newData.description);
             // Extract the text value
             const textValue = jsonObject?.blocks[0]?.data?.text;
-            console.log('✌️textValue --->', textValue);
 
             const finalData = {
                 ...newData,
                 textdescription: textValue || '',
             };
-            console.log('finalData', finalData);
 
             const updatedId = finalData.id;
             const index = recordsData.findIndex((design: any) => design && design.id === updatedId);
@@ -191,7 +180,6 @@ const Wishlist = () => {
             } else {
                 updatedDesignList.push(finalData);
             }
-            console.log('updatedDesignList', updatedDesignList);
             // setCategoryList(updatedDesignList);
             setRecordsData(updatedDesignList);
             const toast = Swal.mixin({
@@ -262,7 +250,6 @@ const Wishlist = () => {
                 }
             });
     };
-    console.log('mordelContentt', modalContant);
 
     const BulkDeleteCategory = async () => {
         showDeleteAlert(
@@ -302,17 +289,6 @@ const Wishlist = () => {
             }
         );
     };
-
-    // completed category delete option
-    // if (productItem?.description || productItem?.node?.description) {
-    //     const jsonObject = JSON.parse(
-    //       productItem?.description || productItem?.node?.description
-    //     );
-    //     // Extract the text value
-    //     textValue = jsonObject?.blocks[0]?.data?.text;
-    //   }
-
-    console.log('recordsData', recordsData);
     return (
         <div>
             <div className="panel mt-6">

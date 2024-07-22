@@ -52,7 +52,6 @@ const LastUpdates=()=> {
     const lastUpdate = async () => {
         try {
             const res = await lastUpdateData();
-            console.log('res: ', res);
 
             const update = res?.data?.stockUpdate;
             const table = update?.dates?.map((date, index) => ({

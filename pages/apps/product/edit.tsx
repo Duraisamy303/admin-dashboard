@@ -647,7 +647,6 @@ const ProductEdit = (props: any) => {
             });
             getMediaImage();
             setMediaTab(1);
-            console.log('File uploaded successfully', response);
         } catch (error) {
             console.error('Error uploading file:', error);
         }
@@ -745,7 +744,6 @@ const ProductEdit = (props: any) => {
                     });
                     setVariantErrors(newVariantErrors);
                 }
-            console.log('hasError: ', hasError);
 
             // If there are any errors, do not proceed with the update
             if (hasError) {
@@ -754,7 +752,6 @@ const ProductEdit = (props: any) => {
             }
 
             let upsells = [];
-            console.log('upsells: ', upsells);
             if (selectedUpsell?.length > 0) {
                 upsells = selectedUpsell?.map((item) => item?.value);
             }
@@ -1300,13 +1297,10 @@ const ProductEdit = (props: any) => {
 
         if (e != 'all') {
             const [month, year] = e.split('/');
-            console.log('year: ', year);
-            console.log('month: ', month);
             let res = mediaImages.filter((item) => {
                 const date = new Date(item.LastModified);
                 return date.getFullYear() === year && date.getMonth() === month - 1; // month is 0-indexed
             });
-            console.log('res: ', res);
 
             // setMediaImages(filtered);
         } else {
@@ -2303,7 +2297,6 @@ const ProductEdit = (props: any) => {
                                                                         onMouseUp={handleMouseUp}
                                                                         onMouseLeave={handleMouseLeave}
                                                                         onClick={() => {
-                                                                            console.log('onClick: ');
                                                                             setSelectedImg(item);
                                                                             if (!isLongPress) {
                                                                                 handleImageSelect(item);

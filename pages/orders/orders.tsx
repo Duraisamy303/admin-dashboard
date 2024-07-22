@@ -113,7 +113,6 @@ const Orders = () => {
                 field: 'CREATED_AT',
             };
         }
-        console.log('body: ', body);
 
         const res = await orderRefetch(body);
 
@@ -445,7 +444,6 @@ const Orders = () => {
         try {
             const status = e;
             if (status == '') {
-                console.log(' if: ');
                 const res = await orderRefetch({
                     first: 500,
                     filter: {},

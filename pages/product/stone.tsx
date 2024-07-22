@@ -42,7 +42,6 @@ const Stone = () => {
     } = useQuery(STONE_LIST, {
         variables: { channel: 'india-channel' }, // Pass variables here
     });
-    console.log('stoneData: ', stoneData);
     // const [designList, setStonList] = useState([]);
     const [stonList, setStonList] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -53,7 +52,6 @@ const Stone = () => {
     useEffect(() => {
         getDesignList();
     }, [stoneData]);
-    console.log('designList: ', stonList);
 
     const getDesignList = () => {
         setLoading(true);
@@ -88,11 +86,6 @@ const Stone = () => {
         setInitialRecords(stonList);
     }, [stonList]);
 
-    // Log initialRecords when it changes
-    useEffect(() => {
-        console.log('initialRecords: ', initialRecords);
-    }, [initialRecords]);
-
     const [selectedRecords, setSelectedRecords] = useState<any>([]);
 
     const [search, setSearch] = useState('');
@@ -113,7 +106,6 @@ const Stone = () => {
     const [deleteStone] = useMutation(DELETE_STONE);
     const [bulkDelete] = useMutation(DELETE_STONE);
 
-    console.log('finishList: ', stonList);
     useEffect(() => {
         setPage(1);
     }, [pageSize]);
@@ -127,7 +119,6 @@ const Stone = () => {
     useEffect(() => {
         setInitialRecords(() => {
             return stonList.filter((item: any) => {
-                console.log('✌️item --->', item);
                 return (
                     item.id.toString().includes(search.toLowerCase()) ||
                     // item.image.toLowerCase().includes(search.toLowerCase()) ||
@@ -157,7 +148,6 @@ const Stone = () => {
 
     // form submit
     const onSubmit = async (record: any, { resetForm }: any) => {
-        console.log('record: ', record);
         setCreateStoneLoader(true);
         setUpdateStoneLoader(true);
         try {
@@ -171,7 +161,6 @@ const Stone = () => {
             };
 
             const { data } = await (modalTitle ? updateStone({ variables: { ...variables, id: modalContant.id } }) : addStone({ variables }));
-            console.log('✌️data --->', data);
 
             const newData = modalTitle ? data?.productStoneTypeUpdate?.productStoneType : data?.productStoneTypeCreate?.productStoneType;
             await stoneRefetch();

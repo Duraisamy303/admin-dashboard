@@ -8,7 +8,9 @@ import React, { useEffect, useState } from 'react';
 import CommonLoader from './elements/commonLoader';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 
-const LastUpdates=()=> {
+const LastUpdates = () => {
+    const router = useRouter();
+
     const [lastUpdateData, { loading: getLoading }] = useMutation(LAST_UPDATE_DETAILS);
 
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
@@ -43,7 +45,11 @@ const LastUpdates=()=> {
             // If there is a search term, filter the data
             setInitialData(() => {
                 return lowStockData.filter((item: any) => {
-                    return item['product Name']?.toLowerCase().includes(search.toLowerCase());
+                    let data = {
+                        'product Name': item['product Name']?.toLowerCase().includes(search.toLowerCase()),
+                        id: item.id,
+                    };
+                    return data;
                 });
             });
         }
@@ -54,10 +60,12 @@ const LastUpdates=()=> {
             const res = await lastUpdateData();
 
             const update = res?.data?.stockUpdate;
+            console.log('update: ', update);
             const table = update?.dates?.map((date, index) => ({
                 date,
                 'product Name': update.productNameList[index],
                 Quantity: update.quantityList[index],
+                id: update?.productIdList[index],
             }));
 
             setLowStockData(table);
@@ -80,7 +88,15 @@ const LastUpdates=()=> {
                         className="table-hover whitespace-nowrap"
                         records={initialData}
                         columns={[
-                            { accessor: 'product Name', sortable: true },
+                            {
+                                accessor: 'product Name',
+                                sortable: true,
+                                render: (row) => (
+                                    <div className="cursor-pointer" onClick={() => router.push(`/apps/product/edit?id=${row.id}`)}>
+                                        {row['product Name']}
+                                    </div>
+                                ),
+                            },
                             { accessor: 'date', sortable: true },
                             { accessor: 'Quantity', sortable: true },
                         ]}
@@ -104,5 +120,5 @@ const LastUpdates=()=> {
             </div>
         </div>
     );
-}
+};
 export default PrivateRouter(LastUpdates);

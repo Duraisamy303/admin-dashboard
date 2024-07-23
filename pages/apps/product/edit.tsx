@@ -253,6 +253,7 @@ const ProductEdit = (props: any) => {
     const [isLongPress, setIsLongPress] = useState(false);
     const [deletedImages, setDeletedImages] = useState<any>([]);
     const [selectedArr, setSelectedArr] = useState<any>([]);
+    const [attDropDownError, setAttDropDownError] = useState('');
     const [accordions, setAccordions] = useState<any>([]);
     const [openAccordion, setOpenAccordion] = useState<any>('');
     const [chooseType, setChooseType] = useState<any>('');
@@ -260,6 +261,7 @@ const ProductEdit = (props: any) => {
     const [dropdowndata, setDropdownData] = useState<any>([]);
     const [dropIndex, setDropIndex] = useState<any>(null);
     const [updateLoading, setUpdateLoading] = useState(false);
+    const [mediaMonth, setMediaMonth] = useState('all');
 
     const [variants, setVariants] = useState([
         {
@@ -322,6 +324,23 @@ const ProductEdit = (props: any) => {
         const options = formatOptions(getparentCategoryList);
         setCategoryList(options);
     }, [parentList]);
+
+    useEffect(() => {
+        filterByMonth();
+    }, [mediaMonth]);
+
+    const filterByMonth = async () => {
+        const res = await fetchImagesFromS3(mediaSearch);
+        if (mediaMonth !== 'all') {
+            const [month, year] = mediaMonth.split('/');
+            const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
+            const filteredImages = res?.filter((item) => {
+                const itemDate = new Date(item.LastModified);
+                return itemDate.getFullYear() === parseInt(year) && itemDate.getMonth() === monthIndex;
+            });
+            setMediaImages(filteredImages);
+        }
+    };
 
     const productsDetails = async () => {
         try {
@@ -677,78 +696,97 @@ const ProductEdit = (props: any) => {
         );
     };
 
+    const validateMainFields = (savedContent) => {
+        const errors = {
+            productName: productName.trim() === '' ? 'Product name cannot be empty' : '',
+            slug: slug.trim() === '' ? 'Slug cannot be empty' : '',
+            seoTittle: seoTittle.trim() === '' ? 'Seo title cannot be empty' : '',
+            seoDesc: seoDesc.trim() === '' ? 'Seo description cannot be empty' : '',
+            description: savedContent?.blocks?.length === 0 ? 'Description cannot be empty' : '',
+            shortDescription: shortDescription?.trim() === '' ? 'Short description cannot be empty' : '',
+            category: selectedCat?.length === 0 ? 'Category cannot be empty' : '',
+        };
+
+        return errors;
+    };
+
+    // Helper function to validate variants
+    const validateVariants = () => {
+        return variants.map((variant) => {
+            const errors: any = {};
+            if (!variant.sku) errors.sku = 'SKU cannot be empty';
+            // if (variant.quantity <= 0 || isNaN(variant.quantity)) errors.quantity = 'Quantity must be a valid number and greater than 0';
+            // if (variant.regularPrice <= 0 || isNaN(variant.regularPrice)) errors.regularPrice = 'Regular Price must be a valid number and greater than 0';
+            // if (!variant.stackMgmt) errors.stackMgmt = 'Check Stack Management';
+            return errors;
+        });
+    };
+
+    // Helper function to validate attributes
+    const validateAttributes = () => {
+        const attributeErrors = {};
+        const attributeChecks = {
+            stone: 'Stone cannot be empty',
+            design: 'Design cannot be empty',
+            style: 'Style cannot be empty',
+            finish: 'Finish cannot be empty',
+            type: 'Type cannot be empty',
+            size: 'Size cannot be empty',
+            stoneColor: 'Stone color cannot be empty',
+        };
+
+        Object.keys(attributeChecks).forEach((key) => {
+            if (selectedValues.hasOwnProperty(key) && (!selectedValues[key] || selectedValues[key].length === 0)) {
+                attributeErrors[key] = attributeChecks[key];
+            }
+        });
+
+        return attributeErrors;
+    };
+
     const updateProducts = async () => {
         try {
-            setUpdateLoading(true);
+            const savedContent = await editorInstance.save();
+            const descr = JSON.stringify(savedContent, null, 2);
 
             // Reset error messages
-            const resetErrors = () => {
-                setProductNameErrMsg('');
-                setSlugErrMsg('');
-                setSeoTittleErrMsg('');
-                setSeoDescErrMsg('');
-                setShortDesErrMsg('');
-                setCategoryErrMsg('');
-                setAttributeError('');
-                setVariantErrors([]);
-            };
-
-            resetErrors();
-
-            let hasError = false;
-
-            let newVariantErrors: any = [];
+            setProductNameErrMsg('');
+            setSlugErrMsg('');
+            setSeoTittleErrMsg('');
+            setSeoDescErrMsg('');
+            setShortDesErrMsg('');
+            setCategoryErrMsg('');
+            setDescriptionErrMsg('');
+            setAttributeError('');
+            setVariantErrors([]);
 
             // Validation
-            const validateField = (value, setError, message) => {
-                if (value === null || value.trim() === '') {
-                    setError(message);
-                    hasError = true;
-                }
-            };
+            const errors = validateMainFields(JSON.parse(descr));
+            console.log('errors: ', errors);
+            const variantErrors = validateVariants();
+            console.log('variantErrors: ', variantErrors);
+            const attributeErrors: any = validateAttributes();
+            console.log('attributeErrors: ', attributeErrors);
 
-            validateField(productName, setProductNameErrMsg, 'Product name cannot be empty');
-            validateField(slug, setSlugErrMsg, 'Slug cannot be empty');
-            validateField(seoTittle, setSeoTittleErrMsg, 'Seo title cannot be empty');
-            validateField(seoDesc, setSeoDescErrMsg, 'Seo description cannot be empty');
-            validateField(shortDescription, setShortDesErrMsg, 'Short description cannot be empty');
-            if (selectedCat?.length == 0) {
-                setCategoryErrMsg('Category cannot be empty');
-                hasError = true;
-                setUpdateLoading(false);
+            // Set errors
+            setProductNameErrMsg(errors.productName);
+            setSlugErrMsg(errors.slug);
+            setSeoTittleErrMsg(errors.seoTittle);
+            setSeoDescErrMsg(errors.seoDesc);
+            setDescriptionErrMsg(errors.description);
+            setShortDesErrMsg(errors.shortDescription);
+            setCategoryErrMsg(errors.category);
+            setVariantErrors(variantErrors);
+
+            if (Object.keys(attributeErrors).length > 0) {
+                setAttributeError(attributeErrors);
             }
 
-            if (variants.length > 0)
-                if (variants && variants.length > 0) {
-                    variants.forEach((variant, index) => {
-                        let errors: any = {};
-
-                        if (!variant.sku) {
-                            errors.sku = 'SKU cannot be empty';
-                            hasError = true;
-                        }
-                        // if (variant.quantity <= 0 || isNaN(variant.quantity)) {
-                        //     errors.quantity = 'Quantity must be a valid number and greater than 0';
-                        //     hasError = true;
-                        // }
-                        // if (variant.regularPrice <= 0 || isNaN(variant.regularPrice)) {
-                        //     errors.regularPrice = 'Regular Price must be a valid number and greater than 0';
-                        //     hasError = true;
-                        // }
-                        // if (!variant.stackMgmt) {
-                        //     errors.stackMgmt = 'Check Stack Management';
-                        //     hasError = true;
-                        // }
-
-                        newVariantErrors[index] = errors;
-                    });
-                    setVariantErrors(newVariantErrors);
-                }
-
-            // If there are any errors, do not proceed with the update
-            if (hasError) {
-                setUpdateLoading(false);
-                return;
+            // Check if any error exists
+            if (Object.values(errors).some((msg) => msg !== '') || variantErrors.some((err) => Object.keys(err).length > 0) || Object.keys(attributeErrors).length > 0) {
+                // setCreateLoading(false);
+                Failure('Please fill in all required fields');
+                return; // Exit if any error exists
             }
 
             let upsells = [];
@@ -761,8 +799,8 @@ const ProductEdit = (props: any) => {
             }
 
             const tagId = selectedTag?.map((item) => item.value) || [];
-            const savedContent = await editorInstance.save();
-            const descr = JSON.stringify(savedContent, null, 2);
+            // const savedContent = await editorInstance.save();
+            // const descr = JSON.stringify(savedContent, null, 2);
             const { data } = await updateProduct({
                 variables: {
                     id: id,
@@ -1063,11 +1101,23 @@ const ProductEdit = (props: any) => {
     const optionsVal = arr.map((item) => ({ value: item.type, label: item.type }));
 
     const handleAddAccordion = () => {
-        const selectedType = arr.find((item) => item.type === chooseType);
-        setSelectedArr([chooseType, ...selectedArr]);
-        setAccordions([selectedType, ...accordions]);
-        setOpenAccordion(chooseType);
-        setSelectedValues({ ...selectedValues, [chooseType]: [] }); // Clear selected values for the chosen type
+        // const selectedType = arr.find((item) => item.type === chooseType);
+        // setSelectedArr([chooseType, ...selectedArr]);
+        // setAccordions([selectedType, ...accordions]);
+        // setOpenAccordion(chooseType);
+        // setSelectedValues({ ...selectedValues, [chooseType]: [] }); // Clear selected values for the chosen type
+
+        if (chooseType == '') {
+            setAttDropDownError('Please select a type');
+        } else {
+            const selectedType = arr.find((item) => item?.type === chooseType);
+            setSelectedArr([chooseType, ...selectedArr]);
+            setAccordions([selectedType, ...accordions]);
+            setOpenAccordion(chooseType);
+            setSelectedValues({ ...selectedValues, [chooseType]: [] }); // Clear selected values for the chosen type
+            setChooseType('');
+            setAttDropDownError('');
+        }
     };
 
     const handleRemoveAccordion = (type: any) => {
@@ -1278,34 +1328,18 @@ const ProductEdit = (props: any) => {
         }
     };
 
-    const searchMediaByName = (e) => {
+    const searchMediaByName = async (e) => {
         setMediaSearch(e);
-        if (e) {
-            const filtered = images.filter((image) => {
-                const matchesName = image?.url?.includes(e) || image?.key?.includes(e);
-                // const matchesDate = !startDate || new Date(image.LastModified) >= new Date(startDate);
-                return matchesName;
-            });
-            setMediaImages(filtered);
-        } else {
-            getMediaImage();
+        try {
+            const res = await fetchImagesFromS3(e);
+            setMediaImages(res);
+        } catch (error) {
+            console.log('error: ', error);
         }
     };
 
-    const filterMediaByMonth = (e) => {
-        setMediaDate(e);
-
-        if (e != 'all') {
-            const [month, year] = e.split('/');
-            let res = mediaImages.filter((item) => {
-                const date = new Date(item.LastModified);
-                return date.getFullYear() === year && date.getMonth() === month - 1; // month is 0-indexed
-            });
-
-            // setMediaImages(filtered);
-        } else {
-            getMediaImage();
-        }
+    const filterMediaByMonth = (value: any) => {
+        setMediaMonth(value);
     };
 
     const getFullDetails = (selectedValues, arr) => {
@@ -1361,7 +1395,9 @@ const ProductEdit = (props: any) => {
                 youMayLike = modify?.map((item) => ({
                     name: item?.node?.name,
                     image: item?.node?.thumbnail?.url,
-                    price: item?.node?.pricing?.priceRange?.start?.gross?.amount,
+                    price: item?.node?.pricing?.priceRange ? item?.node?.pricing?.priceRange?.start?.gross?.amount : 0,
+
+                    // price: item?.node?.pricing?.priceRange?.start?.gross?.amount,
                 }));
             }
         }
@@ -1391,11 +1427,12 @@ const ProductEdit = (props: any) => {
             });
 
             const response = res?.data?.category?.products?.edges;
-            if (response.length > 0) {
-                relateProducts = response?.map((item) => ({
+            const filter = response?.filter((item) => item?.node?.id !== id);
+            if (filter.length > 0) {
+                relateProducts = filter?.map((item) => ({
                     name: item?.node?.name,
                     image: item?.node?.thumbnail?.url,
-                    price: item?.node?.pricing?.priceRange?.start?.gross?.amount,
+                    price: item?.node?.pricing?.priceRange ? item?.node?.pricing?.priceRange?.start?.gross?.amount : 0,
                 }));
             }
         }
@@ -1476,6 +1513,15 @@ const ProductEdit = (props: any) => {
                                 required
                             ></textarea>
                             {seoDescErrMsg && <p className="error-message mt-1 text-red-500 ">{seoDescErrMsg}</p>}
+
+                            <div className=" mt-4">
+                                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                                    Keyword
+                                </label>
+                                <div className="">
+                                    <textarea id="ctnTextarea" value={keyword} onChange={(e) => setKeyword(e.target.value)} rows={3} className="form-textarea " placeholder="Enter Keyword"></textarea>
+                                </div>
+                            </div>
                         </div>
                         {/* <div className="panel mb-5">
                             <label htmlFor="editor" className="block text-sm font-medium text-gray-700">
@@ -1560,7 +1606,7 @@ const ProductEdit = (props: any) => {
                                                             className={`${selected ? '!bg-primary text-white !outline-none hover:text-white' : ''}
                                                         relative -mb-[1px] block w-full border-white-light p-3.5 py-4 before:absolute before:bottom-0 before:top-0 before:m-auto before:inline-block before:h-0 before:w-[1px] before:bg-primary before:transition-all before:duration-700 hover:text-primary hover:before:h-[80%] dark:border-[#191e3a] ltr:border-r ltr:before:-right-[1px] rtl:border-l rtl:before:-left-[1px]`}
                                                         >
-                                                            Attributes
+                                                            Variants
                                                         </button>
                                                     )}
                                                 </Tab>
@@ -1570,7 +1616,7 @@ const ProductEdit = (props: any) => {
                                                             className={`${selected ? '!bg-primary text-white !outline-none hover:text-white' : ''}
                                                         relative -mb-[1px] block w-full border-white-light p-3.5 py-4 before:absolute before:bottom-0 before:top-0 before:m-auto before:inline-block before:h-0 before:w-[1px] before:bg-primary before:transition-all before:duration-700 hover:text-primary hover:before:h-[80%] dark:border-[#191e3a] ltr:border-r ltr:before:-right-[1px] rtl:border-l rtl:before:-left-[1px]`}
                                                         >
-                                                            Variants
+                                                            Attributes
                                                         </button>
                                                     )}
                                                 </Tab>
@@ -1620,112 +1666,6 @@ const ProductEdit = (props: any) => {
                                                     </div>
                                                 </div>
                                             </Tab.Panel> */}
-
-                                            <Tab.Panel>
-                                                <div className="active flex items-center">
-                                                    <div className="mb-5 pr-3" style={{ width: '50%' }}>
-                                                        <Select
-                                                            placeholder="Select Type"
-                                                            options={optionsVal.filter((option: any) => !selectedArr?.includes(option.value))}
-                                                            onChange={(selectedOption: any) => handleDropdownChange(selectedOption, selectedOption.value)}
-                                                            value={options?.find((option) => option?.value === chooseType)} // Set the value of the selected type
-                                                        />
-                                                    </div>
-                                                    <div className="mb-5">
-                                                        <button type="button" className="btn btn-outline-primary" onClick={handleAddAccordion}>
-                                                            Add
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                <div className="mb-5">
-                                                    <div className="space-y-2 font-semibold">
-                                                        {accordions.map((item: any) => (
-                                                            <div key={item?.type} className="rounded border border-[#d3d3d3] dark:border-[#1b2e4b]">
-                                                                <button
-                                                                    type="button"
-                                                                    className={`flex w-full items-center p-4 text-white-dark dark:bg-[#1b2e4b] ${active === '1' ? '!text-primary' : ''}`}
-                                                                    // onClick={() => togglePara('1')}
-                                                                >
-                                                                    {item?.type}
-                                                                    {/* <button onClick={() => handleRemoveAccordion(item.type)}>Remove</button> */}
-
-                                                                    <div className={`text-red-400 ltr:ml-auto rtl:mr-auto `} onClick={() => handleRemoveAccordion(item.type)}>
-                                                                        <IconTrashLines />
-                                                                    </div>
-                                                                </button>
-                                                                <div>
-                                                                    <AnimateHeight duration={300} height={active === '1' ? 'auto' : 0}>
-                                                                        <div className="grid grid-cols-12 gap-4 border-t border-[#d3d3d3] p-4 text-[13px] dark:border-[#1b2e4b]">
-                                                                            <div className="col-span-4">
-                                                                                <p>
-                                                                                    Name:
-                                                                                    <br /> <span className="font-semibold">{item.type}</span>
-                                                                                </p>
-                                                                            </div>
-                                                                            <div className="col-span-8">
-                                                                                <div className="active ">
-                                                                                    <div className=" mr-4 ">
-                                                                                        <label htmlFor="value" className="block pr-5 text-sm font-medium text-gray-700">
-                                                                                            Value(s)
-                                                                                        </label>
-                                                                                    </div>
-                                                                                    <div className="mb-5" style={{ width: '100%' }}>
-                                                                                        {/* <Select
-                                                                                            placeholder={`Select ${item.type} Name`}
-                                                                                            options={item[`${item.type}Name`]}
-                                                                                            onChange={(selectedOptions) => handleMultiSelectChange(selectedOptions, item.type)}
-                                                                                            isMulti
-                                                                                            isSearchable={false}
-                                                                                            value={(selectedValues[item.type] || []).map((value) => ({ value, label: value }))}
-                                                                                        /> */}
-                                                                                        <Select
-                                                                                            placeholder={`Select ${item.type} Name`}
-                                                                                            options={item[`${item.type}Name`]}
-                                                                                            onChange={(selectedOptions) => handleMultiSelectChange(selectedOptions, item.type)}
-                                                                                            isMulti
-                                                                                            isSearchable={true}
-                                                                                            value={(selectedValues[item.type] || []).map((value: any) => {
-                                                                                                const options = item[`${item.type}Name`];
-                                                                                                const option = options ? options.find((option: any) => option.value === value) : null;
-                                                                                                return option ? { value: option.value, label: option.label } : null;
-                                                                                            })}
-                                                                                        />
-                                                                                        {attributeError[item.type] && <p className="error-message mt-1 text-red-500">{attributeError[item.type]}</p>}
-
-                                                                                        {/* <Select placeholder="Select an option" options={options} isMulti isSearchable={false} /> */}
-                                                                                        {/* <div className="flex justify-between">
-                                                                                        <div className="flex">
-                                                                                            <button type="button" className="btn btn-outline-primary btn-sm mr-2 mt-1">
-                                                                                                Select All
-                                                                                            </button>
-                                                                                            <button type="button" className="btn btn-outline-primary btn-sm mt-1">
-                                                                                                Select None
-                                                                                            </button>
-                                                                                        </div>
-                                                                                        <div>
-                                                                                            <button type="button" className="btn btn-outline-primary btn-sm mt-1">
-                                                                                                Create Value
-                                                                                            </button>
-                                                                                        </div>
-                                                                                    </div> */}
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </AnimateHeight>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                                {/* <div>
-                                                    <button type="button" className="btn btn-primary">
-                                                        Save Attributes
-                                                    </button>
-                                                </div> */}
-                                            </Tab.Panel>
-
                                             <Tab.Panel>
                                                 {variants?.map((item, index) => {
                                                     return (
@@ -1850,6 +1790,114 @@ const ProductEdit = (props: any) => {
                                             </Tab.Panel>
 
                                             <Tab.Panel>
+                                                <div className="active flex ">
+                                                    <div className="mb-5 pr-3" style={{ width: '50%' }}>
+                                                        <Select
+                                                            placeholder="Select Type"
+                                                            options={optionsVal.filter((option: any) => !selectedArr?.includes(option.value))}
+                                                            onChange={(selectedOption: any) => handleDropdownChange(selectedOption, selectedOption.value)}
+                                                            value={chooseType ? optionsVal.find((option) => option.value === chooseType) : null}
+
+                                                            // value={options?.find((option) => option?.value === chooseType)} // Set the value of the selected type
+                                                        />
+                                                        {attDropDownError && <p className="error-message  text-red-500">{attDropDownError}</p>}
+                                                    </div>
+                                                    <div className="mb-5">
+                                                        <button type="button" className="btn btn-outline-primary" onClick={handleAddAccordion}>
+                                                            Add
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mb-5">
+                                                    <div className="space-y-2 font-semibold">
+                                                        {accordions.map((item: any) => (
+                                                            <div key={item?.type} className="rounded border border-[#d3d3d3] dark:border-[#1b2e4b]">
+                                                                <button
+                                                                    type="button"
+                                                                    className={`flex w-full items-center p-4 text-white-dark dark:bg-[#1b2e4b] ${active === '1' ? '!text-primary' : ''}`}
+                                                                    // onClick={() => togglePara('1')}
+                                                                >
+                                                                    {item?.type}
+                                                                    {/* <button onClick={() => handleRemoveAccordion(item.type)}>Remove</button> */}
+
+                                                                    <div className={`text-red-400 ltr:ml-auto rtl:mr-auto `} onClick={() => handleRemoveAccordion(item.type)}>
+                                                                        <IconTrashLines />
+                                                                    </div>
+                                                                </button>
+                                                                <div>
+                                                                    <AnimateHeight duration={300} height={active === '1' ? 'auto' : 0}>
+                                                                        <div className="grid grid-cols-12 gap-4 border-t border-[#d3d3d3] p-4 text-[13px] dark:border-[#1b2e4b]">
+                                                                            <div className="col-span-4">
+                                                                                <p>
+                                                                                    Name:
+                                                                                    <br /> <span className="font-semibold">{item.type}</span>
+                                                                                </p>
+                                                                            </div>
+                                                                            <div className="col-span-8">
+                                                                                <div className="active ">
+                                                                                    <div className=" mr-4 ">
+                                                                                        <label htmlFor="value" className="block pr-5 text-sm font-medium text-gray-700">
+                                                                                            Value(s)
+                                                                                        </label>
+                                                                                    </div>
+                                                                                    <div className="mb-5" style={{ width: '100%' }}>
+                                                                                        {/* <Select
+                                                                                            placeholder={`Select ${item.type} Name`}
+                                                                                            options={item[`${item.type}Name`]}
+                                                                                            onChange={(selectedOptions) => handleMultiSelectChange(selectedOptions, item.type)}
+                                                                                            isMulti
+                                                                                            isSearchable={false}
+                                                                                            value={(selectedValues[item.type] || []).map((value) => ({ value, label: value }))}
+                                                                                        /> */}
+                                                                                        <Select
+                                                                                            placeholder={`Select ${item.type} Name`}
+                                                                                            options={item[`${item.type}Name`]}
+                                                                                            onChange={(selectedOptions) => handleMultiSelectChange(selectedOptions, item.type)}
+                                                                                            isMulti
+                                                                                            isSearchable={true}
+                                                                                            value={(selectedValues[item.type] || []).map((value: any) => {
+                                                                                                const options = item[`${item.type}Name`];
+                                                                                                const option = options ? options.find((option: any) => option.value === value) : null;
+                                                                                                return option ? { value: option.value, label: option.label } : null;
+                                                                                            })}
+                                                                                        />
+                                                                                        {attributeError[item.type] && <p className="error-message mt-1 text-red-500">{attributeError[item.type]}</p>}
+
+                                                                                        {/* <Select placeholder="Select an option" options={options} isMulti isSearchable={false} /> */}
+                                                                                        {/* <div className="flex justify-between">
+                                                                                        <div className="flex">
+                                                                                            <button type="button" className="btn btn-outline-primary btn-sm mr-2 mt-1">
+                                                                                                Select All
+                                                                                            </button>
+                                                                                            <button type="button" className="btn btn-outline-primary btn-sm mt-1">
+                                                                                                Select None
+                                                                                            </button>
+                                                                                        </div>
+                                                                                        <div>
+                                                                                            <button type="button" className="btn btn-outline-primary btn-sm mt-1">
+                                                                                                Create Value
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </div> */}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </AnimateHeight>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                {/* <div>
+                                                    <button type="button" className="btn btn-primary">
+                                                        Save Attributes
+                                                    </button>
+                                                </div> */}
+                                            </Tab.Panel>
+
+                                            <Tab.Panel>
                                                 <div>
                                                     <div className="active flex items-center">
                                                         <div className="mb-5 mr-4 pr-3" style={{ width: '20%' }}>
@@ -1933,14 +1981,6 @@ const ProductEdit = (props: any) => {
                                 <Select placeholder="Select an label" options={options} value={label} onChange={(val) => setLabel(val)} isSearchable={true} />
                             </div>
                         </div>
-                        <div className="panel mt-5">
-                            <div className=" border-b border-gray-200 pb-2">
-                                <h5 className=" block text-lg font-medium text-gray-700">Keyword</h5>
-                            </div>
-                            <div className="mb-5">
-                                <textarea id="ctnTextarea" value={keyword} onChange={(e) => setKeyword(e.target.value)} rows={3} className="form-textarea mt-5" placeholder="Enter Keyword"></textarea>
-                            </div>
-                        </div>
                     </div>
                     <div className="col-span-3">
                         <div className="panel">
@@ -1978,31 +2018,30 @@ const ProductEdit = (props: any) => {
                             </div>
 
                             <div className="grid grid-cols-12 gap-3">
-                                {images?.length > 0 &&
-                                    images?.map((item: any, index: any) => (
-                                        <>
-                                            <div
-                                                key={item.id}
-                                                className="h-15 w-15 relative col-span-4 overflow-hidden bg-black"
-                                                draggable
-                                                onDragStart={(e) => handleDragStart(e, item.id, index)}
-                                                onDragOver={handleDragOver}
-                                                onDrop={(e) => handleDrop(e, index)}
-                                            >
-                                                {item?.url?.endsWith('.mp4') ? (
-                                                    <video controls src={item} className="h-full w-full object-cover">
-                                                        Your browser does not support the video tag.
-                                                    </video>
-                                                ) : (
-                                                    <img src={item?.url} alt="Product image" className=" h-full w-full" />
-                                                )}
+                                {images?.map((item: any, index: any) => (
+                                    <>
+                                        <div
+                                            key={item.id}
+                                            className="h-15 w-15 relative col-span-4 overflow-hidden bg-black"
+                                            draggable
+                                            onDragStart={(e) => handleDragStart(e, item.id, index)}
+                                            onDragOver={handleDragOver}
+                                            onDrop={(e) => handleDrop(e, index)}
+                                        >
+                                            {item?.url?.endsWith('.mp4') ? (
+                                                <video controls src={item} className="h-full w-full object-cover">
+                                                    Your browser does not support the video tag.
+                                                </video>
+                                            ) : (
+                                                <img src={item?.url} alt="Product image" className=" h-full w-full" />
+                                            )}
 
-                                                <button className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white" onClick={() => multiImageDelete(item)}>
-                                                    <IconTrashLines />
-                                                </button>
-                                            </div>
-                                        </>
-                                    ))}
+                                            <button className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white" onClick={() => multiImageDelete(item)}>
+                                                <IconTrashLines />
+                                            </button>
+                                        </div>
+                                    </>
+                                ))}
                             </div>
 
                             <p
@@ -2269,11 +2308,12 @@ const ProductEdit = (props: any) => {
                                                         </div>
                                                         <div className="flex justify-between gap-3 pt-3">
                                                             <div className="flex gap-3">
-                                                                <select className="form-select w-40 flex-1" value={mediaDate} onChange={(e) => filterMediaByMonth(e.target.value)}>
-                                                                    <option value="all">All Datas </option>
-                                                                    <option value="June/2023">June2023</option>
-                                                                    <option value="july/2023">july2023</option>
-                                                                    <option value="aug/2023">aug2023</option>
+                                                                <select className="form-select w-60 flex-1" value={mediaMonth} onChange={(e) => filterMediaByMonth(e.target.value)}>
+                                                                    {/* <select className="form-select w-40 flex-1" value={mediaDate} onChange={(e) => filterMediaByMonth(e.target.value)}> */}
+                                                                    <option value="all">All Data</option>
+                                                                    <option value="June/2024">June 2024</option>
+                                                                    <option value="July/2024">July 2024</option>
+                                                                    <option value="August/2024">August 2024</option>
                                                                 </select>
                                                             </div>
                                                             <div>
@@ -2292,7 +2332,8 @@ const ProductEdit = (props: any) => {
                                                                 mediaImages?.map((item) => (
                                                                     <div
                                                                         key={item.url}
-                                                                        className={`flex h-[200px] w-[200px] overflow-hidden   ${selectedImages.includes(item) ? 'border-4 border-blue-500' : ''}`}
+                                                                        className={`flex h-[160px] w-[180px] overflow-hidden p-2 ${selectedImages.includes(item) ? 'border-4 border-blue-500' : ''}`}
+                                                                        // className={`flex h-[200px] w-[200px] overflow-hidden   ${selectedImages.includes(item) ? 'border-4 border-blue-500' : ''}`}
                                                                         onMouseDown={() => handleMouseDown(item)}
                                                                         onMouseUp={handleMouseUp}
                                                                         onMouseLeave={handleMouseLeave}
@@ -2332,9 +2373,13 @@ const ProductEdit = (props: any) => {
                                                                 <div>
                                                                     <p className="mb-2 text-lg font-semibold">ATTACHMENT DETAILS</p>
                                                                 </div>
-                                                                <div>
-                                                                    <img src={selectedImg?.url} alt="" />
-                                                                </div>
+                                                                {selectedImg?.url?.endsWith('.mp4') ? (
+                                                                    <video controls src={selectedImg?.url} className="h-full w-full object-cover" style={{ height: '300px' }}>
+                                                                        Your browser does not support the video tag.
+                                                                    </video>
+                                                                ) : (
+                                                                    <img src={selectedImg.url} alt="" className="h-full w-full" />
+                                                                )}
                                                                 <p className="mt-2 font-semibold">{selectedImg?.key}</p>
                                                                 <p className="text-sm">{moment(selectedImg?.LastModified).format('MMM d, yyyy')}</p>
                                                                 <p className="text-sm">{(selectedImg?.Size / 1024).toFixed(2)} KB</p>
@@ -2454,12 +2499,13 @@ const ProductEdit = (props: any) => {
                                             {productPreview?.variants?.length > 0 && (
                                                 <div className="flex flex-wrap gap-4">
                                                     {productPreview?.variants?.map(
-                                                        (item, index) =>
-                                                            item?.salePrice !== 0 && (
-                                                                <label key={index} htmlFor="name" className="block text-2xl font-medium text-gray-700">
-                                                                    ₹{addCommasToNumber(item?.salePrice)}
-                                                                </label>
-                                                            )
+                                                        (item, index) => (
+                                                            // item?.salePrice !== 0 && (
+                                                            <label key={index} htmlFor="name" className="block text-2xl font-medium text-gray-700">
+                                                                ₹{addCommasToNumber(item?.salePrice)}
+                                                            </label>
+                                                        )
+                                                        // )
                                                     )}
                                                 </div>
                                             )}

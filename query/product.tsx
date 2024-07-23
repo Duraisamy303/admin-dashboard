@@ -374,6 +374,7 @@ export const CATEGORY_LIST = gql`
                         url
                         alt
                     }
+                    backgroundImageUrl
                 }
                 __typename
             }
@@ -1393,6 +1394,7 @@ export const COUPON_LIST = gql`
         ...Metadata
         id
         name
+        autoApply
         startDate
         endDate
         usageLimit
@@ -1559,6 +1561,7 @@ export const COUPEN_DETAILS = gql`
             __typename
         }
         __typename
+        autoApply
     }
 
     fragment Voucher on Voucher {
@@ -2006,6 +2009,7 @@ export const ABANDONT_CART_LIST = gql`
                         email
                         firstName
                         lastName
+                        id
                     }
                 }
             }
@@ -2255,7 +2259,9 @@ export const LAST_UPDATE_DETAILS = gql`
             dates
             quantityList
             productNameList
+            productIdList
             total
+            __typename
         }
     }
 `;

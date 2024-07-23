@@ -8,10 +8,13 @@ import CommonLoader from './elements/commonLoader';
 import { ABANDONT_CART_LIST, PRODUCT_PREV_PAGINATION } from '@/query/product';
 import IconArrowBackward from '@/components/Icon/IconArrowBackward';
 import IconArrowForward from '@/components/Icon/IconArrowForward';
+import { useRouter } from 'next/router';
 
 const PAGE_SIZE = 20;
 
 const AbandonedCarts = () => {
+    const router = useRouter();
+
     const [recordsData, setRecordsData] = useState([]);
     const [startCursor, setStartCursor] = useState(null);
     const [endCursor, setEndCursor] = useState(null);
@@ -96,7 +99,16 @@ const AbandonedCarts = () => {
                             className="table-hover whitespace-nowrap"
                             records={recordsData}
                             columns={[
-                                { accessor: 'name', sortable: true },
+                                {
+                                    accessor: 'name',
+                                    sortable: true,
+
+                                    render: (row) => (
+                                        <div className="cursor-pointer" onClick={() => router.push(`/customer/edit?id=${row.customerId}`)}>
+                                            {row.name}
+                                        </div>
+                                    ),
+                                },
                                 { accessor: 'email', sortable: true },
                                 { accessor: 'note', sortable: true },
                                 { accessor: 'date', sortable: true },
@@ -136,6 +148,7 @@ const tableFormat = (products) => {
         email: product?.node?.customer?.email,
         note: product?.node?.logNote,
         date: moment(product.node?.time).format('YYYY/MM/DD [at] h:mm a'),
+        customerId: product?.node?.customer?.id,
     }));
 };
 

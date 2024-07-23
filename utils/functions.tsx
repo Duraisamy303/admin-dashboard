@@ -610,7 +610,7 @@ export const formatOptions = (lists) => {
     });
 };
 
-export const fetchImagesFromS3 = async () => {
+export const fetchImagesFromS3 = async (searchTerm = '') => {
     const spacesEndpoint = new AWS.Endpoint('https://blr1.digitaloceanspaces.com');
     const s3 = new AWS.S3({
         endpoint: spacesEndpoint,
@@ -619,15 +619,17 @@ export const fetchImagesFromS3 = async () => {
     });
     const params = {
         Bucket: 'prade', // Your Space name
+        Prefix: searchTerm,
     };
     try {
         const data = await s3.listObjectsV2(params).promise();
         const imageUrls = data.Contents.map((item) => ({
             url: `https://prade.blr1.cdn.digitaloceanspaces.com/${item.Key}`,
             key: item.Key,
+            LastModified: item.LastModified,
             ...item,
         }));
-        return imageUrls;
+        return imageUrls.sort((a:any, b:any) => b.LastModified - a.LastModified);;
     } catch (error) {
         console.error('Error fetching images:', error);
     }
@@ -800,4 +802,12 @@ export const DateToStringFormat = (inputDate, day = 9, hour = 16, minute = 9, se
 
     const formattedDatetime = date.toISOString().slice(0, 19) + timezoneOffset;
     return formattedDatetime;
+};
+
+export const filterImages = (files) => {
+    const imageExtensions = ['jpeg', 'jpg', 'png', 'gif', 'webp']; // Add other image extensions if needed
+    return files.filter((file) => {
+        const extension = file.key.split('.').pop().toLowerCase();
+        return imageExtensions.includes(extension);
+    });
 };

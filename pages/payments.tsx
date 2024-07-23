@@ -163,7 +163,11 @@ const Payments = () => {
                                     sortable: true,
                                     render: (row: any) => (
                                         <div className="disabled: flex">
-                                        <div>{row?.status?"Enabled":"Disabled"}</div>
+                                        {/* <div>{row?.status?"Enabled":"Disabled"}</div> */}
+
+                                        <div className={`flex w-max gap-4 rounded-full px-2 py-1 ${row?.status ? 'bg-green-200 text-green-800' : 'bg-orange-200 text-orange-800'}`}>
+                                                {row?.status ? 'Enabled' : 'Disabled'}
+                                            </div>
                                             {/* <div className={`flex h-5 w-10 items-center rounded-full p-1 transition duration-300 ease-in-out ${row.status ? 'bg-primary' : 'bg-gray-300'}`}>
                                                 <div
                                                     className={`h-4 w-4 transform rounded-full bg-white shadow-md transition duration-300 ease-in-out ${

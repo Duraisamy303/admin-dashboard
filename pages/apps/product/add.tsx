@@ -95,7 +95,7 @@ const ProductAdd = () => {
     const [modal1, setModal1] = useState(false);
     const [modal2, setModal2] = useState(false);
     const [copied, setCopied] = useState(false);
-
+    const [mediaSearch, setMediaSearch] = useState('');
     const [mediaTab, setMediaTab] = useState(0);
     const [keyword, setKeyword] = useState('');
 
@@ -120,6 +120,7 @@ const ProductAdd = () => {
     const [selectedTag, setSelectedTag] = useState([]);
     const [publish, setPublish] = useState('published');
     const [modal4, setModal4] = useState(false);
+    const [mediaMonth, setMediaMonth] = useState('all');
 
     const [formData, setFormData] = useState({
         name: '',
@@ -131,6 +132,7 @@ const ProductAdd = () => {
     const [selectedArr, setSelectedArr] = useState<any>([]);
     const [accordions, setAccordions] = useState<any>([]);
     const [openAccordion, setOpenAccordion] = useState('');
+    const [attDropDownError, setAttDropDownError] = useState('');
     const [chooseType, setChooseType] = useState('');
     const [selectedValues, setSelectedValues] = useState<any>({});
 
@@ -292,12 +294,12 @@ const ProductAdd = () => {
         variables: sampleParams,
     });
 
-    const [addFormData] = useMutation(CREATE_PRODUCT);
-    const [deleteProducts] = useMutation(DELETE_PRODUCTS);
-    const [updateProductChannelList] = useMutation(UPDATE_PRODUCT_CHANNEL);
-    const [createVariant] = useMutation(CREATE_VARIANT);
-    const [updateVariantList] = useMutation(UPDATE_VARIANT_LIST);
-    const [updateMedatData] = useMutation(UPDATE_META_DATA);
+    const [addFormData, { loading: createLoad }] = useMutation(CREATE_PRODUCT);
+    const [deleteProducts, { loading: deleteLoad }] = useMutation(DELETE_PRODUCTS);
+    const [updateProductChannelList, { loading: channelLoad }] = useMutation(UPDATE_PRODUCT_CHANNEL);
+    const [createVariant, { loading: createVariantLoad }] = useMutation(CREATE_VARIANT);
+    const [updateVariantList, { loading: updateVariantLoad }] = useMutation(UPDATE_VARIANT_LIST);
+    const [updateMedatData, { loading: updateMedaLoad }] = useMutation(UPDATE_META_DATA);
     const [assignTagToProduct] = useMutation(ASSIGN_TAG_PRODUCT);
     const [createMedia] = useMutation(PRODUCT_MEDIA_CREATE_NEW);
 
@@ -421,7 +423,28 @@ const ProductAdd = () => {
         version: '2.19.0',
     });
 
+    useEffect(() => {
+        filterByMonth();
+    }, [mediaMonth]);
+
+    const filterByMonth = async () => {
+        const res = await fetchImagesFromS3(mediaSearch);
+        console.log('res: ', res);
+        if (mediaMonth !== 'all') {
+            const [month, year] = mediaMonth.split('/');
+            const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
+            const filteredImages = res?.filter((item) => {
+                const itemDate = new Date(item.LastModified);
+                return itemDate.getFullYear() === parseInt(year) && itemDate.getMonth() === monthIndex;
+            });
+            console.log('filteredImages: ', filteredImages);
+
+            setMediaImages(filteredImages);
+        }
+    };
+
     let editors = { isReady: false };
+
     useEffect(() => {
         if (!editors.isReady) {
             editor();
@@ -536,7 +559,7 @@ const ProductAdd = () => {
                 youMayLike = modify?.map((item) => ({
                     name: item?.node?.name,
                     image: item?.node?.thumbnail?.url,
-                    price: item?.node?.pricing?.priceRange?.start?.gross?.amount,
+                    price: item?.node?.pricing?.priceRange ? item?.node?.pricing?.priceRange?.start?.gross?.amount : 0,
                 }));
             }
         }
@@ -570,7 +593,7 @@ const ProductAdd = () => {
                 relateProducts = response?.map((item) => ({
                     name: item?.node?.name,
                     image: item?.node?.thumbnail?.url,
-                    price: item?.node?.pricing?.priceRange?.start?.gross?.amount,
+                    price: item?.node?.pricing?.priceRange ? item?.node?.pricing?.priceRange?.start?.gross?.amount : 0,
                 }));
             }
         }
@@ -612,6 +635,7 @@ const ProductAdd = () => {
             const savedContent = await editorInstance.save();
             const descr = JSON.stringify(savedContent, null, 2);
             setCreateLoading(true);
+
             // Reset error messages
             setProductNameErrMsg('');
             setSlugErrMsg('');
@@ -624,16 +648,14 @@ const ProductAdd = () => {
             setVariantErrors([]);
 
             // Validation
-            const errors = {
-                productName: productName.trim() === '' ? 'Product name cannot be empty' : '',
-                slug: slug.trim() === '' ? 'Slug cannot be empty' : '',
-                seoTittle: seoTittle.trim() === '' ? 'Seo title cannot be empty' : '',
-                seoDesc: seoDesc.trim() === '' ? 'Seo description cannot be empty' : '',
-                description: savedContent?.blocks?.length == 0 ? 'Description cannot be empty' : '',
-                shortDescription: shortDescription?.trim() === '' ? 'Short description cannot be empty' : '',
-                category: selectedCat?.length == 0 ? 'Category cannot be empty' : '',
-            };
+            const errors = validateMainFields(descr);
+            console.log('errors: ', errors);
+            const variantErrors = validateVariants();
+            console.log('variantErrors: ', variantErrors);
+            const attributeErrors: any = validateAttributes();
+            console.log('attributeErrors: ', attributeErrors);
 
+            // Set errors
             setProductNameErrMsg(errors.productName);
             setSlugErrMsg(errors.slug);
             setSeoTittleErrMsg(errors.seoTittle);
@@ -641,52 +663,20 @@ const ProductAdd = () => {
             setDescriptionErrMsg(errors.description);
             setShortDesErrMsg(errors.shortDescription);
             setCategoryErrMsg(errors.category);
+            setVariantErrors(variantErrors);
 
-            if (Object.values(errors).some((msg) => msg !== '')) {
-                setCreateLoading(false);
-
-                return; // Exit if any required fields are empty
-            }
-
-            const attributeErrors: any = {};
-            if (!selectedValues || Object.keys(selectedValues).length === 0) {
-                setCreateLoading(false);
-
-                setAttributeError('Attributes cannot be empty');
-            } else {
-                if (selectedValues?.stone?.length === 0) attributeErrors.stone = 'Stone cannot be empty';
-                if (selectedValues?.design?.length === 0) attributeErrors.design = 'Design cannot be empty';
-                if (selectedValues?.style?.length === 0) attributeErrors.style = 'Style cannot be empty';
-                if (selectedValues?.finish?.length === 0) attributeErrors.finish = 'Finish cannot be empty';
-
-                if (selectedValues?.type?.length === 0) attributeErrors.type = 'Type cannot be empty';
-                if (selectedValues?.size?.length === 0) attributeErrors.size = 'Size cannot be empty';
-                if (selectedValues?.stoneColor?.length === 0) attributeErrors.stoneColor = 'Stone color cannot be empty';
-
-                setCreateLoading(false);
-
+            if (Object.keys(attributeErrors).length > 0) {
                 setAttributeError(attributeErrors);
             }
 
-            const variantErrors = variants?.map((variant) => {
-                const errors: any = {};
-                if (!variant.sku) errors.sku = 'SKU cannot be empty';
-                // if (variant.quantity <= 0 || isNaN(variant.quantity)) errors.quantity = 'Quantity must be a valid number and greater than 0';
-                // if (variant.regularPrice <= 0 || isNaN(variant.regularPrice)) errors.regularPrice = 'Regular Price must be a valid number and greater than 0';
-                // if (!variant.stackMgmt) errors.stackMgmt = 'Check Stack Management';
+            // Check if any error exists
+            if (Object.values(errors).some((msg) => msg !== '') || variantErrors.some((err) => Object.keys(err).length > 0) || Object.keys(attributeErrors).length > 0) {
                 setCreateLoading(false);
-
-                return errors;
-            });
-
-            setVariantErrors(variantErrors);
-            if (variantErrors.some((err) => Object.keys(err).length > 0)) {
-                setCreateLoading(false);
-
-                return; // Exit if any variant has errors
+                Failure('Please fill in all required fields');
+                return; // Exit if any error exists
             }
 
-            // const catId = selectedCat?.value;
+            // Prepare data for submission
             const collectionId = selectedCollection?.map((item) => item.value) || [];
             const tagId = selectedTag?.map((item) => item.value) || [];
 
@@ -694,11 +684,13 @@ const ProductAdd = () => {
             if (selectedUpsell?.length > 0) {
                 upsells = selectedUpsell?.map((item) => item?.value);
             }
+
             let crosssells = [];
             if (selectedCrosssell?.length > 0) {
                 crosssells = selectedCrosssell?.map((item) => item?.value);
             }
 
+            // Submit data
             const { data } = await addFormData({
                 variables: {
                     input: {
@@ -730,7 +722,6 @@ const ProductAdd = () => {
 
             if (data?.productCreate?.errors?.length > 0) {
                 setCreateLoading(false);
-
                 Failure(data?.productCreate?.errors[0]?.message);
             } else {
                 const productId = data?.productCreate?.product?.id;
@@ -738,16 +729,204 @@ const ProductAdd = () => {
                 if (imageUrl?.length > 0) {
                     imageUrl.forEach(async (item) => {
                         createMediaData(productId, item);
-
-                        // const imageUpload = await uploadImage(productId, item);
-                        // console.log('Image upload: ', imageUpload);
                     });
                 }
             }
         } catch (error) {
             console.log('Error: ', error);
+            setCreateLoading(false);
         }
     };
+
+    const validateMainFields = (savedContent) => {
+        const errors = {
+            productName: productName.trim() === '' ? 'Product name cannot be empty' : '',
+            slug: slug.trim() === '' ? 'Slug cannot be empty' : '',
+            seoTittle: seoTittle.trim() === '' ? 'Seo title cannot be empty' : '',
+            seoDesc: seoDesc.trim() === '' ? 'Seo description cannot be empty' : '',
+            description: savedContent?.blocks?.length === 0 ? 'Description cannot be empty' : '',
+            shortDescription: shortDescription?.trim() === '' ? 'Short description cannot be empty' : '',
+            category: selectedCat?.length === 0 ? 'Category cannot be empty' : '',
+        };
+
+        return errors;
+    };
+
+    // Helper function to validate variants
+    const validateVariants = () => {
+        return variants.map((variant) => {
+            const errors: any = {};
+            if (!variant.sku) errors.sku = 'SKU cannot be empty';
+            // if (variant.quantity <= 0 || isNaN(variant.quantity)) errors.quantity = 'Quantity must be a valid number and greater than 0';
+            // if (variant.regularPrice <= 0 || isNaN(variant.regularPrice)) errors.regularPrice = 'Regular Price must be a valid number and greater than 0';
+            // if (!variant.stackMgmt) errors.stackMgmt = 'Check Stack Management';
+            return errors;
+        });
+    };
+
+    // Helper function to validate attributes
+    const validateAttributes = () => {
+        const attributeErrors = {};
+        const attributeChecks = {
+            stone: 'Stone cannot be empty',
+            design: 'Design cannot be empty',
+            style: 'Style cannot be empty',
+            finish: 'Finish cannot be empty',
+            type: 'Type cannot be empty',
+            size: 'Size cannot be empty',
+            stoneColor: 'Stone color cannot be empty',
+        };
+
+        Object.keys(attributeChecks).forEach((key) => {
+            if (selectedValues.hasOwnProperty(key) && (!selectedValues[key] || selectedValues[key].length === 0)) {
+                attributeErrors[key] = attributeChecks[key];
+            }
+        });
+
+        return attributeErrors;
+    };
+
+    // const CreateProduct = async () => {
+    //     try {
+    //         const savedContent = await editorInstance.save();
+    //         const descr = JSON.stringify(savedContent, null, 2);
+    //         setCreateLoading(true);
+    //         // Reset error messages
+    //         setProductNameErrMsg('');
+    //         setSlugErrMsg('');
+    //         setSeoTittleErrMsg('');
+    //         setSeoDescErrMsg('');
+    //         setShortDesErrMsg('');
+    //         setCategoryErrMsg('');
+    //         setDescriptionErrMsg('');
+    //         setAttributeError('');
+    //         setVariantErrors([]);
+
+    //         // Validation
+    //         const errors = {
+    //             productName: productName.trim() === '' ? 'Product name cannot be empty' : '',
+    //             slug: slug.trim() === '' ? 'Slug cannot be empty' : '',
+    //             seoTittle: seoTittle.trim() === '' ? 'Seo title cannot be empty' : '',
+    //             seoDesc: seoDesc.trim() === '' ? 'Seo description cannot be empty' : '',
+    //             description: savedContent?.blocks?.length == 0 ? 'Description cannot be empty' : '',
+    //             shortDescription: shortDescription?.trim() === '' ? 'Short description cannot be empty' : '',
+    //             category: selectedCat?.length == 0 ? 'Category cannot be empty' : '',
+    //         };
+    //         console.log("errors: ", errors);
+
+    //         setProductNameErrMsg(errors.productName);
+    //         setSlugErrMsg(errors.slug);
+    //         setSeoTittleErrMsg(errors.seoTittle);
+    //         setSeoDescErrMsg(errors.seoDesc);
+    //         setDescriptionErrMsg(errors.description);
+    //         setShortDesErrMsg(errors.shortDescription);
+    //         setCategoryErrMsg(errors.category);
+
+    //         if (Object.values(errors).some((msg) => msg !== '')) {
+    //             setCreateLoading(false);
+    //         }
+    //         const variantErrors = variants?.map((variant) => {
+    //             const errors: any = {};
+    //             if (!variant.sku) errors.sku = 'SKU cannot be empty';
+    //             // if (variant.quantity <= 0 || isNaN(variant.quantity)) errors.quantity = 'Quantity must be a valid number and greater than 0';
+    //             // if (variant.regularPrice <= 0 || isNaN(variant.regularPrice)) errors.regularPrice = 'Regular Price must be a valid number and greater than 0';
+    //             // if (!variant.stackMgmt) errors.stackMgmt = 'Check Stack Management';
+    //             setCreateLoading(false);
+    //             console.log('errors: ', errors);
+
+    //             return errors;
+    //         });
+    //         console.log("variantErrors: ", variantErrors);
+
+    //         setVariantErrors(variantErrors);
+
+    //         const attributeErrors: any = {};
+    //         if (!selectedValues || Object.keys(selectedValues).length === 0) {
+    //             setCreateLoading(false);
+    //             setAttributeError('Attributes cannot be empty');
+    //         } else {
+    //             if (selectedValues?.stone?.length === 0) attributeErrors.stone = 'Stone cannot be empty';
+    //             if (selectedValues?.design?.length === 0) attributeErrors.design = 'Design cannot be empty';
+    //             if (selectedValues?.style?.length === 0) attributeErrors.style = 'Style cannot be empty';
+    //             if (selectedValues?.finish?.length === 0) attributeErrors.finish = 'Finish cannot be empty';
+
+    //             if (selectedValues?.type?.length === 0) attributeErrors.type = 'Type cannot be empty';
+    //             if (selectedValues?.size?.length === 0) attributeErrors.size = 'Size cannot be empty';
+    //             if (selectedValues?.stoneColor?.length === 0) attributeErrors.stoneColor = 'Stone color cannot be empty';
+
+    //             setCreateLoading(false);
+
+    //             setAttributeError(attributeErrors);
+    //         }
+
+    //         if (variantErrors.some((err) => Object.keys(err).length > 0)) {
+    //             setCreateLoading(false);
+
+    //             return; // Exit if any variant has errors
+    //         }
+
+    //         // const catId = selectedCat?.value;
+    //         const collectionId = selectedCollection?.map((item) => item.value) || [];
+    //         const tagId = selectedTag?.map((item) => item.value) || [];
+
+    //         let upsells = [];
+    //         if (selectedUpsell?.length > 0) {
+    //             upsells = selectedUpsell?.map((item) => item?.value);
+    //         }
+    //         let crosssells = [];
+    //         if (selectedCrosssell?.length > 0) {
+    //             crosssells = selectedCrosssell?.map((item) => item?.value);
+    //         }
+
+    //         const { data } = await addFormData({
+    //             variables: {
+    //                 input: {
+    //                     description: descr,
+    //                     attributes: [],
+    //                     category: selectedCat?.map((item) => item?.value),
+    //                     collections: collectionId,
+    //                     tags: tagId,
+    //                     name: productName,
+    //                     productType: 'UHJvZHVjdFR5cGU6Mg==',
+    //                     upsells,
+    //                     crosssells,
+    //                     seo: {
+    //                         description: seoDesc,
+    //                         title: seoTittle,
+    //                     },
+    //                     slug: slug,
+    //                     ...(menuOrder && menuOrder > 0 && { order_no: menuOrder }),
+    //                     ...(selectedValues && selectedValues.design && { prouctDesign: selectedValues.design }),
+    //                     ...(selectedValues && selectedValues.style && { productstyle: selectedValues.style }),
+    //                     ...(selectedValues && selectedValues.finish && { productFinish: selectedValues.finish }),
+    //                     ...(selectedValues && selectedValues.stone && { productStoneType: selectedValues.stone }),
+    //                     ...(selectedValues && selectedValues.type && { productItemtype: selectedValues.type }),
+    //                     ...(selectedValues && selectedValues.size && { productSize: selectedValues.size }),
+    //                     ...(selectedValues && selectedValues.stoneColor && { productStonecolor: selectedValues.stoneColor }),
+    //                 },
+    //             },
+    //         });
+
+    //         if (data?.productCreate?.errors?.length > 0) {
+    //             setCreateLoading(false);
+
+    //             Failure(data?.productCreate?.errors[0]?.message);
+    //         } else {
+    //             const productId = data?.productCreate?.product?.id;
+    //             productChannelListUpdate(productId);
+    //             if (imageUrl?.length > 0) {
+    //                 imageUrl.forEach(async (item) => {
+    //                     createMediaData(productId, item);
+
+    //                     // const imageUpload = await uploadImage(productId, item);
+    //                     // console.log('Image upload: ', imageUpload);
+    //                 });
+    //             }
+    //         }
+    //     } catch (error) {
+    //         console.log('Error: ', error);
+    //     }
+    // };
 
     const productChannelListUpdate = async (productId: any) => {
         try {
@@ -934,34 +1113,6 @@ const ProductAdd = () => {
         });
     };
 
-    // const assignsTagToProduct = async (productId: any) => {
-    //     try {
-    //         let tagId: any[] = [];
-    //         // if (selectedCollection?.length > 0) {
-    //         tagId = selectedTag?.map((item:any) => item.value);
-    //         // }
-    //         console.log('tagId: ', tagId);
-
-    //         const { data } = await assignTagToProduct({
-    //             variables: {
-    //                 id: productId,
-    //                 input: {
-    //                     tags: tagId,
-    //                 },
-    //             },
-    //             // variables: { email: formData.email, password: formData.password },
-    //         });
-    //         if (data?.productUpdate?.errors?.length > 0) {
-    //             console.log('error: ', data?.updateMetadata?.errors[0]?.message);
-    //         } else {
-    //             router.push(`/apps/product/edit?id=${productId}`)
-    //             console.log('success: ', data);
-    //         }
-    //     } catch (error) {
-    //         console.log('error: ', error);
-    //     }
-    // };
-
     // form submit
     const createNewCategory = async () => {
         setCreateCategoryLoader(true);
@@ -996,11 +1147,17 @@ const ProductAdd = () => {
     };
 
     const handleAddAccordion = () => {
-        const selectedType = arr.find((item) => item?.type === chooseType);
-        setSelectedArr([chooseType, ...selectedArr]);
-        setAccordions([selectedType, ...accordions]);
-        setOpenAccordion(chooseType);
-        setSelectedValues({ ...selectedValues, [chooseType]: [] }); // Clear selected values for the chosen type
+        if (chooseType == '') {
+            setAttDropDownError('Please select a type');
+        } else {
+            const selectedType = arr.find((item) => item?.type === chooseType);
+            setSelectedArr([chooseType, ...selectedArr]);
+            setAccordions([selectedType, ...accordions]);
+            setOpenAccordion(chooseType);
+            setSelectedValues({ ...selectedValues, [chooseType]: [] }); // Clear selected values for the chosen type
+            setChooseType('');
+            setAttDropDownError('');
+        }
     };
 
     const handleRemoveAccordion = (type: any) => {
@@ -1192,6 +1349,20 @@ const ProductAdd = () => {
         setIsLongPress(false);
     };
 
+    const searchMediaByName = async (e) => {
+        setMediaSearch(e);
+        try {
+            const res = await fetchImagesFromS3(e);
+            setMediaImages(res);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
+    const filterMediaByMonth = async (value: any) => {
+        setMediaMonth(value);
+    };
+
     return (
         <div>
             <div className="mt-6">
@@ -1232,8 +1403,14 @@ const ProductAdd = () => {
                                 required
                             ></textarea>
                             {seoDescErrMsg && <p className="error-message mt-1 text-red-500 ">{seoDescErrMsg}</p>}
+                            <label htmlFor="name" className="mt-5 block text-sm font-medium text-gray-700">
+                                Keyword
+                            </label>
+                            <div className="">
+                                <textarea id="ctnTextarea" value={keyword} onChange={(e) => setKeyword(e.target.value)} rows={3} className="form-textarea " placeholder="Enter Keyword"></textarea>
+                            </div>
                         </div>
-                        <div className="panel mb-5">
+                        <div className="panel mb-5 mt-5">
                             <label htmlFor="editor" className="block text-sm font-medium text-gray-700">
                                 Product Short description
                             </label>
@@ -1271,7 +1448,7 @@ const ProductAdd = () => {
                                                             className={`${selected ? '!bg-primary text-white !outline-none hover:text-white' : ''}
                                                         relative -mb-[1px] block w-full border-white-light p-3.5 py-2 before:absolute before:bottom-0 before:top-0 before:m-auto before:inline-block before:h-0 before:w-[1px] before:bg-primary before:transition-all before:duration-700 hover:text-primary hover:before:h-[80%] dark:border-[#191e3a] ltr:border-r ltr:before:-right-[1px] rtl:border-l rtl:before:-left-[1px]`}
                                                         >
-                                                            Attributes
+                                                            Variants
                                                         </button>
                                                     )}
                                                 </Tab>
@@ -1281,10 +1458,11 @@ const ProductAdd = () => {
                                                             className={`${selected ? '!bg-primary text-white !outline-none hover:text-white' : ''}
                                                         relative -mb-[1px] block w-full border-white-light p-3.5 py-2 before:absolute before:bottom-0 before:top-0 before:m-auto before:inline-block before:h-0 before:w-[1px] before:bg-primary before:transition-all before:duration-700 hover:text-primary hover:before:h-[80%] dark:border-[#191e3a] ltr:border-r ltr:before:-right-[1px] rtl:border-l rtl:before:-left-[1px]`}
                                                         >
-                                                            Variants
+                                                            Attributes
                                                         </button>
                                                     )}
                                                 </Tab>
+
                                                 <Tab as={Fragment}>
                                                     {({ selected }) => (
                                                         <button
@@ -1308,78 +1486,6 @@ const ProductAdd = () => {
                                             </Tab.List>
                                         </div>
                                         <Tab.Panels className="w-full">
-                                            <Tab.Panel>
-                                                <div className="active flex items-center">
-                                                    <div className="mb-5 pr-3" style={{ width: '50%' }}>
-                                                        <Select
-                                                            placeholder="Select Type"
-                                                            options={optionsVal.filter((option) => !selectedArr.includes(option.value))}
-                                                            onChange={(selectedOption: any) => handleDropdownChange(selectedOption, selectedOption.value)}
-                                                            value={options.find((option) => option.value === chooseType)} // Set the value of the selected type
-                                                        />
-                                                    </div>
-                                                    <div className="mb-5">
-                                                        <button type="button" className="btn btn-outline-primary" onClick={handleAddAccordion}>
-                                                            Add
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                <div className="mb-5">
-                                                    <div className="space-y-2 font-semibold">
-                                                        {accordions.map((item: any) => (
-                                                            <div key={item?.type} className="rounded border border-[#d3d3d3] dark:border-[#1b2e4b]">
-                                                                <button
-                                                                    type="button"
-                                                                    className={`flex w-full items-center p-4 text-white-dark dark:bg-[#1b2e4b] ${active === '1' ? '!text-primary' : ''}`}
-                                                                >
-                                                                    {item?.type}
-
-                                                                    <div className={`text-red-400 ltr:ml-auto rtl:mr-auto `} onClick={() => handleRemoveAccordion(item.type)}>
-                                                                        <IconTrashLines />
-                                                                    </div>
-                                                                </button>
-                                                                <div>
-                                                                    <AnimateHeight duration={300} height={active === '1' ? 'auto' : 0}>
-                                                                        <div className="grid grid-cols-12 gap-4 border-t border-[#d3d3d3] p-4 text-[13px] dark:border-[#1b2e4b]">
-                                                                            <div className="col-span-4">
-                                                                                <p>
-                                                                                    Name:
-                                                                                    <br /> <span className="font-semibold">{item?.type}</span>
-                                                                                </p>
-                                                                            </div>
-                                                                            <div className="col-span-8">
-                                                                                <div className="active ">
-                                                                                    <div className=" mr-4 ">
-                                                                                        <label htmlFor="value" className="block pr-5 text-sm font-medium text-gray-700">
-                                                                                            Value(s)
-                                                                                        </label>
-                                                                                    </div>
-                                                                                    <div className="mb-5" style={{ width: '100%' }}>
-                                                                                        <Select
-                                                                                            placeholder={`Select ${item?.type} Name`}
-                                                                                            options={item?.[`${item?.type}Name`]}
-                                                                                            onChange={(selectedOptions) => handleMultiSelectChange(selectedOptions, item.type)}
-                                                                                            isMulti
-                                                                                            isSearchable={true}
-                                                                                            value={(selectedValues[item.type] || []).map((value: any) => {
-                                                                                                const option = item[`${item.type}Name`].find((option: any) => option.value === value);
-                                                                                                return { value: option.value, label: option.label };
-                                                                                            })}
-                                                                                        />
-                                                                                        {attributeError[item.type] && <p className="error-message mt-1 text-red-500">{attributeError[item.type]}</p>}
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </AnimateHeight>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </Tab.Panel>
-
                                             <Tab.Panel>
                                                 {variants?.map((item, index) => (
                                                     <div key={index} className="mb-5 border-b border-gray-200">
@@ -1498,6 +1604,79 @@ const ProductAdd = () => {
                                                     </button>
                                                 </div>
                                             </Tab.Panel>
+                                            <Tab.Panel>
+                                                <div className="active flex ">
+                                                    <div className="mb-5 pr-3" style={{ width: '50%' }}>
+                                                        <Select
+                                                            placeholder="Select Type"
+                                                            options={optionsVal.filter((option) => !selectedArr.includes(option.value))}
+                                                            onChange={(selectedOption: any) => handleDropdownChange(selectedOption, selectedOption.value)}
+                                                            // value={options.find((option) => option.value === chooseType)} // Set the value of the selected type
+                                                            value={chooseType ? optionsVal.find((option) => option.value === chooseType) : null}
+                                                        />
+                                                        {attDropDownError && <p className="error-message  text-red-500">{attDropDownError}</p>}
+                                                    </div>
+                                                    <div className="mb-5">
+                                                        <button type="button" className="btn btn-outline-primary" onClick={handleAddAccordion}>
+                                                            Add
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mb-5">
+                                                    <div className="space-y-2 font-semibold">
+                                                        {accordions.map((item: any) => (
+                                                            <div key={item?.type} className="rounded border border-[#d3d3d3] dark:border-[#1b2e4b]">
+                                                                <button
+                                                                    type="button"
+                                                                    className={`flex w-full items-center p-4 text-white-dark dark:bg-[#1b2e4b] ${active === '1' ? '!text-primary' : ''}`}
+                                                                >
+                                                                    {item?.type}
+
+                                                                    <div className={`text-red-400 ltr:ml-auto rtl:mr-auto `} onClick={() => handleRemoveAccordion(item.type)}>
+                                                                        <IconTrashLines />
+                                                                    </div>
+                                                                </button>
+                                                                <div>
+                                                                    <AnimateHeight duration={300} height={active === '1' ? 'auto' : 0}>
+                                                                        <div className="grid grid-cols-12 gap-4 border-t border-[#d3d3d3] p-4 text-[13px] dark:border-[#1b2e4b]">
+                                                                            <div className="col-span-4">
+                                                                                <p>
+                                                                                    Name:
+                                                                                    <br /> <span className="font-semibold">{item?.type}</span>
+                                                                                </p>
+                                                                            </div>
+                                                                            <div className="col-span-8">
+                                                                                <div className="active ">
+                                                                                    <div className=" mr-4 ">
+                                                                                        <label htmlFor="value" className="block pr-5 text-sm font-medium text-gray-700">
+                                                                                            Value(s)
+                                                                                        </label>
+                                                                                    </div>
+                                                                                    <div className="mb-5" style={{ width: '100%' }}>
+                                                                                        <Select
+                                                                                            placeholder={`Select ${item?.type} Name`}
+                                                                                            options={item?.[`${item?.type}Name`]}
+                                                                                            onChange={(selectedOptions) => handleMultiSelectChange(selectedOptions, item.type)}
+                                                                                            isMulti
+                                                                                            isSearchable={true}
+                                                                                            value={(selectedValues[item.type] || []).map((value: any) => {
+                                                                                                const option = item[`${item.type}Name`].find((option: any) => option.value === value);
+                                                                                                return { value: option.value, label: option.label };
+                                                                                            })}
+                                                                                        />
+                                                                                        {attributeError[item.type] && <p className="error-message mt-1 text-red-500">{attributeError[item.type]}</p>}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </AnimateHeight>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </Tab.Panel>
 
                                             <Tab.Panel>
                                                 <div>
@@ -1582,15 +1761,6 @@ const ProductAdd = () => {
                                 <Select placeholder="Select an label" options={options} value={label} onChange={(val: any) => setLabel(val)} isSearchable={true} />
                             </div>
                         </div>
-
-                        <div className="panel mt-5">
-                            <div className=" border-b border-gray-200 pb-2">
-                                <h5 className=" block text-lg font-medium text-gray-700">Keyword</h5>
-                            </div>
-                            <div className="mb-5">
-                                <textarea id="ctnTextarea" value={keyword} onChange={(e) => setKeyword(e.target.value)} rows={3} className="form-textarea mt-5" placeholder="Enter Keyword"></textarea>
-                            </div>
-                        </div>
                     </div>
                     <div className="col-span-12 md:col-span-3">
                         <div className="panel order-4 md:order-1">
@@ -1609,7 +1779,7 @@ const ProductAdd = () => {
                             </div>
                             <div className="flex gap-5">
                                 <button type="submit" className="btn btn-primary w-full" onClick={() => CreateProduct()}>
-                                    {createLoading ? <IconLoader /> : 'Create'}
+                                    {createLoad || deleteLoad || channelLoad || createVariantLoad || createVariantLoad || updateVariantLoad || updateMedaLoad ? <IconLoader /> : 'Create'}
                                 </button>
                                 <button
                                     type="submit"
@@ -1752,7 +1922,6 @@ const ProductAdd = () => {
                                                     <div className="w-1/2 text-center">
                                                         <h3 className="mb-2 text-xl font-semibold">Drag and drop files to upload</h3>
                                                         <p className="mb-2 text-sm ">or</p>
-                                                        {/* <input type="file" className="mb-2 ml-32" /> */}
                                                         <input type="file" className="mb-2 ml-32" onChange={handleFileChange} />
 
                                                         <p className="mb-2 text-sm">Maximum upload file size: 30 MB.</p>
@@ -1768,65 +1937,54 @@ const ProductAdd = () => {
                                                         </div>
                                                         <div className="flex justify-between gap-3 pt-3">
                                                             <div className="flex gap-3">
-                                                                {/* <select className="form-select flex-1">
-                                                                            <option value=""> </option>
-                                                                            <option value="Anklets">Anklets</option>
-                                                                            <option value="Earings">Earings</option>
-                                                                            <option value="Palakka">Palakka</option>
-                                                                        </select>{' '} */}
-                                                                <select className="form-select w-40 flex-1">
-                                                                    <option value="">All Datas </option>
-                                                                    <option value="June2023">June2023</option>
-                                                                    <option value="july2023">july2023</option>
-                                                                    <option value="aug2023">aug2023</option>
+                                                                {/* <select className="form-select w-40 flex-1"> */}
+                                                                <select className="form-select w-60 flex-1" value={mediaMonth} onChange={(e) => filterMediaByMonth(e.target.value)}>
+                                                                    <option value="all">All Data</option>
+                                                                    <option value="June/2024">June 2024</option>
+                                                                    <option value="July/2024">July 2024</option>
+                                                                    <option value="August/2024">August 2024</option>
                                                                 </select>
                                                             </div>
                                                             <div>
                                                                 <input
                                                                     type="text"
-                                                                    className="form-input mr-2 w-auto"
+                                                                    className="form-input mr-2  w-80 "
                                                                     placeholder="Search..."
-                                                                    // value={search}
-                                                                    // onChange={(e) => setSearch(e.target.value)}
+                                                                    value={mediaSearch}
+                                                                    onChange={(e) => searchMediaByName(e.target.value)}
                                                                 />
                                                             </div>
                                                         </div>
 
                                                         <div className="grid grid-cols-6 gap-3 pt-5">
-                                                            {mediaImages?.map((item) => (
-                                                                <div
-                                                                    key={item.url}
-                                                                    className={`flex h-[160px] w-[180px] overflow-hidden p-2 ${selectedImages.includes(item) ? 'border-4 border-blue-500' : ''}`}
-                                                                    // className={`flex h-[200px] w-[200px] overflow-hidden p-2   ${selectedImages.includes(item) ? 'border-4 border-blue-500' : ''}`}
-                                                                    onMouseDown={() => handleMouseDown(item)}
-                                                                    onMouseUp={handleMouseUp}
-                                                                    onMouseLeave={handleMouseLeave}
-                                                                    onClick={() => {
-                                                                        setSelectedImg(item);
-                                                                        if (!isLongPress) {
-                                                                            handleImageSelect(item);
-                                                                        }
-                                                                    }}
-                                                                >
-                                                                    {item?.key?.endsWith('.mp4') ? (
-                                                                        <video controls src={item.url} className="h-full w-full object-cover">
-                                                                            Your browser does not support the video tag.
-                                                                        </video>
-                                                                    ) : (
-                                                                        <img src={item.url} alt="" className="h-full w-full" />
-                                                                    )}
-                                                                    {/* <img src={item.url} alt="" className="h-full w-full object-cover" /> */}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                        {/* <div className="flex justify-center pt-5">
-                                                                    <div className=" text-center">
-                                                                        <p>Showing 80 of 2484 media items</p>
-                                                                        <div className="flex justify-center">
-                                                                            <button className="btn btn-primary mt-2">Load more</button>
-                                                                        </div>
+                                                            {mediaImages?.length > 0 ? (
+                                                                mediaImages?.map((item) => (
+                                                                    <div
+                                                                        key={item.url}
+                                                                        className={`flex h-[160px] w-[180px] overflow-hidden p-2 ${selectedImages.includes(item) ? 'border-4 border-blue-500' : ''}`}
+                                                                        onMouseDown={() => handleMouseDown(item)}
+                                                                        onMouseUp={handleMouseUp}
+                                                                        onMouseLeave={handleMouseLeave}
+                                                                        onClick={() => {
+                                                                            setSelectedImg(item);
+                                                                            if (!isLongPress) {
+                                                                                handleImageSelect(item);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        {item?.key?.endsWith('.mp4') ? (
+                                                                            <video controls src={item.url} className="h-full w-full object-cover">
+                                                                                Your browser does not support the video tag.
+                                                                            </video>
+                                                                        ) : (
+                                                                            <img src={item.url} alt="" className="h-full w-full" />
+                                                                        )}
                                                                     </div>
-                                                                </div> */}
+                                                                ))
+                                                            ) : (
+                                                                <div className="col-span-6 flex h-64 items-center justify-center">No Data Found</div>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                     {!objIsEmpty(selectedImg) && (
                                                         <div className="col-span-3 h-[450px] overflow-y-scroll pl-5">
@@ -1847,7 +2005,6 @@ const ProductAdd = () => {
                                                                 <p className="text-sm">{moment(selectedImg?.LastModified).format('MMM d, yyyy')}</p>
                                                                 <p className="text-sm">{(selectedImg?.Size / 1024).toFixed(2)} KB</p>
 
-                                                                {/* <p className="text-sm">1707 by 2560 pixels</p> */}
                                                                 <a href="#" className="text-danger underline" onClick={() => deleteImage()}>
                                                                     Delete permanently
                                                                 </a>

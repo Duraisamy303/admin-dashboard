@@ -28,12 +28,12 @@ const Coupon = () => {
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [status, setStatus] = useState(null);
 
-    const [deleteCoupon]=useMutation(COUPON_DELETE)
+    const [deleteCoupon] = useMutation(COUPON_DELETE);
 
     const { loading: getLoading, refetch: fetchLowStockList } = useQuery(COUPON_LIST, {
         variables: {
             channel: 'india-channel',
-            first:PAGE_SIZE,
+            first: PAGE_SIZE,
             after: null,
             filter: {
                 search,
@@ -144,8 +144,6 @@ const Coupon = () => {
                 Swal.fire('Cancelled', 'Your Coupon List is safe :)', 'error');
             }
         );
-
-
     };
 
     return (
@@ -176,6 +174,19 @@ const Coupon = () => {
                                 { accessor: 'startDate', sortable: true },
                                 { accessor: 'endDate', sortable: true },
                                 {
+                                    accessor: 'autoApply',
+                                    sortable: true,
+
+                                    render: (row: any) => (
+                                        <>
+                                            <div className={`flex w-max gap-4 rounded-full px-2 py-1 ${row?.autoApply ? 'bg-green-200 text-green-800' : 'bg-orange-200 text-orange-800'}`}>
+                                                {row?.autoApply ? 'Enabled' : 'Disabled'}
+                                            </div>
+                                        </>
+                                    ),
+                                },
+
+                                {
                                     accessor: 'actions',
                                     title: 'Actions',
                                     render: (row: any) => (
@@ -189,7 +200,6 @@ const Coupon = () => {
                                                 >
                                                     <IconEdit className="h-4.5 w-4.5" />
                                                 </button>
-                                              
 
                                                 <button type="button" className="flex hover:text-danger" onClick={() => deleteData(row)}>
                                                     <IconTrashLines />
@@ -233,7 +243,8 @@ const tableFormat = (products) => {
         name: product?.node?.name,
         startDate: product.node?.startDate ? moment(product.node?.startDate).format('YYYY/MM/DD [at] h:mm a') : '-',
         endDate: product.node?.endDate ? moment(product.node?.endDate).format('YYYY/MM/DD [at] h:mm a') : '-',
-        id: product.node?.id
+        id: product.node?.id,
+        autoApply: product.node?.autoApply,
     }));
 };
 

@@ -1004,11 +1004,9 @@ const Editorder = () => {
                     <div className=" col-span-9 mb-5  ">
                         <div className="panel mb-5 p-5">
                             <div className="flex justify-between">
-                                <div className="flex gap-3 items-center">
+                                <div className="flex items-center gap-3">
                                     <h3 className="text-lg font-semibold">{`Order #${orderData?.number} Details`}</h3>
-                                    {freeShipping?.includes(orderData?.shippingMethod?.id) && <h3 className="text-sm font-semibold bg-green-100 text-green-700 rounded-2xl p-2">
-        Free Shipping
-    </h3>}
+                                    {freeShipping?.includes(orderData?.shippingMethod?.id) && <h3 className="rounded-2xl bg-green-100 p-2 text-sm font-semibold text-green-700">Free Shipping</h3>}
                                 </div>
                                 {orderStatus == 'UNCONFIRMED' && (
                                     <button type="submit" className="btn btn-outline-primary" onClick={() => confirmOrder()}>

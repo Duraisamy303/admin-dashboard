@@ -610,8 +610,54 @@ const Orders = () => {
                                 { accessor: 'invoice', sortable: true, title: 'Invoice Number' },
 
                                 { accessor: 'date', sortable: true },
-                                { accessor: 'status', sortable: true, title: 'Order status' },
-                                { accessor: 'paymentStatus', sortable: true, title: 'Payment status' },
+                                {
+                                    accessor: 'status',
+                                    sortable: true,
+                                    title: 'Order status',
+
+                                    // render: (row) => (
+                                    //     <div
+                                    //         className={`flex w-max gap-4 rounded-full px-2 py-1 ${
+                                    //             row?.status === 'Processing'
+                                    //                 ? 'bg-blue-200 text-blue-800'
+                                    //                 : row?.status === 'Completed'
+                                    //                 ? 'bg-green-200 text-green-800'
+                                    //                 : row?.status === 'UNFULFILLED'
+                                    //                 ? 'bg-red-200 text-red-800'
+                                    //                 : row?.status === 'Cancelled'
+                                    //                 ? 'bg-gray-200 text-gray-800'
+                                    //                 : ''
+                                    //         }`}
+                                    //     >
+                                    //         {row?.status}
+                                    //     </div>
+                                    // ),
+                                },
+                                {
+                                    accessor: 'paymentStatus',
+                                    sortable: true,
+                                    title: 'Payment status',
+
+                                    // render: (row) => (
+                                    //     <div
+                                    //         className={`flex w-max gap-4 rounded-full px-2 py-1 ${
+                                    //             row?.paymentStatus === 'Processing'
+                                    //                 ? 'bg-blue-200 text-blue-800'
+                                    //                 : row?.paymentStatus === 'Pending'
+                                    //                 ? 'bg-yellow-200 text-yellow-800'
+                                    //                 : row?.paymentStatus === 'Completed'
+                                    //                 ? 'bg-green-200 text-green-800'
+                                    //                 : row?.paymentStatus === 'UNFULFILLED'
+                                    //                 ? 'bg-red-200 text-red-800'
+                                    //                 : row?.paymentStatus === 'Cancelled'
+                                    //                 ? 'bg-gray-200 text-gray-800'
+                                    //                 : ''
+                                    //         }`}
+                                    //     >
+                                    //         {row?.paymentStatus}
+                                    //     </div>
+                                    // ),
+                                },
                                 {
                                     accessor: 'shipmentTracking',
                                     sortable: true,

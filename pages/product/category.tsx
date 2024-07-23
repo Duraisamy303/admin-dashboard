@@ -47,7 +47,7 @@ const Category = () => {
         data: categoryData,
         refetch: categoryListRefetch,
     } = useQuery(CATEGORY_LIST, {
-        variables: { channel: 'india-channel', first: 100 },
+        variables: { channel: 'india-channel', first: 200 },
     });
 
     useEffect(() => {
@@ -107,7 +107,7 @@ const Category = () => {
                         parentId: item.node.parent?.id,
                         product: item.node.products?.totalCount,
                         textdescription: textValue || '',
-                        image: item.node?.backgroundImage?.url, // Set textValue or empty string if it doesn't exist
+                        image: item.node?.backgroundImageUrl, // Set textValue or empty string if it doesn't exist
                     };
                 });
                 setCategoryList(newData);

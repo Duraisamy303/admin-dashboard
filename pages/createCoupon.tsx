@@ -48,6 +48,7 @@ const CreateCoupon = () => {
         manualCode: '',
         manualCodeErr: '',
         errors: null,
+        autoApply: false,
     });
 
     useEffect(() => {
@@ -162,6 +163,7 @@ const CreateCoupon = () => {
                 type: codeType.value === 'Free Shipping' ? 'SHIPPING' : 'ENTIRE_ORDER',
                 usageLimit: usageLimit.value === 'Limit number of times this discount can be used in total' ? usageValue : null,
                 singleUse: usageLimit.value === 'Limit to voucher code use once',
+                autoApply: state.autoApply,
             };
 
             const res = await createCoupons({
@@ -221,7 +223,6 @@ const CreateCoupon = () => {
                     Success('Coupon Created Successfully');
                 }
             }
-
         } catch (error) {
             console.log('error: ', error);
         }
@@ -273,7 +274,7 @@ const CreateCoupon = () => {
                         <input
                             type="text"
                             value={state.couponName}
-                            onChange={(e) => setState({ couponName: e.target.value,errors:{nameError:""} })}
+                            onChange={(e) => setState({ couponName: e.target.value, errors: { nameError: '' } })}
                             placeholder="Enter Coupon Name"
                             name="name"
                             className="form-input"
@@ -281,8 +282,26 @@ const CreateCoupon = () => {
                         />
                         {state.errors?.nameError && <p className="mt-[4px] text-[14px] text-red-600">{state.errors?.nameError}</p>}
                     </div>
-                    <div className="mt-4 flex w-full justify-end md:w-6/12">
-                        <div className="  ">
+                    {/* <div className="mt-4 flex w-full justify-end md:w-6/12">
+                        <div className="">
+                            <Dropdown overlay={menu} trigger={['click']} onVisibleChange={(flag) => setState({ visible: flag })} visible={state.visible}>
+                                <Button className="btn btn-primary h-[42px]  w-full md:mb-0 md:w-auto" onClick={(e) => e.preventDefault()}>
+                                    Create Code <DownOutlined />
+                                </Button>
+                            </Dropdown>
+                            {state.errors?.generatedCodesError && <p className="mt-[4px] text-[14px] text-red-600">{state.errors?.generatedCodesError}</p>}
+                        </div>
+                    </div> */}
+                </div>
+            </div>
+
+            <div className="panel   ">
+                <div className=" w-full   ">
+                    <label htmlFor="name" className="block text-lg font-medium text-gray-700">
+                        Coupon Codes
+                    </label>
+                    <div className="flex w-full ">
+                        <div className="">
                             <Dropdown overlay={menu} trigger={['click']} onVisibleChange={(flag) => setState({ visible: flag })} visible={state.visible}>
                                 <Button className="btn btn-primary h-[42px]  w-full md:mb-0 md:w-auto" onClick={(e) => e.preventDefault()}>
                                     Create Code <DownOutlined />
@@ -292,59 +311,74 @@ const CreateCoupon = () => {
                         </div>
                     </div>
                 </div>
+
+                {state.generatedCodes?.length > 0 ? (
+                    <div className=" mt-5">
+                        <DataTable
+                            className="table-hover whitespace-nowrap"
+                            records={state.generatedCodes}
+                            columns={[
+                                {
+                                    accessor: 'code',
+                                    sortable: true,
+                                    render: (row, index) => {
+                                        return (
+                                            <>
+                                                <div className="">{row}</div>
+                                            </>
+                                        );
+                                    },
+                                },
+                                {
+                                    accessor: 'status',
+                                    sortable: true,
+                                    render: (row, index) => {
+                                        return (
+                                            <>
+                                                <div className="">{'Draft'}</div>
+                                            </>
+                                        );
+                                    },
+                                },
+
+                                {
+                                    accessor: 'actions',
+                                    title: 'Actions',
+                                    render: (row: any) => (
+                                        <>
+                                            <div className=" flex w-max  gap-4">
+                                                <button type="button" className="flex hover:text-danger" onClick={() => deleteCode(row)}>
+                                                    <IconTrashLines />
+                                                </button>
+                                            </div>
+                                        </>
+                                    ),
+                                },
+                            ]}
+                            highlightOnHover
+                            totalRecords={state.generatedCodes.length}
+                            recordsPerPage={10}
+                            page={null}
+                            onPageChange={(p) => {}}
+                            sortStatus={{
+                                columnAccessor: 'code',
+                                direction: 'asc',
+                            }}
+                            onSortStatusChange={() => {}}
+                            withBorder={true}
+                            minHeight={100}
+                            paginationText={({ from, to, totalRecords }) => ''}
+                        />
+                    </div>
+                ) : (
+                    <div className="flex items-center justify-center">
+                        <label htmlFor="name" className=" text-sm font-medium text-gray-700">
+                            No coupon codes found
+                        </label>
+                    </div>
+                )}
             </div>
 
-            {state.generatedCodes?.length > 0 && (
-                <div className="panel mt-5">
-                    <label htmlFor="name" className="block text-lg font-medium text-gray-700">
-                        Coupon Codes
-                    </label>
-                    <DataTable
-                        className="table-hover whitespace-nowrap"
-                        records={state.generatedCodes}
-                        columns={[
-                            {
-                                accessor: 'code',
-                                sortable: true,
-                                render: (row, index) => {
-                                    return (
-                                        <>
-                                            <div className="">{row}</div>
-                                        </>
-                                    );
-                                },
-                            },
-
-                            {
-                                accessor: 'actions',
-                                title: 'Actions',
-                                render: (row: any) => (
-                                    <>
-                                        <div className=" flex w-max  gap-4">
-                                            <button type="button" className="flex hover:text-danger" onClick={() => deleteCode(row)}>
-                                                <IconTrashLines />
-                                            </button>
-                                        </div>
-                                    </>
-                                ),
-                            },
-                        ]}
-                        highlightOnHover
-                        totalRecords={state.generatedCodes.length}
-                        recordsPerPage={10}
-                        page={null}
-                        onPageChange={(p) => {}}
-                        sortStatus={{
-                            columnAccessor: 'code',
-                            direction: 'asc',
-                        }}
-                        onSortStatusChange={() => {}}
-                        withBorder={true}
-                        minHeight={100}
-                        paginationText={({ from, to, totalRecords }) => ''}
-                    />
-                </div>
-            )}
             <div className="panel mt-5">
                 <label htmlFor="name" className="block text-lg font-medium text-gray-700">
                     Description
@@ -525,6 +559,17 @@ const CreateCoupon = () => {
                     </div>
                 </div>
                 <div className="mt-5 flex items-center justify-end gap-4">
+                    <div className=" flex items-center gap-3">
+                        <input
+                            type="checkbox"
+                            checked={state.autoApply}
+                            onChange={(e) => setState({ autoApply: e.target.checked })}
+                            className="form-checkbox border-white-light dark:border-white-dark ltr:mr-0 rtl:ml-0"
+                        />
+                        <h3 className="text-md cursor-pointer font-semibold dark:text-white-light" onClick={() => setState({ autoApply: !state.autoApply })}>
+                            Auto Apply
+                        </h3>
+                    </div>
                     <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => CreateCoupon()}>
                         {createLoading || chennelLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Submit'}
                     </button>

@@ -9,6 +9,8 @@ import CommonLoader from './elements/commonLoader';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 
 const LowStock = () => {
+    const router = useRouter();
+
     const {
         data: lowStockList,
         loading: getLoading,
@@ -43,6 +45,7 @@ const LowStock = () => {
                 return {
                     ...item.node,
                     name: item?.node?.name || '',
+                    id: item?.node?.id,
                 };
             });
 
@@ -85,7 +88,18 @@ const LowStock = () => {
                     <DataTable
                         className="table-hover whitespace-nowrap"
                         records={initialData}
-                        columns={[{ accessor: 'name', sortable: true, title: 'Product Name' }]}
+                        columns={[
+                            {
+                                accessor: 'name',
+                                sortable: true,
+                                title: 'Product Name',
+                                render: (row) => (
+                                    <div className='cursor-pointer' onClick={() => router.push(`/apps/product/edit?id=${row.id}`)}>
+                                        {row.name}
+                                    </div>
+                                ),
+                            },
+                        ]}
                         highlightOnHover
                         totalRecords={lowStockData.length}
                         recordsPerPage={pageSize}

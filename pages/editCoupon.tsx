@@ -78,6 +78,7 @@ const EditCoupon = () => {
         oldCat: [],
         oldProduct: [],
         oldExcludeCat: [],
+        autoApply:false
     });
 
     useEffect(() => {
@@ -127,6 +128,7 @@ const EditCoupon = () => {
             }
             setState({
                 couponName: data?.name,
+                autoApply:data?.autoApply,
                 codeType:
                     data?.type === 'SPECIFIC_PRODUCT' || data?.type === 'ENTIRE_ORDER'
                         ? data.discountValueType === 'FIXED'
@@ -298,6 +300,8 @@ const EditCoupon = () => {
                 type: state.codeType?.value == 'Free Shipping' ? 'SHIPPING' : state.specificInfo?.value == 'Specific products' ? 'SPECIFIC_PRODUCT' : 'ENTIRE_ORDER',
                 usageLimit: state.usageLimit?.value == 'Limit number of times this discount can be used in total' ? state.usageValue : null,
                 singleUse: state.usageLimit?.value == 'Limit to voucher code use once' ? true : false,
+                autoApply:state?.autoApply,
+
             };
 
             const res = await updateCoupons({
@@ -360,6 +364,8 @@ const EditCoupon = () => {
                 }
                 if (state.specificInfo?.value == 'All products') {
                     setState({ selectedExcludeCategory: [], selectedCategory: [], selectedProduct: [] });
+                    router.push(`/coupon`);
+                    Success('Coupon updated Successfully');
                 }
 
                 if (state.description == '' && state.specificInfo?.value != 'Specific products') {
@@ -367,7 +373,6 @@ const EditCoupon = () => {
                     Success('Coupon updated Successfully');
                 }
             }
-
         } catch (error) {
             console.log('error: ', error);
         }
@@ -398,6 +403,8 @@ const EditCoupon = () => {
         if (removedCat?.length > 0 || removedProduct?.length > 0 || removedExCat?.length > 0) {
             removeData(id, removedCat, removedProduct, removedExCat);
         }
+        router.push(`/coupon`);
+        Success('Coupon updated Successfully');
     };
 
     const updateMetaData = async (id: any) => {
@@ -439,10 +446,9 @@ const EditCoupon = () => {
                 },
             });
 
-            router.push(`/coupon`);
-            Success('Coupon Updated Successfully');
+            // router.push(`/coupon`);
+            // Success('Coupon Updated Successfully');
             setState({ selectedExcludeCategory: [], selectedCategory: [], selectedProduct: [] });
-
         } catch (error) {
             console.log('error: ', error);
         }
@@ -465,10 +471,9 @@ const EditCoupon = () => {
                 },
             });
 
-            router.push(`/coupon`);
-            Success('Coupon Updated Successfully');
+            // router.push(`/coupon`);
+            // Success('Coupon Updated Successfully');
             setState({ selectedExcludeCategory: [], selectedCategory: [], selectedProduct: [] });
-
         } catch (error) {
             console.log('error: ', error);
         }
@@ -520,17 +525,103 @@ const EditCoupon = () => {
                         {state.errors?.nameError && <p className="mt-[4px] text-[14px] text-red-600">{state.errors?.nameError}</p>}
                     </div>
 
-                    <div className="mt-4 flex w-full justify-end md:w-6/12">
+                    {/* <div className="mt-4 flex w-full justify-end md:w-6/12">
                         <Dropdown overlay={menu} trigger={['click']} onVisibleChange={(flag) => setState({ visible: flag })} visible={state.visible}>
                             <Button className="btn btn-primary h-[42px]  w-full md:mb-0 md:w-auto" onClick={(e) => e.preventDefault()}>
                                 Create Code <DownOutlined />
                             </Button>
                         </Dropdown>
-                    </div>
+                    </div> */}
                 </div>
             </div>
 
-            {state.generatedCodes?.length > 0 && (
+            <div className="panel   ">
+                <div className=" w-full   ">
+                    <label htmlFor="name" className="block text-lg font-medium text-gray-700">
+                        Coupon Codes
+                    </label>
+                    <div className="flex w-full ">
+                        <div className="">
+                            <Dropdown overlay={menu} trigger={['click']} onVisibleChange={(flag) => setState({ visible: flag })} visible={state.visible}>
+                                <Button className="btn btn-primary h-[42px]  w-full md:mb-0 md:w-auto" onClick={(e) => e.preventDefault()}>
+                                    Create Code <DownOutlined />
+                                </Button>
+                            </Dropdown>
+                            {state.errors?.generatedCodesError && <p className="mt-[4px] text-[14px] text-red-600">{state.errors?.generatedCodesError}</p>}
+                        </div>
+                    </div>
+                </div>
+
+                {state.generatedCodes?.length > 0 ? (
+                    <div className=" mt-5">
+                        <DataTable
+                            className="table-hover whitespace-nowrap"
+                            records={state.generatedCodes}
+                            columns={[
+                                {
+                                    accessor: 'code',
+                                    sortable: true,
+                                    render: (row, index) => {
+                                        return (
+                                            <>
+                                                <div className="">{row}</div>
+                                            </>
+                                        );
+                                    },
+                                },
+                                {
+                                    accessor: 'status',
+                                    sortable: true,
+                                    render: (row, index) => {
+                                        return (
+                                            <>
+                                                <div className="">{!state.oldCodes?.includes(row)?"Draft":"Active"}</div>
+                                            </>
+                                        );
+                                    },
+                                },
+
+                                {
+                                    accessor: 'actions',
+                                    title: 'Actions',
+                                    render: (row: any) => (
+                                        <>
+                                            {!state.oldCodes?.includes(row) && (
+                                            <div className=" flex w-max  gap-4">
+                                                <button type="button" className="flex hover:text-danger" onClick={() => deleteCode(row)}>
+                                                    <IconTrashLines />
+                                                </button>
+                                            </div>
+                                        )}
+                                        </>
+                                    ),
+                                },
+                            ]}
+                            highlightOnHover
+                            totalRecords={state.generatedCodes.length}
+                            recordsPerPage={10}
+                            page={null}
+                            onPageChange={(p) => {}}
+                            sortStatus={{
+                                columnAccessor: 'code',
+                                direction: 'asc',
+                            }}
+                            onSortStatusChange={() => {}}
+                            withBorder={true}
+                            minHeight={100}
+                            paginationText={({ from, to, totalRecords }) => ''}
+                        />
+                    </div>
+                ) : (
+                    <div className='flex items-center justify-center'>
+                        <label htmlFor="name" className=" text-sm font-medium text-gray-700">
+                        No coupon codes found
+                        </label>
+                    </div>
+                )}
+            </div>
+
+            {/* {state.generatedCodes?.length > 0 && (
                 <div className="panel mt-5">
                     <label htmlFor="name" className="block text-lg font-medium text-gray-700">
                         Coupon Codes
@@ -582,7 +673,7 @@ const EditCoupon = () => {
                         paginationText={({ from, to, totalRecords }) => ''}
                     />
                 </div>
-            )}
+            )} */}
             <div className="panel mt-5">
                 <label htmlFor="name" className="block text-lg font-medium text-gray-700">
                     Description
@@ -798,7 +889,7 @@ const EditCoupon = () => {
                             min={new Date().toISOString().slice(0, 16)}
                         />
                     </div>
-                    <div className="col-6 flex flex-col items-center  justify-center md:w-6/12">
+                    <div className="col-6 flex flex-col  justify-center md:w-6/12">
                         <div className="mb-3 flex items-center gap-3">
                             <input
                                 type="checkbox"
@@ -828,6 +919,17 @@ const EditCoupon = () => {
                 </div>
 
                 <div className="mt-5 flex items-center justify-end gap-4">
+                <div className=" flex items-center gap-3">
+                        <input
+                            type="checkbox"
+                            checked={state.autoApply}
+                            onChange={(e) => setState({ autoApply: e.target.checked })}
+                            className="form-checkbox border-white-light dark:border-white-dark ltr:mr-0 rtl:ml-0"
+                        />
+                        <h3 className="text-md cursor-pointer font-semibold dark:text-white-light" onClick={() => setState({ autoApply: !state.autoApply })}>
+                            Auto Apply
+                        </h3>
+                    </div>
                     <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => updateCoupon()}>
                         {loading || chennelLoading || assignLoading || removeLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Submit'}
                     </button>

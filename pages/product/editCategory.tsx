@@ -13,7 +13,7 @@ import { CATEGORY_LIST, CREATE_CATEGORY, DELETE_CATEGORY, PRODUCT_LIST, UPDATE_C
 import { PARENT_CATEGORY_LIST } from '@/query/product';
 import IconLoader from '@/components/Icon/IconLoader';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
-import { Failure, Success, categoryImageUpload, deleteImagesFromS3, fetchImagesFromS3, formatOptions, generatePresignedPost, objIsEmpty, profilePic } from '@/utils/functions';
+import { Failure, Success, categoryImageUpload, deleteImagesFromS3, fetchImagesFromS3, filterImages, formatOptions, generatePresignedPost, objIsEmpty, profilePic } from '@/utils/functions';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import moment from 'moment';
@@ -44,9 +44,8 @@ const EditCategory = () => {
     const [catData, setCatData] = useState(null);
     const [name, setName] = useState('');
     const [selectedCat, setSelectedCat] = useState(null);
-
+    const [mediaMonth, setMediaMonth] = useState('all');
     const [description, setDescription] = useState('');
-
 
     const { data: parentList } = useQuery(PARENT_CATEGORY_LIST, {
         variables: { channel: 'india-channel' },
@@ -69,10 +68,33 @@ const EditCategory = () => {
         getMediaImage();
     }, []);
 
+    useEffect(() => {
+        filterByMonth();
+    }, [mediaMonth]);
+
+    const filterByMonth = async () => {
+        const res = await fetchImagesFromS3(mediaSearch);
+        if (mediaMonth !== 'all') {
+            const [month, year] = mediaMonth.split('/');
+            const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
+            const filteredImages = res?.filter((item) => {
+                const itemDate = new Date(item.LastModified);
+                return itemDate.getFullYear() === parseInt(year) && itemDate.getMonth() === monthIndex;
+            });
+
+            setMediaImages(filteredImages);
+        }
+    };
+
+    const filterMediaByMonth = async (value: any) => {
+        setMediaMonth(value);
+    };
+
     const getMediaImage = async () => {
         try {
             const res = await fetchImagesFromS3();
-            setMediaImages(res);
+            const filter = filterImages(res);
+            setMediaImages(filter);
         } catch (error) {
             console.log('error: ', error);
         }
@@ -91,7 +113,7 @@ const EditCategory = () => {
             } else {
                 setDescription('');
             }
-            setPreviewUrl(find?.node?.backgroundImage?.url);
+            setPreviewUrl(find?.node?.backgroundImageUrl);
             setSelectedCat({ value: find?.node?.parent?.id, label: find?.node?.parent?.name });
         } catch (error) {
             console.log('error: ', error);
@@ -130,34 +152,13 @@ const EditCategory = () => {
         }
     };
 
-    const searchMediaByName = (e) => {
+    const searchMediaByName = async (e) => {
         setMediaSearch(e);
-        if (e) {
-            const filtered = mediaImages.filter((image) => {
-                const matchesName = image?.url?.includes(e) || image?.key?.includes(e);
-                // const matchesDate = !startDate || new Date(image.LastModified) >= new Date(startDate);
-                return matchesName;
-            });
-            setMediaImages(filtered);
-        } else {
-            getMediaImage();
-        }
-    };
-
-    const filterMediaByMonth = async (e) => {
-        setMediaDate(e);
-
-        if (e == 'all') {
-            getMediaImage();
-        } else {
-            const [month, year] = e.split('/');
-            const monthIndex = new Date(`${month} 1, 2024`).getMonth(); // To get the month index
-            const res = await fetchImagesFromS3();
-            const filteredImages = res.filter((item) => {
-                const itemDate = new Date(item.LastModified);
-                return itemDate.getFullYear() === parseInt(year) && itemDate.getMonth() === monthIndex;
-            });
-            setMediaImages(filteredImages);
+        try {
+            const res = await fetchImagesFromS3(e);
+            setMediaImages(res);
+        } catch (error) {
+            console.log('error: ', error);
         }
     };
 
@@ -337,11 +338,11 @@ const EditCategory = () => {
                                                         </div>
                                                         <div className="flex justify-between gap-3 pt-3">
                                                             <div className="flex gap-3">
-                                                                <select className="form-select w-40 flex-1" value={mediaDate} onChange={(e) => filterMediaByMonth(e.target.value)}>
-                                                                    <option value="all">All Datas </option>
-                                                                    <option value="June/2023">June2023</option>
-                                                                    <option value="july/2023">july2023</option>
-                                                                    <option value="aug/2023">aug2023</option>
+                                                                <select className="form-select w-60 flex-1" value={mediaMonth} onChange={(e) => filterMediaByMonth(e.target.value)}>
+                                                                    <option value="all">All Data</option>
+                                                                    <option value="June/2024">June 2024</option>
+                                                                    <option value="July/2024">July 2024</option>
+                                                                    <option value="August/2024">August 2024</option>
                                                                 </select>
                                                             </div>
                                                             <div>
@@ -397,9 +398,14 @@ const EditCategory = () => {
                                                                 <div>
                                                                     <p className="mb-2 text-lg font-semibold">ATTACHMENT DETAILS</p>
                                                                 </div>
-                                                                <div>
-                                                                    <img src={selectedImg?.url} alt="" />
-                                                                </div>
+                                                                {selectedImg?.url?.endsWith('.mp4') ? (
+                                                                    <video controls src={selectedImg?.url} className="h-full w-full object-cover" style={{ height: '300px' }}>
+                                                                        Your browser does not support the video tag.
+                                                                    </video>
+                                                                ) : (
+                                                                    <img src={selectedImg.url} alt="" className="h-full w-full" />
+                                                                )}
+
                                                                 <p className="mt-2 font-semibold">{selectedImg?.key}</p>
                                                                 <p className="text-sm">{moment(selectedImg?.LastModified).format('MMM d, yyyy')}</p>
                                                                 <p className="text-sm">{(selectedImg?.Size / 1024).toFixed(2)} KB</p>

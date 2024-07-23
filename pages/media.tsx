@@ -32,7 +32,6 @@ export default function Media() {
     };
 
     const handleFileChange = async (e: any) => {
-
         try {
             let presignedPostData = null;
             if (e.target.files[0]?.name?.endsWith('.mp4')) {
@@ -59,39 +58,14 @@ export default function Media() {
         }
     };
 
-    // const handleFileChange = async (e) => {
-    //     try {
-    //         const presignedPostData: any = await generatePresignedPost(e.target.files[0]);
 
-    //         const formData = new FormData();
-    //         Object.keys(presignedPostData.fields).forEach((key) => {
-    //             formData.append(key, presignedPostData.fields[key]);
-    //         });
-    //         formData.append('file', e.target.files[0]);
-
-    //         const response = await axios.post(presignedPostData.url, formData, {
-    //             headers: {
-    //                 'Content-Type': 'multipart/form-data',
-    //             },
-    //         });
-    //         getMediaImage();
-    //         setState({ tab: 1 });
-    //         console.log('File uploaded successfully', response);
-    //     } catch (error) {
-    //         console.error('Error uploading file:', error);
-    //     }
-    // };
-
-    const searchMediaByName = (e) => {
+    const searchMediaByName = async (e) => {
         setState({ search: e });
-        if (e) {
-            const filtered = state.imageList.filter((image) => {
-                const matchesName = image?.url?.includes(e) || image?.key?.includes(e);
-                return matchesName;
-            });
-            setState({ imageList: filtered });
-        } else {
-            getMediaImage();
+        try {
+            const res = await fetchImagesFromS3(e);
+            setState({ imageList: res });
+        } catch (error) {
+            console.log('error: ', error);
         }
     };
 
@@ -263,7 +237,7 @@ export default function Media() {
                                             <div>
                                                 <p className="mb-2 text-lg font-semibold">ATTACHMENT DETAILS</p>
                                             </div>
-                                            <div className="h-[200px] w-[300px] overflow-hidden">
+                                            <div className="">
                                                 {state.selectImg?.key?.endsWith('.mp4') ? (
                                                     <video controls src={state.selectImg.url} className="">
                                                         Your browser does not support the video tag.

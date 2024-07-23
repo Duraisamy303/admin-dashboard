@@ -55,6 +55,8 @@ export default function QuickEdit(props: any) {
         productData: null,
         menuOrder: null,
         loading: false,
+        error: {},
+        variantError: [],
     });
 
     useEffect(() => {
@@ -179,9 +181,34 @@ export default function QuickEdit(props: any) {
         });
     };
 
+    const validateVariants = () => {
+        return state.variants.map((variant) => {
+            const errors:any = {};
+            if (!variant.sku) errors.sku = 'SKU cannot be empty';
+            // if (variant.quantity <= 0 || isNaN(variant.quantity)) errors.quantity = 'Quantity must be a valid number and greater than 0';
+            // if (variant.regularPrice <= 0 || isNaN(variant.regularPrice)) errors.regularPrice = 'Regular Price must be a valid number and greater than 0';
+            // if (!variant.stackMgmt) errors.stackMgmt = 'Check Stack Management';
+            return errors;
+        });
+    };
+
     const updateProducts = async () => {
         try {
             setState({ loading: true });
+            const errors = {
+                productName: state.name.trim() === '' ? 'Product name cannot be empty' : '',
+                category: state.categories?.length === 0 ? 'Category cannot be empty' : '',
+            };
+            setState({ error: errors });
+            const variantErrors = validateVariants();
+            setState({ error: errors, variantError: variantErrors });
+
+            if (Object.values(errors).some((msg) => msg !== '') || variantErrors.some((err) => Object.keys(err).length > 0)) {
+                setState({ loading: false });
+                Failure('Please fill in all required fields');
+                return; // Exit if any error exists
+            }
+
             let upsells = [];
             if (state.productData?.getUpsells?.length > 0) {
                 upsells = state.productData?.getUpsells?.map((item: any) => item?.productId);
@@ -468,7 +495,7 @@ export default function QuickEdit(props: any) {
                         Product Name
                     </label>
                     <input type="text" value={state.name} onChange={(e) => setState({ name: e.target.value })} placeholder="Enter Your Name" name="name" className="form-input" required />
-                    {/* {productNameErrMsg && <p className="error-message mt-1 text-red-500">{productNameErrMsg}</p>} */}
+                    {state.error?.productName && <p className="error-message mt-1 text-red-500">{state.error?.productName}</p>}
                 </div>
 
                 <div>
@@ -512,7 +539,8 @@ export default function QuickEdit(props: any) {
                                             placeholder="Enter SKU"
                                             className="form-input"
                                         />
-                                        {/* {variantErrors[index]?.sku && <p className="error-message mt-1 text-red-500">{variantErrors[index].sku}</p>} */}
+
+                                        {state.variantError[index]?.sku && <p className="error-message mt-1 text-red-500">{state.variantError[index].sku}</p>}
 
                                         {/* {skuErrMsg && <p className="error-message mt-1 text-red-500 ">{skuErrMsg}</p>} */}
                                     </div>
@@ -617,6 +645,7 @@ export default function QuickEdit(props: any) {
                                     onChange={(data: any) => setState({ categories: data })}
                                     isSearchable={true}
                                 />
+                                {state.error?.category && <p className="error-message mt-1 text-red-500">{state.error?.category}</p>}
                             </div>
                         </div>
                     </div>

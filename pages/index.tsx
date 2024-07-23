@@ -217,7 +217,7 @@ const Index = () => {
             date: item.node.updatedAt
                 ? `Last Modified ${moment(item.node.updatedAt).format('YYYY/MM/DD [at] h:mm a')}`
                 : `Published ${moment(item.node.channelListings[0]?.publishedAt).format('YYYY/MM/DD [at] h:mm a')}`,
-            price: `${formatCurrency(item.node.pricing?.priceRange?.start?.gross?.currency)}${roundOff(item.node.pricing?.priceRange?.start?.gross?.amount)}`,
+            price: `₹${roundOff(item.node.pricing?.priceRange ? item.node.pricing?.priceRange?.start?.gross?.amount : 0)}`,
             status: item.node.channelListings[0]?.isPublished ? 'Published' : 'Draft',
             sku: item.node.defaultVariant ? item.node.defaultVariant.sku : '-',
             tags: item.node.tags?.length > 0 ? item.node?.tags?.map((tag) => tag?.name).join(',') : '-',
@@ -557,7 +557,6 @@ const Index = () => {
 
                 setLoadingRows((prev) => ({ ...prev, [row.id]: false }));
             } else {
-
                 variantListUpdate(productId, row);
             }
         } catch (error) {
@@ -738,50 +737,55 @@ const Index = () => {
 
     const bulkUpdates = async () => {
         try {
-            setBulkEditLoading(true);
-            selectedRecords?.map(async (item) => {
-                const res = await getProductDetailsById(item.id);
-                const input = {
-                    attributes: [],
-                    category: selectedCat?.map((item) => item?.value),
-                    collections: res?.collections?.length > 0 ? res?.collections.map((item) => item.id) : [],
-                    tags: selectedTag?.length > 0 ? selectedTag?.map((item) => item?.value) : [],
-                    name: res?.name,
-                    description: res?.description,
-                    rating: 0,
-                    seo: {
-                        description: res?.seoDescription,
-                        title: res?.seoTitle,
-                    },
-                    upsells: res?.getUpsells?.length > 0 ? res?.getUpsells.map((item) => item.productId) : [],
-                    crosssells: res?.getCrosssells?.length > 0 ? res?.getCrosssells.map((item) => item.productId) : [],
-                    slug: res?.slug,
-                    order_no: menuOrder,
-                    prouctDesign: res?.prouctDesign?.length > 0 ? res?.prouctDesign?.map((item) => item.id) : [],
-                    productstyle: res?.productstyle?.length > 0 ? res?.productstyle?.map((item) => item.id) : [],
-                    productFinish: res?.productFinish?.length > 0 ? res?.productFinish?.map((item) => item.id) : [],
-                    productStoneType: res?.productStoneType?.length > 0 ? res?.productStoneType?.map((item) => item.id) : [],
-                    productItemtype: res?.productItemtype?.length > 0 ? res?.productItemtype?.map((item) => item.id) : [],
-                    productSize: res?.productSize?.length > 0 ? res?.productSize?.map((item) => item.id) : [],
-                    productStonecolor: res?.productStonecolor?.length > 0 ? res?.productStonecolor?.map((item) => item.id) : [],
-                };
+            if (selectedCat?.length == 0) {
+                Failure('Please select categories');
+                setBulkEditLoading(false);
+            } else {
+                setBulkEditLoading(true);
+                selectedRecords?.map(async (item) => {
+                    const res = await getProductDetailsById(item.id);
+                    const input = {
+                        attributes: [],
+                        category: selectedCat?.map((item) => item?.value),
+                        collections: res?.collections?.length > 0 ? res?.collections.map((item) => item.id) : [],
+                        tags: selectedTag?.length > 0 ? selectedTag?.map((item) => item?.value) : [],
+                        name: res?.name,
+                        description: res?.description,
+                        rating: 0,
+                        seo: {
+                            description: res?.seoDescription,
+                            title: res?.seoTitle,
+                        },
+                        upsells: res?.getUpsells?.length > 0 ? res?.getUpsells.map((item) => item.productId) : [],
+                        crosssells: res?.getCrosssells?.length > 0 ? res?.getCrosssells.map((item) => item.productId) : [],
+                        slug: res?.slug,
+                        order_no: menuOrder,
+                        prouctDesign: res?.prouctDesign?.length > 0 ? res?.prouctDesign?.map((item) => item.id) : [],
+                        productstyle: res?.productstyle?.length > 0 ? res?.productstyle?.map((item) => item.id) : [],
+                        productFinish: res?.productFinish?.length > 0 ? res?.productFinish?.map((item) => item.id) : [],
+                        productStoneType: res?.productStoneType?.length > 0 ? res?.productStoneType?.map((item) => item.id) : [],
+                        productItemtype: res?.productItemtype?.length > 0 ? res?.productItemtype?.map((item) => item.id) : [],
+                        productSize: res?.productSize?.length > 0 ? res?.productSize?.map((item) => item.id) : [],
+                        productStonecolor: res?.productStonecolor?.length > 0 ? res?.productStonecolor?.map((item) => item.id) : [],
+                    };
 
-                const { data } = await updateProduct({
-                    variables: {
-                        id: res?.id,
-                        input,
-                        firstValues: 10,
-                    },
+                    const { data } = await updateProduct({
+                        variables: {
+                            id: res?.id,
+                            input,
+                            firstValues: 10,
+                        },
+                    });
+
+                    if (data?.productUpdate?.errors?.length > 0) {
+                        Failure(data?.productUpdate?.errors[0]?.message);
+
+                        setBulkEditLoading(false);
+                    } else {
+                        bulkEditproductChannelListUpdate(res);
+                    }
                 });
-
-                if (data?.productUpdate?.errors?.length > 0) {
-                    Failure(data?.productUpdate?.errors[0]?.message);
-
-                    setBulkEditLoading(false);
-                } else {
-                    bulkEditproductChannelListUpdate(res);
-                }
-            });
+            }
         } catch (error) {
             setBulkEditLoading(false);
 

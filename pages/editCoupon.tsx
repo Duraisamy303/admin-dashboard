@@ -78,7 +78,12 @@ const EditCoupon = () => {
         oldCat: [],
         oldProduct: [],
         oldExcludeCat: [],
-        autoApply:false
+        autoApply: false,
+        invidual: false,
+        maxReq: { value: 'None', label: 'None' },
+        maxReqOption: [],
+        maxReqValueError: '',
+        maxReqValue: '',
     });
 
     useEffect(() => {
@@ -102,6 +107,7 @@ const EditCoupon = () => {
                 includeProducts: true,
             });
             const data = res?.data?.voucher;
+            console.log('data: ', data);
             const endDate = data?.endDate;
             if (endDate) {
                 setState({ isEndDate: true, endDate: formatDateTimeLocal(endDate) });
@@ -128,7 +134,8 @@ const EditCoupon = () => {
             }
             setState({
                 couponName: data?.name,
-                autoApply:data?.autoApply,
+                autoApply: data?.autoApply,
+                invidual: data?.invidualUseOnly,
                 codeType:
                     data?.type === 'SPECIFIC_PRODUCT' || data?.type === 'ENTIRE_ORDER'
                         ? data.discountValueType === 'FIXED'
@@ -158,6 +165,8 @@ const EditCoupon = () => {
                     ? { value: 'Limit to voucher code use once', label: 'Limit to voucher code use once' }
                     : { value: 'Limit number of times this discount can be used in total', label: 'Limit number of times this discount can be used in total' },
                 minimumReqValue: data?.channelListings[0]?.minSpent == null ? null : data?.minCheckoutItemsQuantity !== 0 ? data?.minCheckoutItemsQuantity : data?.channelListings[1]?.minSpent?.amount,
+                maxReqValue: data?.channelListings[0]?.maxSpent == null ? null : data?.maxCheckoutItemsQuantity !== 0 ? data?.maxCheckoutItemsQuantity : data?.channelListings[1]?.maxSpent?.amount,
+
             });
         } catch (error) {
             console.log('error: ', error);
@@ -259,7 +268,8 @@ const EditCoupon = () => {
         try {
             let errors: any = {};
 
-            const { couponName, generatedCodes, codeType, couponValue, minimumReq, minimumReqValue, usageLimit, usageValue, isEndDate, endDate, startDate } = state;
+            const { couponName, generatedCodes, codeType, couponValue, minimumReq, minimumReqValue, usageLimit, usageValue, isEndDate, endDate, startDate, maxReqValue, maxReqValueError, maxReq } =
+                state;
 
             if (!couponName) {
                 errors.nameError = 'Coupon name is required';
@@ -272,6 +282,9 @@ const EditCoupon = () => {
             }
             if (minimumReq.value !== 'None' && !minimumReqValue) {
                 errors.minimumReqValueError = 'Minimum requirement value is required';
+            }
+            if (maxReq.value !== 'None' && !maxReqValue) {
+                errors.maxReqValueError = 'Maximum requirement value is required';
             }
             if (usageLimit.value === 'Limit number of times this discount can be used in total' && !usageValue) {
                 errors.usageValueError = 'Usage limit value is required';
@@ -300,8 +313,8 @@ const EditCoupon = () => {
                 type: state.codeType?.value == 'Free Shipping' ? 'SHIPPING' : state.specificInfo?.value == 'Specific products' ? 'SPECIFIC_PRODUCT' : 'ENTIRE_ORDER',
                 usageLimit: state.usageLimit?.value == 'Limit number of times this discount can be used in total' ? state.usageValue : null,
                 singleUse: state.usageLimit?.value == 'Limit to voucher code use once' ? true : false,
-                autoApply:state?.autoApply,
-
+                autoApply: state?.autoApply,
+                invidualUseOnly: state.invidual,
             };
 
             const res = await updateCoupons({
@@ -340,12 +353,15 @@ const EditCoupon = () => {
                                         ? state.couponValue
                                         : null,
                                 minAmountSpent: state.minimumReq?.value == 'Minimal order value' ? state.minimumReqValue : state.minimumReq?.value == 'None' ? null : 0, // min order value  minimumReq
+                                maxAmountSpent: state.maxReq.value == 'None' ? 'null' : state.maxReqValue,
+
                             },
                             {
                                 channelId: 'Q2hhbm5lbDoy',
                                 discountValue: state.codeType?.value == 'Free Shipping' ? '100' : Number(state.couponValue),
 
                                 minAmountSpent: state.minimumReq?.value == 'Minimal order value' ? state.minimumReqValue : state.minimumReq?.value == 'None' ? null : 0, // min order value  minimumReq
+                                maxAmountSpent: state.maxReq.value == 'None' ? 'null' : state.maxReqValue,
                             },
                         ],
                         removeChannels: [],
@@ -484,11 +500,13 @@ const EditCoupon = () => {
         const arr1 = ['None', 'Minimal order value', 'Minimum quantity of items'];
         const arr2 = ['Limit number of times this discount can be used in total', 'Limit to one use per customer', 'Limit to staff only', 'Limit to voucher code use once'];
         const specificInfo = ['All products', 'Specific products'];
+        const arr3 = ['None', 'Maximum order value'];
+        const type4 = dropdown(arr3);
         const type1 = dropdown(arr1);
         const type = dropdown(arr);
         const type2 = dropdown(arr2);
         const type3 = dropdown(specificInfo);
-        setState({ codeOption: type, usageOption: type2, minimumReqOption: type1, specificInfoOption: type3 });
+        setState({ codeOption: type, usageOption: type2, minimumReqOption: type1, specificInfoOption: type3, maxReqOption: type4 });
     };
 
     const categoryList = async () => {
@@ -575,7 +593,7 @@ const EditCoupon = () => {
                                     render: (row, index) => {
                                         return (
                                             <>
-                                                <div className="">{!state.oldCodes?.includes(row)?"Draft":"Active"}</div>
+                                                <div className="">{!state.oldCodes?.includes(row) ? 'Draft' : 'Active'}</div>
                                             </>
                                         );
                                     },
@@ -587,12 +605,12 @@ const EditCoupon = () => {
                                     render: (row: any) => (
                                         <>
                                             {!state.oldCodes?.includes(row) && (
-                                            <div className=" flex w-max  gap-4">
-                                                <button type="button" className="flex hover:text-danger" onClick={() => deleteCode(row)}>
-                                                    <IconTrashLines />
-                                                </button>
-                                            </div>
-                                        )}
+                                                <div className=" flex w-max  gap-4">
+                                                    <button type="button" className="flex hover:text-danger" onClick={() => deleteCode(row)}>
+                                                        <IconTrashLines />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </>
                                     ),
                                 },
@@ -613,9 +631,9 @@ const EditCoupon = () => {
                         />
                     </div>
                 ) : (
-                    <div className='flex items-center justify-center'>
+                    <div className="flex items-center justify-center">
                         <label htmlFor="name" className=" text-sm font-medium text-gray-700">
-                        No coupon codes found
+                            No coupon codes found
                         </label>
                     </div>
                 )}
@@ -833,6 +851,43 @@ const EditCoupon = () => {
                       )
                     : null}
             </div>
+            <div className="panel flex w-full gap-5 pt-5 ">
+                <div className="col-6 md:w-6/12">
+                    <label htmlFor="name" className="block text-lg font-medium text-gray-700">
+                        Maximum Requirements
+                    </label>
+                    <Select
+                        placeholder="Maximum Requirements"
+                        options={state.maxReqOption}
+                        value={state.maxReq}
+                        onChange={(e) => {
+                            setState({ maxReq: e });
+                        }}
+                        isSearchable={false}
+                    />
+                </div>
+                {state.maxReq
+                    ? state.maxReq?.value != 'None' && (
+                          <div className="col-6 md:w-6/12">
+                              <label htmlFor="name" className="block text-lg font-medium text-gray-700">
+                                  Value
+                              </label>
+                              <div className="flex items-center gap-4">
+                                  <input
+                                      type="number"
+                                      value={state.maxReqValue}
+                                      onChange={(e) => setState({ maxReqValue: e.target.value, errors: { maxReqValueError: '' } })}
+                                      placeholder="Enter maximum order value"
+                                      name="name"
+                                      className="form-input"
+                                      required
+                                  />
+                              </div>
+                              {state.errors?.maxReqValueError && <p className="mt-[4px] text-[14px] text-red-600">{state.errors?.maxReqValueError}</p>}
+                          </div>
+                      )
+                    : null}
+            </div>
 
             <div className="panel panel mt-5 flex w-full gap-5">
                 <div className="col-6 md:w-6/12">
@@ -919,7 +974,18 @@ const EditCoupon = () => {
                 </div>
 
                 <div className="mt-5 flex items-center justify-end gap-4">
-                <div className=" flex items-center gap-3">
+                    <div className=" flex items-center gap-3">
+                        <input
+                            type="checkbox"
+                            checked={state.invidual}
+                            onChange={(e) => setState({ invidual: e.target.checked })}
+                            className="form-checkbox border-white-light dark:border-white-dark ltr:mr-0 rtl:ml-0"
+                        />
+                        <h3 className="text-md cursor-pointer font-semibold dark:text-white-light" onClick={() => setState({ invidual: !state.invidual })}>
+                            Invidual use only
+                        </h3>
+                    </div>
+                    <div className=" flex items-center gap-3">
                         <input
                             type="checkbox"
                             checked={state.autoApply}

@@ -1562,6 +1562,7 @@ export const COUPEN_DETAILS = gql`
         }
         __typename
         autoApply
+        invidualUseOnly
     }
 
     fragment Voucher on Voucher {
@@ -1589,6 +1590,11 @@ export const COUPEN_DETAILS = gql`
             discountValue
             currency
             minSpent {
+                amount
+                currency
+                __typename
+            }
+            maxSpent {
                 amount
                 currency
                 __typename

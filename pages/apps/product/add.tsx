@@ -648,7 +648,7 @@ const ProductAdd = () => {
             setVariantErrors([]);
 
             // Validation
-            const errors = validateMainFields(descr);
+            const errors = validateMainFields(JSON.parse(descr));
             console.log('errors: ', errors);
             const variantErrors = validateVariants();
             console.log('variantErrors: ', variantErrors);

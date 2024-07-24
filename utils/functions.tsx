@@ -5,6 +5,7 @@ import * as FileSaver from 'file-saver';
 import XLSX from 'sheetjs-style';
 import moment from 'moment';
 import AWS from 'aws-sdk';
+import axios from 'axios';
 
 export const accessKeyId = 'DO00MUC2HWP9YVLPXKXT';
 export const secretAccessKey = 'W9N9b51nxVBvpS59Er9aB6Ht7xx2ZXMrbf3vjBBR8OA';
@@ -619,17 +620,34 @@ export const fetchImagesFromS3 = async (searchTerm = '') => {
     });
     const params = {
         Bucket: 'prade', // Your Space name
-        Prefix: searchTerm,
     };
     try {
-        const data = await s3.listObjectsV2(params).promise();
-        const imageUrls = data.Contents.map((item) => ({
+        let allObjects = [];
+        let isTruncated = true;
+        let continuationToken = null;
+
+        while (isTruncated) {
+            const data = await s3
+                .listObjectsV2({
+                    ...params,
+                    ContinuationToken: continuationToken,
+                })
+                .promise();
+
+            allObjects = [...allObjects, ...data.Contents];
+            isTruncated = data.IsTruncated;
+            continuationToken = data.NextContinuationToken;
+        }
+
+        const searchLower = searchTerm.toLowerCase();
+        const filteredObjects = allObjects.filter((item) => item.Key.toLowerCase().includes(searchLower));
+        const imageUrls = filteredObjects.map((item) => ({
             url: `https://prade.blr1.cdn.digitaloceanspaces.com/${item.Key}`,
             key: item.Key,
             LastModified: item.LastModified,
             ...item,
         }));
-        return imageUrls.sort((a:any, b:any) => b.LastModified - a.LastModified);;
+        return imageUrls.sort((a: any, b: any) => b.LastModified - a.LastModified);
     } catch (error) {
         console.error('Error fetching images:', error);
     }
@@ -653,7 +671,26 @@ export const deleteImagesFromS3 = async (key) => {
     }
 };
 
-export const generatePresignedPost = (file) => {
+export const generateUniqueFilename = async (filename) => {
+    const existingFiles = await fetchImagesFromS3();
+
+    let uniqueFilename = filename;
+    let counter = 1;
+    let fileExists = true;
+
+    while (fileExists) {
+        fileExists = existingFiles.some((item) => item.key === uniqueFilename);
+        if (fileExists) {
+            const fileParts = filename.split('.');
+            const extension = fileParts.pop();
+            uniqueFilename = `${fileParts.join('.')}-${counter}.${extension}`;
+            counter++;
+        }
+    }
+    return uniqueFilename;
+};
+
+export const generatePresignedPost = async (file) => {
     const spacesEndpoint = new AWS.Endpoint('https://prade.blr1.digitaloceanspaces.com');
 
     const s3 = new AWS.S3({
@@ -661,10 +698,12 @@ export const generatePresignedPost = (file) => {
         accessKeyId, // Add your access key here
         secretAccessKey, // Add your secret key here
     });
+
+    const uniqueFilename = await generateUniqueFilename(file.name);
     const params = {
         Bucket: 'prade', // Your Space name
         Fields: {
-            key: file.name, // File name
+            key: uniqueFilename, // File name
             acl: 'public-read',
             // 'x-amz-meta-alt-text': metadata.altText, // Alternative Text metadata
             // 'x-amz-meta-title': metadata.title, // Title metadata
@@ -672,9 +711,9 @@ export const generatePresignedPost = (file) => {
             // 'x-amz-meta-description': metadata.description, // Description metadata
         },
         Conditions: [
-            ['content-length-range', 0, 31457280], // 30 MB limit
+            ['content-length-range', 0, 104857600], // 100 MB limit
             ['starts-with', '$Content-Type', ''], // Allow any content type
-            ['eq', '$key', file.name],
+            ['eq', '$key', uniqueFilename],
             // ['eq', '$x-amz-meta-alt-text', metadata.altText], // Validate Alternative Text
             // ['eq', '$x-amz-meta-title', metadata.title], // Validate Title
             // ['eq', '$x-amz-meta-caption', metadata.caption], // Validate Caption
@@ -686,6 +725,7 @@ export const generatePresignedPost = (file) => {
     return new Promise((resolve, reject) => {
         s3.createPresignedPost(params, (err, data) => {
             if (err) {
+                console.log('err: ', err);
                 reject(err);
             } else {
                 resolve(data);
@@ -693,7 +733,8 @@ export const generatePresignedPost = (file) => {
         });
     });
 };
-export const generatePresignedVideoPost = (file) => {
+
+export const generatePresignedVideoPost = async (file) => {
     const spacesEndpoint = new AWS.Endpoint('https://prade.blr1.digitaloceanspaces.com');
 
     const s3 = new AWS.S3({
@@ -701,16 +742,18 @@ export const generatePresignedVideoPost = (file) => {
         accessKeyId, // Add your access key here
         secretAccessKey, // Add your secret key here
     });
+    const uniqueFilename = await generateUniqueFilename(file.name);
+
     const params = {
         Bucket: 'prade', // Your Space name
         Fields: {
-            key: file.name, // File name
+            key: uniqueFilename, // File name
             acl: 'public-read',
         },
         Conditions: [
             ['content-length-range', 0, 104857600], // 100 MB limit (adjust as needed)
             ['starts-with', '$Content-Type', ''], // Ensure only MP4 files are allowed
-            ['eq', '$key', file.name],
+            ['eq', '$key', uniqueFilename],
         ],
         Expires: 60, // 1 minute expiration
     };
@@ -810,4 +853,62 @@ export const filterImages = (files) => {
         const extension = file.key.split('.').pop().toLowerCase();
         return imageExtensions.includes(extension);
     });
+};
+
+export const imageFilter = (res) => {
+    const imgFormats = ['.jpeg', '.png', '.jpg', '.webp'];
+    const endsWithAny = (url, formats) => formats.some((format) => url?.endsWith(format));
+    const filter = res?.filter((mediaItem) => endsWithAny(mediaItem.url, imgFormats));
+    return filter;
+};
+
+export const videoFilter = (res) => {
+    const mp4Formats = ['.mp4', '.webm'];
+    const endsWithAny = (url, formats) => formats.some((format) => url?.endsWith(format));
+    const filter = res?.filter((mediaItem) => endsWithAny(mediaItem.url, mp4Formats));
+    return filter;
+};
+
+export const exceptDocFilter = (res) => {
+    const excludedFormats = ['.doc', '.pdf']; // Formats to exclude
+
+    const endsWithNone = (url, formats) => !formats.some((format) => url?.endsWith(format));
+    // Filter out media items that are not in the excluded formats and are in the allowed formats
+    const filter = res?.filter((mediaItem) => endsWithNone(mediaItem.url, excludedFormats));
+
+    return filter;
+};
+
+export const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+export const addNewFile = async (e: any) => {
+    try {
+        let file = e.target.files[0];
+        let uniqueFilename = await generateUniqueFilename(file.name);
+        file = new File([file], uniqueFilename, {
+            type: file.type,
+            lastModified: file.lastModified,
+        });
+        let presignedPostData = null;
+        if (file?.name?.endsWith('.mp4')) {
+            presignedPostData = await generatePresignedVideoPost(file);
+        } else {
+            presignedPostData = await generatePresignedPost(file);
+        }
+
+        const formData = new FormData();
+        Object.keys(presignedPostData.fields).forEach((key) => {
+            formData.append(key, presignedPostData.fields[key]);
+        });
+        formData.append('file', file);
+
+        await axios.post(presignedPostData.url, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        await fetchImagesFromS3();
+    } catch (error) {
+        console.error('Error uploading file:', error);
+    }
 };

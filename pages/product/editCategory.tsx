@@ -13,10 +13,24 @@ import { CATEGORY_LIST, CREATE_CATEGORY, DELETE_CATEGORY, PRODUCT_LIST, UPDATE_C
 import { PARENT_CATEGORY_LIST } from '@/query/product';
 import IconLoader from '@/components/Icon/IconLoader';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
-import { Failure, Success, categoryImageUpload, deleteImagesFromS3, fetchImagesFromS3, filterImages, formatOptions, generatePresignedPost, objIsEmpty, profilePic } from '@/utils/functions';
+import {
+    Failure,
+    Success,
+    addNewFile,
+    categoryImageUpload,
+    deleteImagesFromS3,
+    fetchImagesFromS3,
+    filterImages,
+    formatOptions,
+    generatePresignedPost,
+    months,
+    objIsEmpty,
+    profilePic,
+} from '@/utils/functions';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import moment from 'moment';
+import CommonLoader from '../elements/commonLoader';
 
 const EditCategory = () => {
     const router = useRouter();
@@ -46,6 +60,7 @@ const EditCategory = () => {
     const [selectedCat, setSelectedCat] = useState(null);
     const [mediaMonth, setMediaMonth] = useState('all');
     const [description, setDescription] = useState('');
+    const [loadings, setLoading] = useState(false);
 
     const { data: parentList } = useQuery(PARENT_CATEGORY_LIST, {
         variables: { channel: 'india-channel' },
@@ -74,27 +89,27 @@ const EditCategory = () => {
 
     const filterByMonth = async () => {
         const res = await fetchImagesFromS3(mediaSearch);
-        if (mediaMonth !== 'all') {
+        if (mediaMonth == 'all') {
+            getMediaImage();
+        } else {
             const [month, year] = mediaMonth.split('/');
             const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
             const filteredImages = res?.filter((item) => {
                 const itemDate = new Date(item.LastModified);
                 return itemDate.getFullYear() === parseInt(year) && itemDate.getMonth() === monthIndex;
             });
-
-            setMediaImages(filteredImages);
+            const filter = filterImages(filteredImages);
+            setMediaImages(filter);
         }
-    };
-
-    const filterMediaByMonth = async (value: any) => {
-        setMediaMonth(value);
     };
 
     const getMediaImage = async () => {
         try {
+            setLoading(true);
             const res = await fetchImagesFromS3();
             const filter = filterImages(res);
             setMediaImages(filter);
+            setLoading(false);
         } catch (error) {
             console.log('error: ', error);
         }
@@ -128,6 +143,10 @@ const EditCategory = () => {
     // form submit
     const onSubmit = async () => {
         try {
+            if (name == '') {
+                Failure('Please fill the Category Name');
+                return;
+            }
             const Description = JSON.stringify({ time: Date.now(), blocks: [{ id: 'some-id', data: { text: description }, type: 'paragraph' }], version: '2.24.3' });
 
             const variables = {
@@ -156,7 +175,8 @@ const EditCategory = () => {
         setMediaSearch(e);
         try {
             const res = await fetchImagesFromS3(e);
-            setMediaImages(res);
+            const filter = filterImages(res);
+            setMediaImages(filter);
         } catch (error) {
             console.log('error: ', error);
         }
@@ -169,23 +189,13 @@ const EditCategory = () => {
         });
     };
 
-    const handleFileChange = async (e) => {
+    const handleFileChange = async (e: any) => {
         try {
-            const presignedPostData: any = await generatePresignedPost(e.target.files[0]);
-
-            const formData = new FormData();
-            Object.keys(presignedPostData.fields).forEach((key) => {
-                formData.append(key, presignedPostData.fields[key]);
-            });
-            formData.append('file', e.target.files[0]);
-
-            const response = await axios.post(presignedPostData.url, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            setLoading(true);
+            const res = await addNewFile(e);
             getMediaImage();
             setMediaTab(1);
+            setLoading(false);
         } catch (error) {
             console.error('Error uploading file:', error);
         }
@@ -317,32 +327,38 @@ const EditCategory = () => {
                                         </div>
 
                                         {mediaTab == 0 ? (
-                                            <div className="active  pt-5">
-                                                <div className="flex h-[500px] items-center justify-center">
-                                                    <div className="w-1/2 text-center">
-                                                        <h3 className="mb-2 text-xl font-semibold">Drag and drop files to upload</h3>
-                                                        <p className="mb-2 text-sm ">or</p>
-                                                        {/* <input type="file" className="mb-2 ml-32" /> */}
-                                                        <input type="file" className="mb-2 ml-32" onChange={handleFileChange} />
+                                            loadings ? (
+                                                <CommonLoader />
+                                            ) : (
+                                                <div className="active  pt-5">
+                                                    <div className="flex h-[500px] items-center justify-center">
+                                                        <div className="w-1/2 text-center">
+                                                            <h3 className="mb-2 text-xl font-semibold">Drag and drop files to upload</h3>
+                                                            <p className="mb-2 text-sm ">or</p>
+                                                            {/* <input type="file" className="mb-2 ml-32" /> */}
+                                                            <input type="file" className="mb-2 ml-32" onChange={handleFileChange} />
 
-                                                        <p className="mb-2 text-sm">Maximum upload file size: 30 MB.</p>
+                                                            <p className="mb-2 text-sm">Maximum upload file size: 30 MB.</p>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            )
+                                        ) : loadings ? (
+                                            <CommonLoader />
                                         ) : (
                                             <>
                                                 <div className="grid grid-cols-12 pt-5">
                                                     <div className="col-span-9 h-[450px] overflow-y-scroll border-r border-gray-200 pr-5">
                                                         <div>
-                                                            <div>Filter mediaFilter by type</div>
+                                                            <div>Filter by month</div>
                                                         </div>
                                                         <div className="flex justify-between gap-3 pt-3">
                                                             <div className="flex gap-3">
-                                                                <select className="form-select w-60 flex-1" value={mediaMonth} onChange={(e) => filterMediaByMonth(e.target.value)}>
+                                                                <select className="form-select w-60 flex-1" value={mediaMonth} onChange={(e) => setMediaMonth(e.target.value)}>
                                                                     <option value="all">All Data</option>
-                                                                    <option value="June/2024">June 2024</option>
-                                                                    <option value="July/2024">July 2024</option>
-                                                                    <option value="August/2024">August 2024</option>
+                                                                    {months.map((month, index) => (
+                                                                        <option key={month} value={`${month}/2024`}>{`${month} 2024`}</option>
+                                                                    ))}
                                                                 </select>
                                                             </div>
                                                             <div>

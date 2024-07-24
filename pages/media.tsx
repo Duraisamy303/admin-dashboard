@@ -1,9 +1,28 @@
 import IconX from '@/components/Icon/IconX';
-import { deleteImagesFromS3, fetchImagesFromS3, generatePresignedPost, generatePresignedVideoPost, objIsEmpty, separateFiles, showDeleteAlert, useSetState } from '@/utils/functions';
+import {
+    addNewFile,
+    deleteImagesFromS3,
+    fetchImagesFromS3,
+    generatePresignedPost,
+    generatePresignedVideoPost,
+    generateUniqueFilename,
+    imageFilter,
+    months,
+    objIsEmpty,
+    separateFiles,
+    showDeleteAlert,
+    useSetState,
+    videoFilter,
+} from '@/utils/functions';
 import axios from 'axios';
 import moment from 'moment';
 import React, { useEffect, useRef } from 'react';
 import Swal from 'sweetalert2';
+import CommonLoader from './elements/commonLoader';
+import pdf from '../public/assets/images/pdf.png';
+import docs from '../public/assets/images/docs.jpg';
+
+import Image from 'next/image';
 
 export default function Media() {
     const longPressTimeout = useRef(null);
@@ -16,16 +35,33 @@ export default function Media() {
         selectedImages: [],
         copied: false,
         longPress: false,
+        mediaType: 'all',
+        loading: false,
     });
 
     useEffect(() => {
         getMediaImage();
     }, []);
 
+    useEffect(() => {
+        filterByType();
+    }, [state.mediaType]);
+    console.log('imageList: ', state.imageList);
+
     const getMediaImage = async () => {
         try {
+            setState({ loading: true });
             const res = await fetchImagesFromS3();
-            setState({ imageList: res });
+            if (state.mediaType == 'all') {
+                setState({ imageList: res });
+            } else if (state.mediaType == 'image') {
+                const response = imageFilter(res);
+                setState({ imageList: response });
+            } else {
+                const response = videoFilter(res);
+                setState({ imageList: response });
+            }
+            setState({ loading: false });
         } catch (error) {
             console.log('error: ', error);
         }
@@ -33,37 +69,42 @@ export default function Media() {
 
     const handleFileChange = async (e: any) => {
         try {
-            let presignedPostData = null;
-            if (e.target.files[0]?.name?.endsWith('.mp4')) {
-                presignedPostData = await generatePresignedVideoPost(e.target.files[0]);
-            } else {
-                presignedPostData = await generatePresignedPost(e.target.files[0]);
-            }
-
-            const formData = new FormData();
-            Object.keys(presignedPostData.fields).forEach((key) => {
-                formData.append(key, presignedPostData.fields[key]);
-            });
-            formData.append('file', e.target.files[0]);
-
-            await axios.post(presignedPostData.url, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            setState({ loading: true });
+            const res = await addNewFile(e);
             getMediaImage();
             setState({ tab: 1 });
+            setState({ loading: false });
         } catch (error) {
             console.error('Error uploading file:', error);
         }
     };
 
+    const filterByType = async () => {
+        const res = await fetchImagesFromS3(state.search);
+        if (state.mediaType == 'all') {
+            setState({ imageList: res });
+        } else if (state.mediaType == 'image') {
+            const response = imageFilter(res);
+            setState({ imageList: response });
+        } else {
+            const response = videoFilter(res);
+            setState({ imageList: response });
+        }
+    };
 
     const searchMediaByName = async (e) => {
         setState({ search: e });
         try {
             const res = await fetchImagesFromS3(e);
-            setState({ imageList: res });
+            if (state.mediaType == 'all') {
+                setState({ imageList: res });
+            } else if (state.mediaType == 'image') {
+                const response = imageFilter(res);
+                setState({ imageList: response });
+            } else {
+                const response = videoFilter(res);
+                setState({ imageList: response });
+            }
         } catch (error) {
             console.log('error: ', error);
         }
@@ -125,6 +166,7 @@ export default function Media() {
     const filterMediaByMonth = async (value: any) => {
         if (value == 'all') {
             getMediaImage();
+            setState({ date: value });
         } else {
             const [month, year] = value.split('/');
             const monthIndex = new Date(`${month} 1, 2024`).getMonth(); // To get the month index
@@ -133,7 +175,15 @@ export default function Media() {
                 const itemDate = new Date(item.LastModified);
                 return itemDate.getFullYear() === parseInt(year) && itemDate.getMonth() === monthIndex;
             });
-            setState({ imageList: filteredImages, date: value });
+            if (state.mediaType == 'all') {
+                setState({ imageList: filteredImages, date: value });
+            } else if (state.mediaType == 'image') {
+                const response = imageFilter(filteredImages);
+                setState({ imageList: response, date: value });
+            } else {
+                const response = videoFilter(filteredImages);
+                setState({ imageList: response, date: value });
+            }
         }
     };
 
@@ -169,40 +219,73 @@ export default function Media() {
                     </div>
 
                     {state.tab == 0 ? (
-                        <div className="active  pt-5">
-                            <div className="flex h-[500px] items-center justify-center">
-                                <div className="w-1/2 text-center">
-                                    <h3 className="mb-2 text-xl font-semibold">Drag and drop files to upload</h3>
-                                    <p className="mb-2 text-sm ">or</p>
-                                    <input type="file" className="mb-2 ml-32" onChange={handleFileChange} />
+                        state.loading ? (
+                            <CommonLoader />
+                        ) : (
+                            <div className="active  pt-5">
+                                <div className="flex h-[500px] items-center justify-center">
+                                    <div className="w-1/2 text-center">
+                                        <h3 className="mb-2 text-xl font-semibold">Drag and drop files to upload</h3>
+                                        <p className="mb-2 text-sm ">or</p>
+                                        <input type="file" className="mb-2 ml-32" onChange={handleFileChange} />
 
-                                    <p className="mb-2 text-sm">Maximum upload file size: 30 MB.</p>
+                                        <p className="mb-2 text-sm">Maximum upload file size: 30 MB.</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        )
                     ) : (
                         <>
                             <div className="grid grid-cols-12 pt-5">
                                 <div className="col-span-9  overflow-y-scroll border-r border-gray-200 pr-5">
-                                    <div>
-                                        <div>Filter mediaFilter by type</div>
-                                    </div>
-                                    <div className="flex justify-between gap-3 pt-3">
-                                        <div className="flex gap-3">
-                                            <select className="form-select w-60 flex-1" value={state.date} onChange={(e) => filterMediaByMonth(e.target.value)}>
-                                                <option value="all">All Data</option>
-                                                <option value="June/2024">June 2024</option>
-                                                <option value="July/2024">July 2024</option>
-                                                <option value="August/2024">August 2024</option>
-                                            </select>
+                                    <div className="flex gap-4">
+                                        <div>
+                                            <div>Filter by type</div>
+                                            <div className="flex justify-between gap-3 pt-3">
+                                                <div className="flex gap-3">
+                                                    {/* <select className="form-select w-40 flex-1"> */}
+                                                    <select className="form-select w-60 flex-1" value={state.mediaType} onChange={(e) => setState({ mediaType: e.target.value })}>
+                                                        <option value="all">All Data</option>
+                                                        <option value="image">Images</option>
+                                                        <option value="video">Videos</option>
+                                                        {/* <option value="July/2024">July 2024</option>
+                                                                            <option value="August/2024">August 2024</option> */}
+                                                    </select>
+                                                </div>
+                                            </div>
                                         </div>
                                         <div>
-                                            <input type="text" className="form-input mr-2  w-80 " placeholder="Search..." value={state.search} onChange={(e) => searchMediaByName(e.target.value)} />
+                                            <div>Filter by month</div>
+
+                                            <div className="flex justify-between gap-3 pt-3">
+                                                <div className="flex gap-3">
+                                                    <select className="form-select w-60 flex-1" value={state.date} onChange={(e) => filterMediaByMonth(e.target.value)}>
+                                                        <option value="all">All Data</option>
+                                                        {months.map((month, index) => (
+                                                            <option key={month} value={`${month}/2024`}>{`${month} 2024`}</option>
+                                                        ))}
+                                                        {/* <option value="June/2024">June 2024</option>
+                                                        <option value="July/2024">July 2024</option>
+                                                        <option value="August/2024">August 2024</option> */}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <input
+                                                        type="text"
+                                                        className="form-input mr-2  w-80 "
+                                                        placeholder="Search..."
+                                                        value={state.search}
+                                                        onChange={(e) => searchMediaByName(e.target.value)}
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-6 pt-5">
-                                        {state.imageList?.length > 0 ? (
+                                        {state.loading ? (
+                                            <CommonLoader />
+                                        ) : state.imageList?.length > 0 ? (
                                             state.imageList?.map((item) => (
                                                 <div
                                                     key={item.url}
@@ -221,6 +304,10 @@ export default function Media() {
                                                         <video controls src={item.url} className="h-full w-full object-cover">
                                                             Your browser does not support the video tag.
                                                         </video>
+                                                    ) : item?.key?.endsWith('.pdf') ? (
+                                                        <Image src={pdf} alt="Loading..." />
+                                                    ) : item?.key?.endsWith('.doc') ? (
+                                                        <Image src={docs} alt="Loading..." />
                                                     ) : (
                                                         <img src={item.url} alt="" className="h-full w-full" />
                                                     )}
@@ -242,6 +329,10 @@ export default function Media() {
                                                     <video controls src={state.selectImg.url} className="">
                                                         Your browser does not support the video tag.
                                                     </video>
+                                                ) : state.selectImg?.key?.endsWith('.pdf') ? (
+                                                    <Image src={pdf} alt="Loading..." />
+                                                ) : state.selectImg?.key?.endsWith('.doc') ? (
+                                                    <Image src={docs} alt="Loading..." />
                                                 ) : (
                                                     <img src={state.selectImg.url} alt="" className="" />
                                                 )}

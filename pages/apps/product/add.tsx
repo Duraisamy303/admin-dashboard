@@ -66,15 +66,19 @@ import {
     Failure,
     Success,
     addCommasToNumber,
+    addNewFile,
     deleteImagesFromS3,
     fetchImagesFromS3,
     formatOptions,
     generatePresignedPost,
+    imageFilter,
     isEmptyObject,
+    months,
     objIsEmpty,
     sampleParams,
     showDeleteAlert,
     uploadImage,
+    videoFilter,
 } from '@/utils/functions';
 import IconRestore from '@/components/Icon/IconRestore';
 import { cA } from '@fullcalendar/core/internal-common';
@@ -83,6 +87,7 @@ import Modal from '@/components/Modal';
 import IconLoader from '@/components/Icon/IconLoader';
 import moment from 'moment';
 import axios from 'axios';
+import CommonLoader from '@/pages/elements/commonLoader';
 const ProductAdd = () => {
     const router = useRouter();
     const isRtl = useSelector((state: any) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
@@ -95,6 +100,7 @@ const ProductAdd = () => {
     const [modal1, setModal1] = useState(false);
     const [modal2, setModal2] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [loading, setLoading] = useState(false);
     const [mediaSearch, setMediaSearch] = useState('');
     const [mediaTab, setMediaTab] = useState(0);
     const [keyword, setKeyword] = useState('');
@@ -121,6 +127,7 @@ const ProductAdd = () => {
     const [publish, setPublish] = useState('published');
     const [modal4, setModal4] = useState(false);
     const [mediaMonth, setMediaMonth] = useState('all');
+    const [mediaType, setMediaType] = useState('all');
 
     const [formData, setFormData] = useState({
         name: '',
@@ -345,8 +352,18 @@ const ProductAdd = () => {
 
     const getMediaImage = async () => {
         try {
+            setLoading(true);
             const res = await fetchImagesFromS3();
-            setMediaImages(res);
+            if (mediaType == 'all') {
+                setMediaImages(res);
+            } else if (mediaType == 'image') {
+                const response = imageFilter(res);
+                setMediaImages(response);
+            } else {
+                const response = videoFilter(res);
+                setMediaImages(response);
+            }
+            setLoading(false);
         } catch (error) {
             console.log('error: ', error);
         }
@@ -427,19 +444,43 @@ const ProductAdd = () => {
         filterByMonth();
     }, [mediaMonth]);
 
+    useEffect(() => {
+        filterByType();
+    }, [mediaType]);
+
     const filterByMonth = async () => {
         const res = await fetchImagesFromS3(mediaSearch);
-        console.log('res: ', res);
-        if (mediaMonth !== 'all') {
+        if (mediaMonth == 'all') {
+            getMediaImage();
+        } else {
             const [month, year] = mediaMonth.split('/');
             const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
             const filteredImages = res?.filter((item) => {
                 const itemDate = new Date(item.LastModified);
                 return itemDate.getFullYear() === parseInt(year) && itemDate.getMonth() === monthIndex;
             });
-            console.log('filteredImages: ', filteredImages);
+            if (mediaType == 'all') {
+                setMediaImages(filteredImages);
+            } else if (mediaType == 'image') {
+                const response = imageFilter(filteredImages);
+                setMediaImages(response);
+            } else {
+                const response = videoFilter(filteredImages);
+                setMediaImages(response);
+            }
+        }
+    };
 
-            setMediaImages(filteredImages);
+    const filterByType = async () => {
+        const res = await fetchImagesFromS3(mediaSearch);
+        if (mediaType == 'all') {
+            setMediaImages(res);
+        } else if (mediaType == 'image') {
+            const response = imageFilter(res);
+            setMediaImages(response);
+        } else {
+            const response = videoFilter(res);
+            setMediaImages(response);
         }
     };
 
@@ -1293,24 +1334,36 @@ const ProductAdd = () => {
         }
     };
 
-    const handleFileChange = async (e) => {
+    // const handleFileChange = async (e) => {
+    //     try {
+    //         const presignedPostData: any = await generatePresignedPost(e.target.files[0]);
+
+    //         const formData = new FormData();
+    //         Object.keys(presignedPostData.fields).forEach((key) => {
+    //             formData.append(key, presignedPostData.fields[key]);
+    //         });
+    //         formData.append('file', e.target.files[0]);
+
+    //         const response = await axios.post(presignedPostData.url, formData, {
+    //             headers: {
+    //                 'Content-Type': 'multipart/form-data',
+    //             },
+    //         });
+
+    //         getMediaImage();
+    //         setMediaTab(1);
+    //     } catch (error) {
+    //         console.error('Error uploading file:', error);
+    //     }
+    // };
+
+    const handleFileChange = async (e: any) => {
         try {
-            const presignedPostData: any = await generatePresignedPost(e.target.files[0]);
-
-            const formData = new FormData();
-            Object.keys(presignedPostData.fields).forEach((key) => {
-                formData.append(key, presignedPostData.fields[key]);
-            });
-            formData.append('file', e.target.files[0]);
-
-            const response = await axios.post(presignedPostData.url, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
-
+            setLoading(true);
+            const res = await addNewFile(e);
             getMediaImage();
             setMediaTab(1);
+            setLoading(false);
         } catch (error) {
             console.error('Error uploading file:', error);
         }
@@ -1353,7 +1406,15 @@ const ProductAdd = () => {
         setMediaSearch(e);
         try {
             const res = await fetchImagesFromS3(e);
-            setMediaImages(res);
+            if (mediaType == 'all') {
+                setMediaImages(res);
+            } else if (mediaType == 'image') {
+                const response = imageFilter(res);
+                setMediaImages(response);
+            } else {
+                const response = videoFilter(res);
+                setMediaImages(response);
+            }
         } catch (error) {
             console.log('error: ', error);
         }
@@ -1361,6 +1422,10 @@ const ProductAdd = () => {
 
     const filterMediaByMonth = async (value: any) => {
         setMediaMonth(value);
+    };
+
+    const filterMediaByType = (e) => {
+        setMediaType(e);
     };
 
     return (
@@ -1917,45 +1982,68 @@ const ProductAdd = () => {
                                         </div>
 
                                         {mediaTab == 0 ? (
-                                            <div className="active  pt-5">
-                                                <div className="flex h-[500px] items-center justify-center">
-                                                    <div className="w-1/2 text-center">
-                                                        <h3 className="mb-2 text-xl font-semibold">Drag and drop files to upload</h3>
-                                                        <p className="mb-2 text-sm ">or</p>
-                                                        <input type="file" className="mb-2 ml-32" onChange={handleFileChange} />
+                                            loading ? (
+                                                <CommonLoader />
+                                            ) : (
+                                                <div className="active  pt-5">
+                                                    <div className="flex h-[500px] items-center justify-center">
+                                                        <div className="w-1/2 text-center">
+                                                            <h3 className="mb-2 text-xl font-semibold">Drag and drop files to upload</h3>
+                                                            <p className="mb-2 text-sm ">or</p>
+                                                            <input type="file" className="mb-2 ml-32" onChange={handleFileChange} />
 
-                                                        <p className="mb-2 text-sm">Maximum upload file size: 30 MB.</p>
+                                                            <p className="mb-2 text-sm">Maximum upload file size: 30 MB.</p>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            )
+                                        ) : loading ? (
+                                            <CommonLoader />
                                         ) : (
                                             <>
                                                 <div className="grid grid-cols-12 pt-5">
                                                     <div className="col-span-9 h-[450px] overflow-y-scroll border-r border-gray-200 pr-5">
-                                                        <div>
-                                                            <div>Filter mediaFilter by type</div>
-                                                        </div>
-                                                        <div className="flex justify-between gap-3 pt-3">
-                                                            <div className="flex gap-3">
-                                                                {/* <select className="form-select w-40 flex-1"> */}
-                                                                <select className="form-select w-60 flex-1" value={mediaMonth} onChange={(e) => filterMediaByMonth(e.target.value)}>
-                                                                    <option value="all">All Data</option>
-                                                                    <option value="June/2024">June 2024</option>
-                                                                    <option value="July/2024">July 2024</option>
-                                                                    <option value="August/2024">August 2024</option>
-                                                                </select>
-                                                            </div>
+                                                        <div className="flex gap-4">
                                                             <div>
-                                                                <input
-                                                                    type="text"
-                                                                    className="form-input mr-2  w-80 "
-                                                                    placeholder="Search..."
-                                                                    value={mediaSearch}
-                                                                    onChange={(e) => searchMediaByName(e.target.value)}
-                                                                />
+                                                                <div>Filter by type</div>
+                                                                <div className="flex justify-between gap-3 pt-3">
+                                                                    <div className="flex gap-3">
+                                                                        {/* <select className="form-select w-40 flex-1"> */}
+                                                                        <select className="form-select w-60 flex-1" value={mediaType} onChange={(e) => filterMediaByType(e.target.value)}>
+                                                                            <option value="all">All Data</option>
+                                                                            <option value="image">Images</option>
+                                                                            <option value="video">Videos</option>
+                                                                            {/* <option value="July/2024">July 2024</option>
+                                                                            <option value="August/2024">August 2024</option> */}
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div>
+                                                                <div>Filter by month</div>
+                                                                <div className="flex justify-between gap-3 pt-3">
+                                                                    <div className="flex gap-3">
+                                                                        {/* <select className="form-select w-40 flex-1"> */}
+                                                                        <select className="form-select w-60 flex-1" value={mediaMonth} onChange={(e) => filterMediaByMonth(e.target.value)}>
+                                                                            <option value="all">All Data</option>
+                                                                            {months.map((month, index) => (
+                                                                                <option key={month} value={`${month}/2024`}>{`${month} 2024`}</option>
+                                                                            ))}
+                                                                        </select>
+                                                                    </div>
+                                                                    <div>
+                                                                        <input
+                                                                            type="text"
+                                                                            className="form-input mr-2  w-80 "
+                                                                            placeholder="Search..."
+                                                                            value={mediaSearch}
+                                                                            onChange={(e) => searchMediaByName(e.target.value)}
+                                                                        />
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
-
                                                         <div className="grid grid-cols-6 gap-3 pt-5">
                                                             {mediaImages?.length > 0 ? (
                                                                 mediaImages?.map((item) => (

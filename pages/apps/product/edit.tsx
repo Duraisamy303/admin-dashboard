@@ -71,16 +71,20 @@ import {
     Failure,
     Success,
     addCommasToNumber,
+    addNewFile,
     deleteImagesFromS3,
     fetchImagesFromS3,
     formatOptions,
     generatePresignedPost,
     getValueByKey,
+    imageFilter,
     isEmptyObject,
+    months,
     objIsEmpty,
     sampleParams,
     showDeleteAlert,
     uploadImage,
+    videoFilter,
 } from '@/utils/functions';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import IconLoader from '@/components/Icon/IconLoader';
@@ -89,6 +93,7 @@ import axios from 'axios';
 import { productPreview } from '@/store/authConfigSlice';
 import { channel } from 'diagnostics_channel';
 import { endsWith } from 'lodash';
+import CommonLoader from '@/pages/elements/commonLoader';
 const ProductEdit = (props: any) => {
     const router = useRouter();
 
@@ -102,7 +107,7 @@ const ProductEdit = (props: any) => {
     const [selectedImg, setSelectedImg] = useState(null);
     const [selectedImages, setSelectedImages] = useState([]);
     const [mediaTab, setMediaTab] = useState(0);
-
+    const [loading, setLoading] = useState(false);
     const dispatch = useDispatch();
 
     useEffect(() => {
@@ -262,6 +267,7 @@ const ProductEdit = (props: any) => {
     const [dropIndex, setDropIndex] = useState<any>(null);
     const [updateLoading, setUpdateLoading] = useState(false);
     const [mediaMonth, setMediaMonth] = useState('all');
+    const [mediaType, setMediaType] = useState('all');
 
     const [variants, setVariants] = useState([
         {
@@ -289,12 +295,39 @@ const ProductEdit = (props: any) => {
         getMediaImage();
     }, []);
 
+    useEffect(() => {
+        filterByType();
+    }, [mediaType]);
+
     const getMediaImage = async () => {
         try {
+            setLoading(true);
             const res = await fetchImagesFromS3();
-            setMediaImages(res);
+            if (mediaType == 'all') {
+                setMediaImages(res);
+            } else if (mediaType == 'image') {
+                const response = imageFilter(res);
+                setMediaImages(response);
+            } else {
+                const response = videoFilter(res);
+                setMediaImages(response);
+            }
+            setLoading(false);
         } catch (error) {
             console.log('error: ', error);
+        }
+    };
+
+    const filterByType = async () => {
+        const res = await fetchImagesFromS3(mediaSearch);
+        if (mediaType == 'all') {
+            setMediaImages(res);
+        } else if (mediaType == 'image') {
+            const response = imageFilter(res);
+            setMediaImages(response);
+        } else {
+            const response = videoFilter(res);
+            setMediaImages(response);
         }
     };
 
@@ -331,14 +364,24 @@ const ProductEdit = (props: any) => {
 
     const filterByMonth = async () => {
         const res = await fetchImagesFromS3(mediaSearch);
-        if (mediaMonth !== 'all') {
+        if (mediaMonth == 'all') {
+            getMediaImage();
+        } else {
             const [month, year] = mediaMonth.split('/');
             const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
             const filteredImages = res?.filter((item) => {
                 const itemDate = new Date(item.LastModified);
                 return itemDate.getFullYear() === parseInt(year) && itemDate.getMonth() === monthIndex;
             });
-            setMediaImages(filteredImages);
+            if (mediaType == 'all') {
+                setMediaImages(filteredImages);
+            } else if (mediaType == 'image') {
+                const response = imageFilter(filteredImages);
+                setMediaImages(response);
+            } else {
+                const response = videoFilter(filteredImages);
+                setMediaImages(response);
+            }
         }
     };
 
@@ -649,23 +692,37 @@ const ProductEdit = (props: any) => {
     };
 
     // Function to handle file selection
-    const handleFileChange = async (e) => {
+    // const handleFileChange = async (e) => {
+    //     try {
+    //         setLoading(true);
+
+    //         const presignedPostData: any = await generatePresignedPost(e.target.files[0]);
+
+    //         const formData = new FormData();
+    //         Object.keys(presignedPostData.fields).forEach((key) => {
+    //             formData.append(key, presignedPostData.fields[key]);
+    //         });
+    //         formData.append('file', e.target.files[0]);
+
+    //         const response = await axios.post(presignedPostData.url, formData, {
+    //             headers: {
+    //                 'Content-Type': 'multipart/form-data',
+    //             },
+    //         });
+    //         getMediaImage();
+    //         setMediaTab(1);
+    //     } catch (error) {
+    //         console.error('Error uploading file:', error);
+    //     }
+    // };
+
+    const handleFileChange = async (e: any) => {
         try {
-            const presignedPostData: any = await generatePresignedPost(e.target.files[0]);
-
-            const formData = new FormData();
-            Object.keys(presignedPostData.fields).forEach((key) => {
-                formData.append(key, presignedPostData.fields[key]);
-            });
-            formData.append('file', e.target.files[0]);
-
-            const response = await axios.post(presignedPostData.url, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            setLoading(true);
+            const res = await addNewFile(e);
             getMediaImage();
             setMediaTab(1);
+            setLoading(false);
         } catch (error) {
             console.error('Error uploading file:', error);
         }
@@ -2287,43 +2344,66 @@ const ProductEdit = (props: any) => {
                                         </div>
 
                                         {mediaTab == 0 ? (
-                                            <div className="active  pt-5">
-                                                <div className="flex h-[500px] items-center justify-center">
-                                                    <div className="w-1/2 text-center">
-                                                        <h3 className="mb-2 text-xl font-semibold">Drag and drop files to upload</h3>
-                                                        <p className="mb-2 text-sm ">or</p>
-                                                        {/* <input type="file" className="mb-2 ml-32" /> */}
-                                                        <input type="file" className="mb-2 ml-32" onChange={handleFileChange} />
+                                            loading ? (
+                                                <CommonLoader />
+                                            ) : (
+                                                <div className="active  pt-5">
+                                                    <div className="flex h-[500px] items-center justify-center">
+                                                        <div className="w-1/2 text-center">
+                                                            <h3 className="mb-2 text-xl font-semibold">Drag and drop files to upload</h3>
+                                                            <p className="mb-2 text-sm ">or</p>
+                                                            {/* <input type="file" className="mb-2 ml-32" /> */}
+                                                            <input type="file" className="mb-2 ml-32" onChange={handleFileChange} />
 
-                                                        <p className="mb-2 text-sm">Maximum upload file size: 30 MB.</p>
+                                                            <p className="mb-2 text-sm">Maximum upload file size: 30 MB.</p>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            )
+                                        ) : loading ? (
+                                            <CommonLoader />
                                         ) : (
                                             <>
                                                 <div className="grid grid-cols-12 pt-5">
                                                     <div className="col-span-9 h-[450px] overflow-y-scroll border-r border-gray-200 pr-5">
-                                                        <div>
-                                                            <div>Filter mediaFilter by type</div>
-                                                        </div>
-                                                        <div className="flex justify-between gap-3 pt-3">
-                                                            <div className="flex gap-3">
-                                                                <select className="form-select w-60 flex-1" value={mediaMonth} onChange={(e) => filterMediaByMonth(e.target.value)}>
-                                                                    {/* <select className="form-select w-40 flex-1" value={mediaDate} onChange={(e) => filterMediaByMonth(e.target.value)}> */}
-                                                                    <option value="all">All Data</option>
-                                                                    <option value="June/2024">June 2024</option>
-                                                                    <option value="July/2024">July 2024</option>
-                                                                    <option value="August/2024">August 2024</option>
-                                                                </select>
+                                                        <div className="flex gap-4">
+                                                            <div>
+                                                                <div>Filter by type</div>
+                                                                <div className="flex justify-between gap-3 pt-3">
+                                                                    <div className="flex gap-3">
+                                                                        {/* <select className="form-select w-40 flex-1"> */}
+                                                                        <select className="form-select w-60 flex-1" value={mediaType} onChange={(e) => setMediaType(e.target.value)}>
+                                                                            <option value="all">All Data</option>
+                                                                            <option value="image">Images</option>
+                                                                            <option value="video">Videos</option>
+                                                                            {/* <option value="July/2024">July 2024</option>
+                                                                            <option value="August/2024">August 2024</option> */}
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                             <div>
-                                                                <input
-                                                                    type="text"
-                                                                    className="form-input mr-2 w-auto"
-                                                                    placeholder="Search..."
-                                                                    value={mediaSearch}
-                                                                    onChange={(e) => searchMediaByName(e.target.value)}
-                                                                />
+                                                                <div>Filter by month</div>
+                                                                <div className="flex justify-between gap-3 pt-3">
+                                                                    <div className="flex gap-3">
+                                                                        <select className="form-select w-60 flex-1" value={mediaMonth} onChange={(e) => filterMediaByMonth(e.target.value)}>
+                                                                            {/* <select className="form-select w-40 flex-1" value={mediaDate} onChange={(e) => filterMediaByMonth(e.target.value)}> */}
+                                                                            <option value="all">All Data</option>
+                                                                            {months.map((month, index) => (
+                                                                                <option key={month} value={`${month}/2024`}>{`${month} 2024`}</option>
+                                                                            ))}
+                                                                        </select>
+                                                                    </div>
+                                                                    <div>
+                                                                        <input
+                                                                            type="text"
+                                                                            className="form-input mr-2 w-auto"
+                                                                            placeholder="Search..."
+                                                                            value={mediaSearch}
+                                                                            onChange={(e) => searchMediaByName(e.target.value)}
+                                                                        />
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
 

@@ -1,35 +1,16 @@
-import { DataTable, DataTableSortStatus } from 'mantine-datatable';
 import React, { useEffect, useState, Fragment, useRef, useCallback } from 'react';
-import sortBy from 'lodash/sortBy';
 import { useDispatch, useSelector } from 'react-redux';
 import { setPageTitle } from '../../../store/themeConfigSlice';
-import IconBell from '@/components/Icon/IconBell';
-import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import IconTrashLines from '@/components/Icon/IconTrashLines';
-import IconPencil from '@/components/Icon/IconPencil';
-import { Button } from '@mantine/core';
-import Dropdown from '../../../components/Dropdown';
-import IconCaretDown from '@/components/Icon/IconCaretDown';
-
 import { Dialog, Transition } from '@headlessui/react';
 import IconX from '@/components/Icon/IconX';
-import Image1 from '@/public/assets/images/profile-1.jpeg';
-import Image2 from '@/public/assets/images/profile-2.jpeg';
-import Image3 from '@/public/assets/images/profile-3.jpeg';
-import { Field, Form, Formik } from 'formik';
-import * as Yup from 'yup';
 import Swal from 'sweetalert2';
-import IconEye from '@/components/Icon/IconEye';
-import { date } from 'yup/lib/locale';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
-import IconEdit from '@/components/Icon/IconEdit';
 import Select from 'react-select';
-import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
-// const ReactQuill = dynamic(import('react-quill'), { ssr: false });
-
+import pdf from '../../../public/assets/images/pdf.png';
+import docs from '../../../public/assets/images/docs.jpg';
 import { Tab } from '@headlessui/react';
 import AnimateHeight from 'react-animate-height';
 import { useMutation, useQuery } from '@apollo/client';
@@ -94,6 +75,7 @@ import { productPreview } from '@/store/authConfigSlice';
 import { channel } from 'diagnostics_channel';
 import { endsWith } from 'lodash';
 import CommonLoader from '@/pages/elements/commonLoader';
+import Image from 'next/image';
 const ProductEdit = (props: any) => {
     const router = useRouter();
 
@@ -2428,6 +2410,10 @@ const ProductEdit = (props: any) => {
                                                                             <video controls src={item.url} className="h-full w-full object-cover">
                                                                                 Your browser does not support the video tag.
                                                                             </video>
+                                                                        ) : item?.key?.endsWith('.pdf') ? (
+                                                                            <Image src={pdf} alt="Loading..." />
+                                                                        ) : item?.key?.endsWith('.doc') ? (
+                                                                            <Image src={docs} alt="Loading..." />
                                                                         ) : (
                                                                             <img src={item.url} alt="" className="h-full w-full" />
                                                                         )}
@@ -2453,13 +2439,25 @@ const ProductEdit = (props: any) => {
                                                                 <div>
                                                                     <p className="mb-2 text-lg font-semibold">ATTACHMENT DETAILS</p>
                                                                 </div>
-                                                                {selectedImg?.url?.endsWith('.mp4') ? (
+
+                                                                {selectedImg?.key?.endsWith('.mp4') ? (
+                                                                    <video controls src={selectedImg.url} className="h-full w-full object-cover">
+                                                                        Your browser does not support the video tag.
+                                                                    </video>
+                                                                ) : selectedImg?.key?.endsWith('.pdf') ? (
+                                                                    <Image src={pdf} alt="Loading..." />
+                                                                ) : selectedImg?.key?.endsWith('.doc') ? (
+                                                                    <Image src={docs} alt="Loading..." />
+                                                                ) : (
+                                                                    <img src={selectedImg.url} alt="" className="h-full w-full" />
+                                                                )}
+                                                                {/* {selectedImg?.url?.endsWith('.mp4') ? (
                                                                     <video controls src={selectedImg?.url} className="h-full w-full object-cover" style={{ height: '300px' }}>
                                                                         Your browser does not support the video tag.
                                                                     </video>
                                                                 ) : (
                                                                     <img src={selectedImg.url} alt="" className="h-full w-full" />
-                                                                )}
+                                                                )} */}
                                                                 <p className="mt-2 font-semibold">{selectedImg?.key}</p>
                                                                 <p className="text-sm">{moment(selectedImg?.LastModified).format('MMM d, yyyy')}</p>
                                                                 <p className="text-sm">{(selectedImg?.Size / 1024).toFixed(2)} KB</p>

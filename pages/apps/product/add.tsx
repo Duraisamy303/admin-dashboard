@@ -26,9 +26,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import IconEdit from '@/components/Icon/IconEdit';
 import Select from 'react-select';
-// import dynamic from 'next/dynamic';
-// import 'react-quill/dist/quill.snow.css';
-// const ReactQuill = dynamic(import('react-quill'), { ssr: false });
+import pdf from '../../../public/assets/images/pdf.png';
+import docs from '../../../public/assets/images/docs.jpg';
 
 import { Tab } from '@headlessui/react';
 import AnimateHeight from 'react-animate-height';
@@ -88,6 +87,7 @@ import IconLoader from '@/components/Icon/IconLoader';
 import moment from 'moment';
 import axios from 'axios';
 import CommonLoader from '@/pages/elements/commonLoader';
+import Image from 'next/image';
 const ProductAdd = () => {
     const router = useRouter();
     const isRtl = useSelector((state: any) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
@@ -2064,6 +2064,10 @@ const ProductAdd = () => {
                                                                             <video controls src={item.url} className="h-full w-full object-cover">
                                                                                 Your browser does not support the video tag.
                                                                             </video>
+                                                                        ) : item?.key?.endsWith('.pdf') ? (
+                                                                            <Image src={pdf} alt="Loading..." />
+                                                                        ) : item?.key?.endsWith('.doc') ? (
+                                                                            <Image src={docs} alt="Loading..." />
                                                                         ) : (
                                                                             <img src={item.url} alt="" className="h-full w-full" />
                                                                         )}
@@ -2081,12 +2085,18 @@ const ProductAdd = () => {
                                                                     <p className="mb-2 text-lg font-semibold">ATTACHMENT DETAILS</p>
                                                                 </div>
                                                                 <div>
+                                                                  
+
                                                                     {selectedImg?.key?.endsWith('.mp4') ? (
                                                                         <video controls src={selectedImg.url} className="h-full w-full object-cover">
                                                                             Your browser does not support the video tag.
                                                                         </video>
+                                                                    ) : selectedImg?.key?.endsWith('.pdf') ? (
+                                                                        <Image src={pdf} alt="Loading..." />
+                                                                    ) : selectedImg?.key?.endsWith('.doc') ? (
+                                                                        <Image src={docs} alt="Loading..." />
                                                                     ) : (
-                                                                        <img src={selectedImg?.url} alt="" />
+                                                                        <img src={selectedImg.url} alt="" className="h-full w-full" />
                                                                     )}
                                                                 </div>
                                                                 <p className="mt-2 font-semibold">{selectedImg?.key}</p>

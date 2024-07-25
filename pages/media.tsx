@@ -2,6 +2,7 @@ import IconX from '@/components/Icon/IconX';
 import {
     addNewFile,
     deleteImagesFromS3,
+    docFilter,
     fetchImagesFromS3,
     generatePresignedPost,
     generatePresignedVideoPost,
@@ -57,8 +58,11 @@ export default function Media() {
             } else if (state.mediaType == 'image') {
                 const response = imageFilter(res);
                 setState({ imageList: response });
-            } else {
+            } else if (state.mediaType == 'video') {
                 const response = videoFilter(res);
+                setState({ imageList: response });
+            } else {
+                const response = docFilter(res);
                 setState({ imageList: response });
             }
             setState({ loading: false });
@@ -86,8 +90,11 @@ export default function Media() {
         } else if (state.mediaType == 'image') {
             const response = imageFilter(res);
             setState({ imageList: response });
-        } else {
+        } else if (state.mediaType == 'video') {
             const response = videoFilter(res);
+            setState({ imageList: response });
+        } else {
+            const response = docFilter(res);
             setState({ imageList: response });
         }
     };
@@ -101,8 +108,11 @@ export default function Media() {
             } else if (state.mediaType == 'image') {
                 const response = imageFilter(res);
                 setState({ imageList: response });
-            } else {
+            } else if (state.mediaType == 'video') {
                 const response = videoFilter(res);
+                setState({ imageList: response });
+            } else {
+                const response = docFilter(res);
                 setState({ imageList: response });
             }
         } catch (error) {
@@ -197,7 +207,7 @@ export default function Media() {
                     <div className="flex gap-5">
                         <button
                             onClick={() => {
-                                setState({ tab: 0 });
+                                setState({ tab: 0, search: '', date: 'all', mediaType: 'all' });
                                 getMediaImage();
                             }}
                             className={`${state.tab == 0 ? 'bg-primary text-white !outline-none' : ''}
@@ -207,7 +217,7 @@ export default function Media() {
                         </button>
                         <button
                             onClick={() => {
-                                setState({ tab: 1 });
+                                setState({ tab: 1, search: '', date: 'all', mediaType: 'all' });
 
                                 getMediaImage();
                             }}
@@ -248,6 +258,8 @@ export default function Media() {
                                                         <option value="all">All Data</option>
                                                         <option value="image">Images</option>
                                                         <option value="video">Videos</option>
+                                                        <option value="doc">Docs</option>
+
                                                         {/* <option value="July/2024">July 2024</option>
                                                                             <option value="August/2024">August 2024</option> */}
                                                     </select>

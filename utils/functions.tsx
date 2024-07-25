@@ -869,6 +869,13 @@ export const videoFilter = (res) => {
     return filter;
 };
 
+export const docFilter = (res) => {
+    const docFormats = ['.doc', '.pdf'];
+    const endsWithAny = (url, formats) => formats.some((format) => url?.endsWith(format));
+    const filter = res?.filter((mediaItem) => endsWithAny(mediaItem.url, docFormats));
+    return filter;
+};
+
 export const exceptDocFilter = (res) => {
     const excludedFormats = ['.doc', '.pdf']; // Formats to exclude
 

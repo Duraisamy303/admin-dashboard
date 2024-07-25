@@ -67,6 +67,7 @@ import {
     addCommasToNumber,
     addNewFile,
     deleteImagesFromS3,
+    docFilter,
     fetchImagesFromS3,
     formatOptions,
     generatePresignedPost,
@@ -359,8 +360,11 @@ const ProductAdd = () => {
             } else if (mediaType == 'image') {
                 const response = imageFilter(res);
                 setMediaImages(response);
-            } else {
+            } else if (mediaType == 'video') {
                 const response = videoFilter(res);
+                setMediaImages(response);
+            } else {
+                const response = docFilter(res);
                 setMediaImages(response);
             }
             setLoading(false);
@@ -464,8 +468,11 @@ const ProductAdd = () => {
             } else if (mediaType == 'image') {
                 const response = imageFilter(filteredImages);
                 setMediaImages(response);
-            } else {
+            } else if (mediaType == 'video') {
                 const response = videoFilter(filteredImages);
+                setMediaImages(response);
+            } else {
+                const response = docFilter(filteredImages);
                 setMediaImages(response);
             }
         }
@@ -478,8 +485,11 @@ const ProductAdd = () => {
         } else if (mediaType == 'image') {
             const response = imageFilter(res);
             setMediaImages(response);
-        } else {
+        } else if (mediaType == 'video') {
             const response = videoFilter(res);
+            setMediaImages(response);
+        } else {
+            const response = docFilter(res);
             setMediaImages(response);
         }
     };
@@ -1411,8 +1421,11 @@ const ProductAdd = () => {
             } else if (mediaType == 'image') {
                 const response = imageFilter(res);
                 setMediaImages(response);
-            } else {
+            } else if (mediaType == 'video') {
                 const response = videoFilter(res);
+                setMediaImages(response);
+            } else {
+                const response = docFilter(res);
                 setMediaImages(response);
             }
         } catch (error) {
@@ -1963,6 +1976,8 @@ const ProductAdd = () => {
                                                 onClick={() => {
                                                     setMediaTab(0);
                                                     getMediaImage();
+                                                    setMediaType('all');
+                                                    setMediaMonth('all'), setMediaSearch('');
                                                 }}
                                                 className={`${mediaTab == 0 ? 'bg-primary text-white !outline-none' : ''}
                                                     -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block `}
@@ -1973,6 +1988,8 @@ const ProductAdd = () => {
                                                 onClick={() => {
                                                     setMediaTab(1);
                                                     getMediaImage();
+                                                    setMediaType('all');
+                                                    setMediaMonth('all'), setMediaSearch('');
                                                 }}
                                                 className={`${mediaTab == 1 ? 'bg-primary text-white !outline-none' : ''}
                                                     -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block `}
@@ -2013,6 +2030,8 @@ const ProductAdd = () => {
                                                                             <option value="all">All Data</option>
                                                                             <option value="image">Images</option>
                                                                             <option value="video">Videos</option>
+                                                                            <option value="doc">Docs</option>
+
                                                                             {/* <option value="July/2024">July 2024</option>
                                                                             <option value="August/2024">August 2024</option> */}
                                                                         </select>
@@ -2085,8 +2104,6 @@ const ProductAdd = () => {
                                                                     <p className="mb-2 text-lg font-semibold">ATTACHMENT DETAILS</p>
                                                                 </div>
                                                                 <div>
-                                                                  
-
                                                                     {selectedImg?.key?.endsWith('.mp4') ? (
                                                                         <video controls src={selectedImg.url} className="h-full w-full object-cover">
                                                                             Your browser does not support the video tag.

@@ -308,6 +308,7 @@ const EditCategory = () => {
                                                 onClick={() => {
                                                     setMediaTab(0);
                                                     getMediaImage();
+                                                    setMediaMonth('all'), setMediaSearch('');
                                                 }}
                                                 className={`${mediaTab == 0 ? 'bg-primary text-white !outline-none' : ''}
                                                     -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block `}
@@ -318,6 +319,7 @@ const EditCategory = () => {
                                                 onClick={() => {
                                                     setMediaTab(1);
                                                     getMediaImage();
+                                                    setMediaMonth('all'), setMediaSearch('');
                                                 }}
                                                 className={`${mediaTab == 1 ? 'bg-primary text-white !outline-none' : ''}
                                                     -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block `}

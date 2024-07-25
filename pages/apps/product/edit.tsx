@@ -54,6 +54,7 @@ import {
     addCommasToNumber,
     addNewFile,
     deleteImagesFromS3,
+    docFilter,
     fetchImagesFromS3,
     formatOptions,
     generatePresignedPost,
@@ -290,8 +291,11 @@ const ProductEdit = (props: any) => {
             } else if (mediaType == 'image') {
                 const response = imageFilter(res);
                 setMediaImages(response);
-            } else {
+            } else if (mediaType == 'video') {
                 const response = videoFilter(res);
+                setMediaImages(response);
+            } else {
+                const response = docFilter(res);
                 setMediaImages(response);
             }
             setLoading(false);
@@ -307,8 +311,11 @@ const ProductEdit = (props: any) => {
         } else if (mediaType == 'image') {
             const response = imageFilter(res);
             setMediaImages(response);
-        } else {
+        } else if (mediaType == 'video') {
             const response = videoFilter(res);
+            setMediaImages(response);
+        } else {
+            const response = docFilter(res);
             setMediaImages(response);
         }
     };
@@ -360,8 +367,11 @@ const ProductEdit = (props: any) => {
             } else if (mediaType == 'image') {
                 const response = imageFilter(filteredImages);
                 setMediaImages(response);
-            } else {
+            } else if (mediaType == 'video') {
                 const response = videoFilter(filteredImages);
+                setMediaImages(response);
+            } else {
+                const response = docFilter(filteredImages);
                 setMediaImages(response);
             }
         }
@@ -1371,7 +1381,18 @@ const ProductEdit = (props: any) => {
         setMediaSearch(e);
         try {
             const res = await fetchImagesFromS3(e);
-            setMediaImages(res);
+            if (mediaType == 'all') {
+                setMediaImages(res);
+            } else if (mediaType == 'image') {
+                const response = imageFilter(res);
+                setMediaImages(response);
+            } else if (mediaType == 'video') {
+                const response = videoFilter(res);
+                setMediaImages(response);
+            } else {
+                const response = docFilter(res);
+                setMediaImages(response);
+            }
         } catch (error) {
             console.log('error: ', error);
         }
@@ -2307,6 +2328,8 @@ const ProductEdit = (props: any) => {
                                                 onClick={() => {
                                                     setMediaTab(0);
                                                     getMediaImage();
+                                                    setMediaType('all');
+                                                    setMediaMonth('all'), setMediaSearch('');
                                                 }}
                                                 className={`${mediaTab == 0 ? 'bg-primary text-white !outline-none' : ''}
                                                     -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block `}
@@ -2317,6 +2340,8 @@ const ProductEdit = (props: any) => {
                                                 onClick={() => {
                                                     setMediaTab(1);
                                                     getMediaImage();
+                                                    setMediaType('all');
+                                                    setMediaMonth('all'), setMediaSearch('');
                                                 }}
                                                 className={`${mediaTab == 1 ? 'bg-primary text-white !outline-none' : ''}
                                                     -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block `}
@@ -2358,6 +2383,8 @@ const ProductEdit = (props: any) => {
                                                                             <option value="all">All Data</option>
                                                                             <option value="image">Images</option>
                                                                             <option value="video">Videos</option>
+                                                                            <option value="doc">Docs</option>
+
                                                                             {/* <option value="July/2024">July 2024</option>
                                                                             <option value="August/2024">August 2024</option> */}
                                                                         </select>
@@ -2543,7 +2570,10 @@ const ProductEdit = (props: any) => {
                                         </button>
                                     </div>
                                     <div className="flex h-full w-full gap-3">
-                                        <div className="panel flex  h-[600px] w-2/12 flex-col items-center overflow-scroll">
+                                        <div
+                                            className="panel scrollbar-hide  flex h-[600px] w-2/12 flex-col items-center overflow-scroll"
+                                            style={{ overflowY: 'scroll', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                        >
                                             {productPreview?.image?.length > 0 ? (
                                                 <div className="overflow-auto">
                                                     {productPreview?.image?.map((item, index) => (

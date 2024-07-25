@@ -165,7 +165,11 @@ const EditCoupon = () => {
                     ? { value: 'Limit to voucher code use once', label: 'Limit to voucher code use once' }
                     : { value: 'Limit number of times this discount can be used in total', label: 'Limit number of times this discount can be used in total' },
                 minimumReqValue: data?.channelListings[0]?.minSpent == null ? null : data?.minCheckoutItemsQuantity !== 0 ? data?.minCheckoutItemsQuantity : data?.channelListings[1]?.minSpent?.amount,
-                maxReqValue: data?.channelListings[0]?.maxSpent == null ? null : data?.maxCheckoutItemsQuantity !== 0 ? data?.maxCheckoutItemsQuantity : data?.channelListings[1]?.maxSpent?.amount,
+                maxReqValue: data?.channelListings[0]?.maxSpent == null ? null : data?.channelListings[1]?.maxSpent?.amount,
+                maxReq:
+                data?.channelListings[1]?.maxSpent == null
+                    ? { value: 'None', label: 'None' }
+                    : { value: 'Maximum order value', label: 'Maximum order value' },
 
             });
         } catch (error) {
@@ -353,7 +357,7 @@ const EditCoupon = () => {
                                         ? state.couponValue
                                         : null,
                                 minAmountSpent: state.minimumReq?.value == 'Minimal order value' ? state.minimumReqValue : state.minimumReq?.value == 'None' ? null : 0, // min order value  minimumReq
-                                maxAmountSpent: state.maxReq.value == 'None' ? 'null' : state.maxReqValue,
+                                maxAmountSpent: state.maxReq.value == 'None' ? null : state.maxReqValue,
 
                             },
                             {
@@ -361,7 +365,7 @@ const EditCoupon = () => {
                                 discountValue: state.codeType?.value == 'Free Shipping' ? '100' : Number(state.couponValue),
 
                                 minAmountSpent: state.minimumReq?.value == 'Minimal order value' ? state.minimumReqValue : state.minimumReq?.value == 'None' ? null : 0, // min order value  minimumReq
-                                maxAmountSpent: state.maxReq.value == 'None' ? 'null' : state.maxReqValue,
+                                maxAmountSpent: state.maxReq.value == 'None' ? null : state.maxReqValue,
                             },
                         ],
                         removeChannels: [],

@@ -1398,6 +1398,8 @@ export const COUPON_LIST = gql`
         startDate
         endDate
         usageLimit
+        used
+        singleUse
         type
         discountValueType
         countries {

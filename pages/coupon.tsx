@@ -40,6 +40,7 @@ const Coupon = () => {
                 started: null,
                 timesUsed: null,
             },
+            sort: { direction: 'DESC', field: 'START_DATE' },
         },
         onCompleted: (data) => {
             const products = data?.vouchers?.edges;
@@ -86,6 +87,7 @@ const Coupon = () => {
                     started: null,
                     timesUsed: null,
                 },
+                sort: { direction: 'DESC', field: 'START_DATE' },
             },
         });
     };
@@ -100,6 +102,7 @@ const Coupon = () => {
                     started: null,
                     timesUsed: null,
                 },
+                sort: { direction: 'DESC', field: 'START_DATE' },
             },
         });
     };
@@ -116,6 +119,7 @@ const Coupon = () => {
                     started: null,
                     timesUsed: null,
                 },
+                sort: { direction: 'DESC', field: 'START_DATE' },
             },
         });
     };
@@ -173,6 +177,7 @@ const Coupon = () => {
                                 { accessor: 'name', sortable: true },
                                 { accessor: 'startDate', sortable: true },
                                 { accessor: 'endDate', sortable: true },
+                                { accessor: 'Used/Limit', sortable: true },
                                 {
                                     accessor: 'autoApply',
                                     sortable: true,
@@ -245,6 +250,7 @@ const tableFormat = (products) => {
         endDate: product.node?.endDate ? moment(product.node?.endDate).format('YYYY/MM/DD [at] h:mm a') : '-',
         id: product.node?.id,
         autoApply: product.node?.autoApply,
+        'Used/Limit': `${product?.node?.used} / ${product?.node?.singleUse ? '1' : product?.node?.usageLimit == null ? '∞' : product?.node?.usageLimit}`,
     }));
 };
 

@@ -978,6 +978,7 @@ const Index = () => {
                 setSelectedCat([]);
                 setSelectedTag([]);
                 setVariantIsStackMgmt(false);
+                setExpandedRow(null)
                 setVariantQuantity(0);
                 setVariantStatus('');
                 setMenuOrder(null);
@@ -1022,7 +1023,9 @@ const Index = () => {
             setIsEditOpen(false);
         }
     };
-
+const expandedRows=(row)=>{
+    setExpandedRow(row.id === expandedRow ? null : row.id)
+}
     return (
         <div className="">
             <div className="panel mb-5 flex items-center justify-between gap-5">
@@ -1110,7 +1113,7 @@ const Index = () => {
                                                 {loadingRows[row.id] ? '...Loading' : 'Duplicate'}
                                             </button>
 
-                                            <button onClick={() => setExpandedRow(row.id === expandedRow ? null : row.id)} className=" cursor-pointer text-blue-400 underline">
+                                            <button onClick={() => expandedRows(row)} className=" cursor-pointer text-blue-400 underline">
                                                 Quick Edit
                                             </button>
                                         </div>

@@ -147,9 +147,9 @@ const CreateCoupon = () => {
             if (maxReq.value !== 'None' && !maxReqValue) {
                 errors.maxReqValueError = 'Maximum requirement value is required';
             }
-            if (usageLimit.value === 'Limit number of times this discount can be used in total' && !usageValue) {
-                errors.usageValueError = 'Usage limit value is required';
-            }
+            // if (usageLimit.value === 'Limit number of times this discount can be used in total' && !usageValue) {
+            //     errors.usageValueError = 'Usage limit value is required';
+            // }
             if (isEndDate && !endDate) {
                 errors.endDateError = 'End date is required';
             }
@@ -170,7 +170,7 @@ const CreateCoupon = () => {
                 minCheckoutItemsQuantity: minimumReq.value === 'Minimum quantity of items' ? minimumReqValue : 0,
                 startDate: startDate,
                 type: codeType.value === 'Free Shipping' ? 'SHIPPING' : 'ENTIRE_ORDER',
-                usageLimit: usageLimit.value === 'Limit number of times this discount can be used in total' ? usageValue : null,
+                usageLimit: usageLimit.value === 'Limit number of times this discount can be used in total' ? (usageValue ? usageValue : null) : null,
                 singleUse: usageLimit.value === 'Limit to voucher code use once',
                 autoApply: state.autoApply,
                 invidualUseOnly: state.invidual,
@@ -211,14 +211,14 @@ const CreateCoupon = () => {
                                         ? state.couponValue
                                         : null,
                                 minAmountSpent: state.minimumReq?.value == 'Minimal order value' ? state.minimumReqValue : state.minimumReq?.value == 'None' ? null : 0, // min order value  minimumReq
-                                maxAmountSpent: state.maxReq.value == 'None' ? 'null' : state.maxReqValue,
+                                maxAmountSpent: state.maxReq.value == 'None' ? null : state.maxReqValue,
                             },
                             {
                                 channelId: 'Q2hhbm5lbDoy',
                                 discountValue: state.codeType?.value == 'Free Shipping' ? '100' : Number(state.couponValue),
 
                                 minAmountSpent: state.minimumReq?.value == 'Minimal order value' ? state.minimumReqValue : state.minimumReq?.value == 'None' ? null : 0, // min order value  minimumReq
-                                maxAmountSpent: state.maxReq.value == 'None' ? 'null' : state.maxReqValue,
+                                maxAmountSpent: state.maxReq.value == 'None' ? null : state.maxReqValue,
                             },
                         ],
                         removeChannels: [],

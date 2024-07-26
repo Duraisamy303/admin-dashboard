@@ -56,7 +56,7 @@ const EditCoupon = () => {
         minimumReqOption: [],
         usageOption: [],
         couponValue: '',
-        usageLimit: '',
+        usageLimit: null,
         minimumReq: '',
         minimumReqValue: '',
         usageValue: '',
@@ -166,11 +166,7 @@ const EditCoupon = () => {
                     : { value: 'Limit number of times this discount can be used in total', label: 'Limit number of times this discount can be used in total' },
                 minimumReqValue: data?.channelListings[0]?.minSpent == null ? null : data?.minCheckoutItemsQuantity !== 0 ? data?.minCheckoutItemsQuantity : data?.channelListings[1]?.minSpent?.amount,
                 maxReqValue: data?.channelListings[0]?.maxSpent == null ? null : data?.channelListings[1]?.maxSpent?.amount,
-                maxReq:
-                data?.channelListings[1]?.maxSpent == null
-                    ? { value: 'None', label: 'None' }
-                    : { value: 'Maximum order value', label: 'Maximum order value' },
-
+                maxReq: data?.channelListings[1]?.maxSpent == null ? { value: 'None', label: 'None' } : { value: 'Maximum order value', label: 'Maximum order value' },
             });
         } catch (error) {
             console.log('error: ', error);
@@ -290,9 +286,9 @@ const EditCoupon = () => {
             if (maxReq.value !== 'None' && !maxReqValue) {
                 errors.maxReqValueError = 'Maximum requirement value is required';
             }
-            if (usageLimit.value === 'Limit number of times this discount can be used in total' && !usageValue) {
-                errors.usageValueError = 'Usage limit value is required';
-            }
+            // if (usageLimit.value === 'Limit number of times this discount can be used in total' && !usageValue) {
+            //     errors.usageValueError = 'Usage limit value is required';
+            // }
             if (isEndDate && !endDate) {
                 errors.endDateError = 'End date is required';
             }
@@ -315,7 +311,7 @@ const EditCoupon = () => {
                 minCheckoutItemsQuantity: state.minimumReq?.value == 'Minimum quantity of items' ? state.minimumReqValue : 0,
                 startDate: state.startDate,
                 type: state.codeType?.value == 'Free Shipping' ? 'SHIPPING' : state.specificInfo?.value == 'Specific products' ? 'SPECIFIC_PRODUCT' : 'ENTIRE_ORDER',
-                usageLimit: state.usageLimit?.value == 'Limit number of times this discount can be used in total' ? state.usageValue : null,
+                usageLimit: state.usageLimit?.value == 'Limit number of times this discount can be used in total' ? (state.usageValue ? state.usageValue : null) : null,
                 singleUse: state.usageLimit?.value == 'Limit to voucher code use once' ? true : false,
                 autoApply: state?.autoApply,
                 invidualUseOnly: state.invidual,
@@ -358,7 +354,6 @@ const EditCoupon = () => {
                                         : null,
                                 minAmountSpent: state.minimumReq?.value == 'Minimal order value' ? state.minimumReqValue : state.minimumReq?.value == 'None' ? null : 0, // min order value  minimumReq
                                 maxAmountSpent: state.maxReq.value == 'None' ? null : state.maxReqValue,
-
                             },
                             {
                                 channelId: 'Q2hhbm5lbDoy',

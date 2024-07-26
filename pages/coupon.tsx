@@ -32,7 +32,6 @@ const Coupon = () => {
 
     const { loading: getLoading, refetch: fetchLowStockList } = useQuery(COUPON_LIST, {
         variables: {
-            channel: 'india-channel',
             first: PAGE_SIZE,
             after: null,
             filter: {
@@ -80,7 +79,6 @@ const Coupon = () => {
     const handleNextPage = () => {
         fetchNextPage({
             variables: {
-                channel: 'india-channel',
                 first: PAGE_SIZE,
                 after: endCursor,
                 filter: {
@@ -95,7 +93,6 @@ const Coupon = () => {
     const handlePreviousPage = () => {
         fetchPreviousPage({
             variables: {
-                channel: 'india-channel',
                 last: PAGE_SIZE,
                 before: startCursor,
                 filter: {
@@ -111,7 +108,6 @@ const Coupon = () => {
         setSearch(e);
         fetchLowStockList({
             variables: {
-                channel: 'india-channel',
                 first: PAGE_SIZE,
                 after: null,
                 filter: {

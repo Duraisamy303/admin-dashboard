@@ -9,6 +9,7 @@ import { ABANDONT_CART_LIST, PRODUCT_PREV_PAGINATION } from '@/query/product';
 import IconArrowBackward from '@/components/Icon/IconArrowBackward';
 import IconArrowForward from '@/components/Icon/IconArrowForward';
 import { useRouter } from 'next/router';
+import IconEdit from '@/components/Icon/IconEdit';
 
 const PAGE_SIZE = 20;
 
@@ -32,6 +33,7 @@ const AbandonedCarts = () => {
         },
         onCompleted: (data) => {
             const products = data?.abandonedCarts?.edges;
+            console.log('products: ', products);
             const pageInfo = data?.abandonedCarts?.pageInfo;
             setRecordsData(tableFormat(products));
             setStartCursor(pageInfo?.startCursor || null);
@@ -87,10 +89,10 @@ const AbandonedCarts = () => {
 
     return (
         <div>
+            <div className="panel mb-5 flex flex-col gap-5 md:flex-row md:items-center">
+                <h5 className="text-lg font-semibold dark:text-white-light">Abandoned Carts</h5>
+            </div>
             <div className="panel mt-6">
-                <div className="mb-5 flex-col gap-5 md:flex md:flex-row md:items-center">
-                    <h5 className="text-lg font-semibold dark:text-white-light">Abandoned Carts</h5>
-                </div>
                 {getLoading ? (
                     <CommonLoader />
                 ) : (
@@ -104,12 +106,22 @@ const AbandonedCarts = () => {
                                     sortable: true,
 
                                     render: (row) => (
-                                        <div className="cursor-pointer" onClick={() => router.push(`/customer/edit?id=${row.customerId}`)}>
+                                        <div className="cursor-pointer text-info underline" onClick={() => router.push(`/customer/edit?id=${row.customerId}`)}>
                                             {row.name}
                                         </div>
                                     ),
                                 },
                                 { accessor: 'email', sortable: true },
+                                {
+                                    accessor: 'product',
+                                    sortable: true,
+                                    render: (row) => (
+                                        <button className="flex text-info underline" onClick={() => window.open(`http://www1.prade.in/product-details/${row.productId}`, '_blank')}>
+                                            {row.product}
+                                        </button>
+                                    ),
+                                },
+
                                 { accessor: 'note', sortable: true },
                                 { accessor: 'date', sortable: true },
                             ]}
@@ -149,6 +161,8 @@ const tableFormat = (products) => {
         note: product?.node?.logNote,
         date: moment(product.node?.time).format('YYYY/MM/DD [at] h:mm a'),
         customerId: product?.node?.customer?.id,
+        product: product?.node?.productName,
+        productId: product?.node?.productId,
     }));
 };
 

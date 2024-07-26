@@ -2018,15 +2018,22 @@ export const ABANDONT_CART_LIST = gql`
                         firstName
                         lastName
                         id
+                        __typename
                     }
+                    __typename
+                    productName
+                    productId
                 }
+                __typename
             }
             pageInfo {
                 endCursor
                 startCursor
                 hasNextPage
                 hasPreviousPage
+                __typename
             }
+            __typename
         }
     }
 `;
@@ -16272,6 +16279,12 @@ export const EXPORT_LIST = gql`
                     status
                     paymentStatus
                 }
+            }
+            pageInfo {
+                endCursor
+                hasNextPage
+                hasPreviousPage
+                startCursor
             }
         }
     }

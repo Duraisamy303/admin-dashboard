@@ -186,7 +186,7 @@ export default function QuickEdit(props: any) {
             const errors:any = {};
             if (!variant.sku) errors.sku = 'SKU cannot be empty';
             // if (variant.quantity <= 0 || isNaN(variant.quantity)) errors.quantity = 'Quantity must be a valid number and greater than 0';
-            // if (variant.regularPrice <= 0 || isNaN(variant.regularPrice)) errors.regularPrice = 'Regular Price must be a valid number and greater than 0';
+            if (variant.regularPrice <= 0 || isNaN(variant.regularPrice)) errors.regularPrice = 'Price must be a valid number and greater than 0';
             // if (!variant.stackMgmt) errors.stackMgmt = 'Check Stack Management';
             return errors;
         });
@@ -581,7 +581,6 @@ export default function QuickEdit(props: any) {
                                             placeholder="Enter Quantity"
                                             className="form-input"
                                         />
-                                        {/* {variantErrors[index]?.quantity && <p className="error-message mt-1 text-red-500">{variantErrors[index].quantity}</p>} */}
                                     </div>
                                 </div>
                                 <div className="active flex items-center">
@@ -601,7 +600,8 @@ export default function QuickEdit(props: any) {
                                             placeholder="Enter Regular Price"
                                             className="form-input"
                                         />
-                                        {/* {variantErrors[index]?.regularPrice && <p className="error-message mt-1 text-red-500">{variantErrors[index].regularPrice}</p>} */}
+                                       {state.variantError[index]?.regularPrice && <p className="error-message mt-1 text-red-500">{state.variantError[index].regularPrice}</p>} 
+
                                     </div>
                                 </div>
                                 {index !== 0 && ( // Render remove button only for items after the first one

@@ -37,6 +37,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import Select from 'react-select';
 import IconMenuReport from '@/components/Icon/Menu/IconMenuReport';
 import IconX from '@/components/Icon/IconX';
+import ErrorMessage from '@/components/Layouts/ErrorMessage';
 
 const Index = () => {
     const PAGE_SIZE = 20;
@@ -53,9 +54,46 @@ const Index = () => {
     const [status, setStatus] = useState('');
     const [parentLists, setParentLists] = useState([]);
     const [categoryOption, setCategoryOption] = useState([]);
+    const [initialCatOption, setInitialCatOption] = useState([]);
+    const [initialCatVal, setInitialCatVal] = useState({
+        value: 'no_changes',
+        label: 'No changes',
+    });
+    const [initialTagVal, setInitialTagVal] = useState({
+        value: 'no_changes',
+        label: 'No changes',
+    });
+
+    const [initialVariantVal, setInitialVariantVal] = useState({
+        value: 'no_changes',
+        label: 'No changes',
+    });
+
+    const [initialStockVal, setInitialStockVal] = useState({
+        value: 'no_changes',
+        label: 'No changes',
+    });
+
+    const [initialPriceVal, setInitialPriceVal] = useState({
+        value: 'no_changes',
+        label: 'No changes',
+    });
+
+    const [initialQtyVal, setInitialQtyVal] = useState({
+        value: 'no_changes',
+        label: 'No changes',
+    });
+    const [initialOrderVal, setInitialOrderVal] = useState({
+        value: 'no_changes',
+        label: 'No changes',
+    });
+
     const [tagOption, setTagOption] = useState([]);
     const [selectedRecords, setSelectedRecords] = useState([]);
     const [selectedCat, setSelectedCat] = useState([]);
+    const [bulkCatError, setBulkCatError] = useState('');
+    const [bulkPriceError, setBulkPriceError] = useState('');
+    const [bulkMenuError, setBulkMenuError] = useState('');
     const [selectedTag, setSelectedTag] = useState([]);
     const [variantName, setVariantName] = useState('');
     const [variantIsStackMgmt, setVariantIsStackMgmt] = useState(false);
@@ -123,7 +161,20 @@ const Index = () => {
     useEffect(() => {
         const getparentCategoryList = parentList?.categories?.edges;
         const options = formatOptions(getparentCategoryList);
+
         setCategoryOption(options);
+
+        const initialCatOption = [
+            {
+                value: 'no_changes',
+                label: 'No changes',
+            },
+            {
+                value: 'change to',
+                label: 'Change to :',
+            },
+        ];
+        setInitialCatOption(initialCatOption);
     }, [parentList]);
 
     useEffect(() => {
@@ -735,57 +786,107 @@ const Index = () => {
         }
     };
 
+    const setCategory = (res) => {
+        let arr = [];
+        if (initialCatVal?.value == 'no_changes') {
+            if (res?.length > 0) {
+                arr = res?.map((item) => item?.id);
+            } else {
+                arr = [];
+            }
+        } else {
+            arr = selectedCat?.map((item) => item?.value);
+        }
+        return arr;
+    };
+
+    const setTags = (res) => {
+        let arr = [];
+        if (initialTagVal?.value == 'no_changes') {
+            if (res?.length > 0) {
+                arr = res?.map((item) => item?.id);
+            } else {
+                arr = [];
+            }
+        } else {
+            if (selectedTag?.length > 0) {
+                arr = selectedTag?.map((item) => item?.value);
+            } else {
+                arr = [];
+            }
+        }
+        return arr;
+    };
+
     const bulkUpdates = async () => {
         try {
-            if (selectedCat?.length == 0) {
-                Failure('Please select categories');
-                setBulkEditLoading(false);
-            } else {
-                setBulkEditLoading(true);
-                selectedRecords?.map(async (item) => {
-                    const res = await getProductDetailsById(item.id);
-                    const input = {
-                        attributes: [],
-                        category: selectedCat?.map((item) => item?.value),
-                        collections: res?.collections?.length > 0 ? res?.collections.map((item) => item.id) : [],
-                        tags: selectedTag?.length > 0 ? selectedTag?.map((item) => item?.value) : [],
-                        name: res?.name,
-                        description: res?.description,
-                        rating: 0,
-                        seo: {
-                            description: res?.seoDescription,
-                            title: res?.seoTitle,
-                        },
-                        upsells: res?.getUpsells?.length > 0 ? res?.getUpsells.map((item) => item.productId) : [],
-                        crosssells: res?.getCrosssells?.length > 0 ? res?.getCrosssells.map((item) => item.productId) : [],
-                        slug: res?.slug,
-                        order_no: menuOrder,
-                        prouctDesign: res?.prouctDesign?.length > 0 ? res?.prouctDesign?.map((item) => item.id) : [],
-                        productstyle: res?.productstyle?.length > 0 ? res?.productstyle?.map((item) => item.id) : [],
-                        productFinish: res?.productFinish?.length > 0 ? res?.productFinish?.map((item) => item.id) : [],
-                        productStoneType: res?.productStoneType?.length > 0 ? res?.productStoneType?.map((item) => item.id) : [],
-                        productItemtype: res?.productItemtype?.length > 0 ? res?.productItemtype?.map((item) => item.id) : [],
-                        productSize: res?.productSize?.length > 0 ? res?.productSize?.map((item) => item.id) : [],
-                        productStonecolor: res?.productStonecolor?.length > 0 ? res?.productStonecolor?.map((item) => item.id) : [],
-                    };
+            let hasError = false;
 
-                    const { data } = await updateProduct({
-                        variables: {
-                            id: res?.id,
-                            input,
-                            firstValues: 10,
-                        },
-                    });
-
-                    if (data?.productUpdate?.errors?.length > 0) {
-                        Failure(data?.productUpdate?.errors[0]?.message);
-
-                        setBulkEditLoading(false);
-                    } else {
-                        bulkEditproductChannelListUpdate(res);
-                    }
-                });
+            if (initialCatVal?.value == 'change to') {
+                if (selectedCat?.length == 0) {
+                    setBulkCatError('Please select categories');
+                    hasError = true;
+                }
             }
+            if (initialOrderVal?.value == 'change to') {
+                if (menuOrder == null) {
+                    setBulkMenuError('Please enter the order number');
+                    hasError = true;
+                }
+            }
+            if (initialPriceVal?.value == 'change to') {
+                if (variantPrice == 0) {
+                    setBulkPriceError('Price must be a valid number and greater than 0');
+                    hasError = true;
+                }
+            }
+            if (hasError) {
+                return;
+            }
+
+            setBulkEditLoading(true);
+            selectedRecords?.map(async (item) => {
+                const res = await getProductDetailsById(item.id);
+                const input = {
+                    attributes: [],
+                    category: setCategory(res?.category),
+                    collections: res?.collections?.length > 0 ? res?.collections.map((item) => item.id) : [],
+                    tags: setTags(res?.tags),
+                    name: res?.name,
+                    description: res?.description,
+                    rating: 0,
+                    seo: {
+                        description: res?.seoDescription,
+                        title: res?.seoTitle,
+                    },
+                    upsells: res?.getUpsells?.length > 0 ? res?.getUpsells.map((item) => item.productId) : [],
+                    crosssells: res?.getCrosssells?.length > 0 ? res?.getCrosssells.map((item) => item.productId) : [],
+                    slug: res?.slug,
+                    order_no: initialOrderVal?.value == 'no_changes' ? res?.orderNo : menuOrder,
+                    prouctDesign: res?.prouctDesign?.length > 0 ? res?.prouctDesign?.map((item) => item.id) : [],
+                    productstyle: res?.productstyle?.length > 0 ? res?.productstyle?.map((item) => item.id) : [],
+                    productFinish: res?.productFinish?.length > 0 ? res?.productFinish?.map((item) => item.id) : [],
+                    productStoneType: res?.productStoneType?.length > 0 ? res?.productStoneType?.map((item) => item.id) : [],
+                    productItemtype: res?.productItemtype?.length > 0 ? res?.productItemtype?.map((item) => item.id) : [],
+                    productSize: res?.productSize?.length > 0 ? res?.productSize?.map((item) => item.id) : [],
+                    productStonecolor: res?.productStonecolor?.length > 0 ? res?.productStonecolor?.map((item) => item.id) : [],
+                };
+
+                const { data } = await updateProduct({
+                    variables: {
+                        id: res?.id,
+                        input,
+                        firstValues: 10,
+                    },
+                });
+
+                if (data?.productUpdate?.errors?.length > 0) {
+                    Failure(data?.productUpdate?.errors[0]?.message);
+                    setBulkEditLoading(false);
+                } else {
+                    bulkEditproductChannelListUpdate(res);
+                }
+            });
         } catch (error) {
             setBulkEditLoading(false);
 
@@ -804,7 +905,7 @@ const Index = () => {
                                 availableForPurchaseDate: null,
                                 channelId: 'Q2hhbm5lbDoy',
                                 isAvailableForPurchase: true,
-                                isPublished: variantStatus == 'draft' ? false : true,
+                                isPublished: variantStatus == 'no_changes' ? (res?.channelListings[0]?.isPublished == true ? 'published' : 'draft') : variantStatus == 'draft' ? false : true,
                                 publicationDate: null,
                                 visibleInListings: true,
                             },
@@ -833,21 +934,21 @@ const Index = () => {
                 attributes: [],
                 id: item.id,
                 sku: item?.sku,
-                name: variantName,
-                trackInventory: variantIsStackMgmt,
+                name: initialVariantVal?.value == 'no_changes' ? item?.name : variantName,
+                trackInventory: initialStockVal?.value == 'no_changes' ? item?.trackInventory : variantIsStackMgmt,
                 channelListings: {
                     update: [
                         {
                             channelListing: item.channelListings[0]?.id,
-                            price: variantPrice,
-                            costPrice: variantPrice,
+                            price: initialPriceVal?.value == 'no_changes' ? item.channelListings[0]?.costPrice?.amount : variantPrice,
+                            costPrice: initialPriceVal?.value == 'no_changes' ? item.channelListings[0]?.costPrice?.amount : variantPrice,
                         },
                     ],
                 },
                 stocks: {
                     update: [
                         {
-                            quantity: variantQuantity,
+                            quantity: initialQtyVal?.value == 'no_changes' ? item?.stocks[0]?.quantity : variantQuantity,
                             stock: item?.stocks[0]?.id,
                         },
                     ],
@@ -880,6 +981,30 @@ const Index = () => {
                 setVariantQuantity(0);
                 setVariantStatus('');
                 setMenuOrder(null);
+                setInitialCatVal({
+                    value: 'no_changes',
+                    label: 'No changes',
+                });
+                setInitialTagVal({
+                    value: 'no_changes',
+                    label: 'No changes',
+                });
+                setInitialVariantVal({
+                    value: 'no_changes',
+                    label: 'No changes',
+                });
+                setInitialStockVal({
+                    value: 'no_changes',
+                    label: 'No changes',
+                });
+                setInitialQtyVal({
+                    value: 'no_changes',
+                    label: 'No changes',
+                });
+                setInitialPriceVal({
+                    value: 'no_changes',
+                    label: 'No changes',
+                });
             }
         } catch (error) {
             setBulkEditLoading(false);
@@ -1130,32 +1255,42 @@ const Index = () => {
                                                     <h5 className=" block text-lg font-medium text-gray-700">Product Categories</h5>
                                                 </div>
                                                 <div className="">
-                                                    <Select
-                                                        isMulti
-                                                        value={selectedCat}
-                                                        onChange={(e: any) => setSelectedCat(e)}
-                                                        options={categoryOption}
-                                                        placeholder="Select categories..."
-                                                        // className="form-select"
-                                                    />
-
-                                                    {/* {categoryErrMsg && <p className="error-message mt-1 text-red-500 ">{categoryErrMsg}</p>} */}
+                                                    <Select value={initialCatVal} onChange={(e: any) => setInitialCatVal(e)} options={initialCatOption} placeholder="Select categories..." />
+                                                    {initialCatVal?.value == 'change to' && (
+                                                        <div className="mt-4">
+                                                            <Select
+                                                                isMulti
+                                                                value={selectedCat}
+                                                                onChange={(e: any) => {
+                                                                    setSelectedCat(e);
+                                                                    setBulkCatError('');
+                                                                }}
+                                                                options={categoryOption}
+                                                                placeholder="Select categories..."
+                                                                // className="form-select"
+                                                            />
+                                                            {bulkCatError && <ErrorMessage message={bulkCatError} />}
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div className="mb-5 mt-4 border-b border-gray-200 pb-2">
                                                     <h5 className=" block text-lg font-medium text-gray-700">Product Tags</h5>
                                                 </div>
                                                 <div className="">
-                                                    <Select
-                                                        placeholder="Select Tags"
-                                                        options={tagOption}
-                                                        value={selectedTag}
-                                                        onChange={(data: any) => setSelectedTag(data)}
-                                                        isSearchable={true}
-                                                        isMulti
-                                                    />
-
-                                                    {/* {categoryErrMsg && <p className="error-message mt-1 text-red-500 ">{categoryErrMsg}</p>} */}
+                                                    <Select value={initialTagVal} onChange={(e: any) => setInitialTagVal(e)} options={initialCatOption} placeholder="Select categories..." />
+                                                    {initialTagVal?.value == 'change to' && (
+                                                        <div className="mt-4">
+                                                            <Select
+                                                                placeholder="Select Tags"
+                                                                options={tagOption}
+                                                                value={selectedTag}
+                                                                onChange={(data: any) => setSelectedTag(data)}
+                                                                isSearchable={true}
+                                                                isMulti
+                                                            />
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="mb-5 mt-4 border-b border-gray-200 pb-2">
                                                     <h5 className=" block text-lg font-medium text-gray-700">Variants</h5>
@@ -1169,37 +1304,29 @@ const Index = () => {
                                                                 </label>
                                                             </div>
                                                             <div className="mb-5" style={{ width: '80%' }}>
-                                                                <input
-                                                                    type="text"
-                                                                    id={`name`}
-                                                                    name={`name`}
-                                                                    value={variantName}
-                                                                    onChange={(e) => setVariantName(e.target.value)}
-                                                                    style={{ width: '100%' }}
-                                                                    placeholder="Enter variants"
-                                                                    className="form-input"
+                                                                <Select
+                                                                    value={initialVariantVal}
+                                                                    onChange={(e: any) => setInitialVariantVal(e)}
+                                                                    options={initialCatOption}
+                                                                    placeholder="Select categories..."
                                                                 />
+                                                                {initialVariantVal?.value == 'change to' && (
+                                                                    <div className="mt-4">
+                                                                        <input
+                                                                            type="text"
+                                                                            id={`name`}
+                                                                            name={`name`}
+                                                                            value={variantName}
+                                                                            onChange={(e) => setVariantName(e.target.value)}
+                                                                            style={{ width: '100%' }}
+                                                                            placeholder="Enter variants"
+                                                                            className="form-input"
+                                                                        />
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
-                                                        {/* <div className="active flex items-center">
-                                                            <div className="mb-5 w-1/12 ">
-                                                                <label htmlFor={`sku`} className="block pr-5 text-sm font-medium text-gray-700">
-                                                                    SKU
-                                                                </label>
-                                                            </div>
-                                                            <div className="mb-5 w-9/12">
-                                                                <input
-                                                                    type="text"
-                                                                    id={`sku`}
-                                                                    name={`sku`}
-                                                                    value={variantSku}
-                                                                    onChange={(e) => setVariantSku(e.target.value)}
-                                                                    style={{ width: '100%' }}
-                                                                    placeholder="Enter SKU"
-                                                                    className="form-input"
-                                                                />
-                                                            </div>
-                                                        </div> */}
+
                                                         <div className="active flex items-center">
                                                             <div className="mb-5 mr-4 pr-4">
                                                                 <label htmlFor={`stackMgmt`} className="block  text-sm font-medium text-gray-700">
@@ -1207,16 +1334,25 @@ const Index = () => {
                                                                 </label>
                                                             </div>
                                                             <div className="mb-5" style={{ width: '80%' }}>
-                                                                <input
-                                                                    type="checkbox"
-                                                                    id={`stackMgmt`}
-                                                                    name={`stackMgmt`}
-                                                                    checked={variantIsStackMgmt}
-                                                                    onChange={(e) => setVariantIsStackMgmt(e.target.checked)}
-                                                                    className="form-checkbox"
+                                                                <Select
+                                                                    value={initialStockVal}
+                                                                    onChange={(e: any) => setInitialStockVal(e)}
+                                                                    options={initialCatOption}
+                                                                    placeholder="Select categories..."
                                                                 />
-                                                                <span>Track stock quantity for this product</span>
-                                                                {/* {variantErrors[index]?.stackMgmt && <p className="error-message mt-1 text-red-500">{variantErrors[index].stackMgmt}</p>} */}
+                                                                {initialStockVal?.value == 'change to' && (
+                                                                    <div className="mt-4">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            id={`stackMgmt`}
+                                                                            name={`stackMgmt`}
+                                                                            checked={variantIsStackMgmt}
+                                                                            onChange={(e) => setVariantIsStackMgmt(e.target.checked)}
+                                                                            className="form-checkbox"
+                                                                        />
+                                                                        <span>Track stock quantity for this product</span>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <div>
@@ -1227,17 +1363,26 @@ const Index = () => {
                                                                     </label>
                                                                 </div>
                                                                 <div className="mb-5" style={{ width: '80%' }}>
-                                                                    <input
-                                                                        type="number"
-                                                                        id={`quantity`}
-                                                                        name={`quantity`}
-                                                                        value={variantQuantity}
-                                                                        onChange={(e) => setVariantQuantity(parseInt(e.target.value))}
-                                                                        style={{ width: '100%' }}
-                                                                        placeholder="Enter Quantity"
-                                                                        className="form-input"
+                                                                    <Select
+                                                                        value={initialQtyVal}
+                                                                        onChange={(e: any) => setInitialQtyVal(e)}
+                                                                        options={initialCatOption}
+                                                                        placeholder="Select categories..."
                                                                     />
-                                                                    {/* {variantErrors[index]?.quantity && <p className="error-message mt-1 text-red-500">{variantErrors[index].quantity}</p>} */}
+                                                                    {initialQtyVal?.value == 'change to' && (
+                                                                        <div className="mt-5" style={{ width: '80%' }}>
+                                                                            <input
+                                                                                type="number"
+                                                                                id={`quantity`}
+                                                                                name={`quantity`}
+                                                                                value={variantQuantity}
+                                                                                onChange={(e) => setVariantQuantity(parseInt(e.target.value))}
+                                                                                style={{ width: '100%' }}
+                                                                                placeholder="Enter Quantity"
+                                                                                className="form-input"
+                                                                            />
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                             <div className="active flex items-center">
@@ -1247,17 +1392,30 @@ const Index = () => {
                                                                     </label>
                                                                 </div>
                                                                 <div className="mb-5">
-                                                                    <input
-                                                                        type="number"
-                                                                        id={`regularPrice`}
-                                                                        name={`regularPrice`}
-                                                                        value={variantPrice}
-                                                                        onChange={(e) => setVariantPrice(parseFloat(e.target.value))}
-                                                                        style={{ width: '100%' }}
-                                                                        placeholder="Enter Regular Price"
-                                                                        className="form-input"
+                                                                    <Select
+                                                                        value={initialPriceVal}
+                                                                        onChange={(e: any) => setInitialPriceVal(e)}
+                                                                        options={initialCatOption}
+                                                                        placeholder="Select categories..."
                                                                     />
-                                                                    {/* {variantErrors[index]?.regularPrice && <p className="error-message mt-1 text-red-500">{variantErrors[index].regularPrice}</p>} */}
+                                                                    {initialPriceVal?.value == 'change to' && (
+                                                                        <div className="mt-5">
+                                                                            <input
+                                                                                type="number"
+                                                                                id={`regularPrice`}
+                                                                                name={`regularPrice`}
+                                                                                value={variantPrice}
+                                                                                onChange={(e) => {
+                                                                                    setVariantPrice(parseFloat(e.target.value));
+                                                                                    setBulkPriceError('');
+                                                                                }}
+                                                                                style={{ width: '100%' }}
+                                                                                placeholder="Enter Regular Price"
+                                                                                className="form-input"
+                                                                            />
+                                                                            {bulkPriceError && <ErrorMessage message={bulkPriceError} />}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -1267,6 +1425,7 @@ const Index = () => {
                                                                 <h5 className=" block text-lg font-medium text-gray-700">Status</h5>
                                                                 <div className="mb-5 w-full pr-3">
                                                                     <select className="form-select  flex-1 " value={variantStatus} onChange={(e) => setVariantStatus(e.target.value)}>
+                                                                        <option value="no_changes">No Changes</option>
                                                                         <option value="published">Published</option>
                                                                         <option value="draft">Draft</option>
                                                                     </select>
@@ -1275,15 +1434,29 @@ const Index = () => {
                                                             <div className="active w-6/12  items-center">
                                                                 <h5 className=" block text-lg font-medium text-gray-700">Menu Order</h5>
                                                                 <div className="mb-5 w-full pr-3">
-                                                                    <input
-                                                                        type="number"
-                                                                        name={`menuOrder`}
-                                                                        value={menuOrder}
-                                                                        onChange={(e) => setMenuOrder(e.target.value)}
-                                                                        style={{ width: '100%' }}
-                                                                        placeholder="Product Order Number"
-                                                                        className="form-input"
+                                                                    <Select
+                                                                        value={initialOrderVal}
+                                                                        onChange={(e: any) => setInitialOrderVal(e)}
+                                                                        options={initialCatOption}
+                                                                        placeholder="Select categories..."
                                                                     />
+                                                                    {initialOrderVal?.value == 'change to' && (
+                                                                        <div className="mt-5">
+                                                                            <input
+                                                                                type="number"
+                                                                                name={`menuOrder`}
+                                                                                value={menuOrder}
+                                                                                onChange={(e) => {
+                                                                                    setMenuOrder(e.target.value);
+                                                                                    setBulkMenuError('');
+                                                                                }}
+                                                                                style={{ width: '100%' }}
+                                                                                placeholder="Product Order Number"
+                                                                                className="form-input"
+                                                                            />
+                                                                            {bulkMenuError && <ErrorMessage message={bulkMenuError} />}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         </div>

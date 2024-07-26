@@ -765,7 +765,7 @@ const ProductEdit = (props: any) => {
             const errors: any = {};
             if (!variant.sku) errors.sku = 'SKU cannot be empty';
             // if (variant.quantity <= 0 || isNaN(variant.quantity)) errors.quantity = 'Quantity must be a valid number and greater than 0';
-            // if (variant.regularPrice <= 0 || isNaN(variant.regularPrice)) errors.regularPrice = 'Regular Price must be a valid number and greater than 0';
+            if (variant.regularPrice <= 0 || isNaN(variant.regularPrice)) errors.regularPrice = 'Price must be a valid number and greater than 0';
             // if (!variant.stackMgmt) errors.stackMgmt = 'Check Stack Management';
             return errors;
         });

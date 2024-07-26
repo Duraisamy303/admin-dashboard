@@ -412,7 +412,8 @@ const EditCategory = () => {
                                                     </div>
                                                     {!objIsEmpty(selectedImg) && (
                                                         <div className="col-span-3 h-[450px] overflow-y-scroll pl-5">
-                                                            <div className="border-b border-gray-200 pb-5">
+                                                            {/* <div className="border-b border-gray-200 pb-5"> */}
+                                                            <div className="">
                                                                 <div>
                                                                     <p className="mb-2 text-lg font-semibold">ATTACHMENT DETAILS</p>
                                                                 </div>
@@ -433,7 +434,7 @@ const EditCategory = () => {
                                                                     Delete permanently
                                                                 </a>
                                                             </div>
-                                                            <div className="pr-5">
+                                                            {/* <div className="pr-5">
                                                                 <div className="mt-5">
                                                                     <label className="mb-2">Alt Text</label>
                                                                     <textarea className="form-input" placeholder="Enter Alt Text"></textarea>
@@ -465,7 +466,7 @@ const EditCategory = () => {
                                                                 <div className="mt-5">
                                                                     <p>Required fields are marked *</p>
                                                                 </div>
-                                                            </div>
+                                                            </div> */}
                                                         </div>
                                                     )}
                                                 </div>

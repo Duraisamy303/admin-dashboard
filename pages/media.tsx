@@ -332,7 +332,9 @@ export default function Media() {
                                 </div>
                                 {!objIsEmpty(state.selectImg) && (
                                     <div className="col-span-3  pl-5">
-                                        <div className="border-b border-gray-200 pb-5">
+                                        {/* <div className="border-b border-gray-200 pb-5"> */}
+                                        <div className="">
+
                                             <div>
                                                 <p className="mb-2 text-lg font-semibold">ATTACHMENT DETAILS</p>
                                             </div>
@@ -358,7 +360,7 @@ export default function Media() {
                                                 Delete permanently
                                             </a>
                                         </div>
-                                        <div className="pr-5">
+                                        {/* <div className="pr-5">
                                             <div className="mt-5">
                                                 <label className="mb-2">Alt Text</label>
                                                 <textarea className="form-input" placeholder="Enter Alt Text"></textarea>
@@ -392,7 +394,7 @@ export default function Media() {
                                                     {'Update'}
                                                 </button>
                                             </div>
-                                        </div>
+                                        </div> */}
                                     </div>
                                 )}
                             </div>

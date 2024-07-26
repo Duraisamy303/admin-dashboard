@@ -992,7 +992,7 @@ const EditCoupon = () => {
                             className="form-checkbox border-white-light dark:border-white-dark ltr:mr-0 rtl:ml-0"
                         />
                         <h3 className="text-md cursor-pointer font-semibold dark:text-white-light" onClick={() => setState({ autoApply: !state.autoApply })}>
-                            Auto Apply
+                            Site Wide
                         </h3>
                     </div>
                     <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => updateCoupon()}>

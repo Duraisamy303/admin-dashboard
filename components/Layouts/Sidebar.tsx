@@ -332,7 +332,7 @@ const Sidebar = () => {
                                             <ul className="sub-menu text-gray-500">
                                                 <li className="relative flex items-center">
                                                     <Link href="/lowStock" className="flex items-center ">
-                                                        <span className="flex items-center">{t('Low stocks')}</span>
+                                                        <span className="flex items-center">{t('Out Of Stock')}</span>
                                                         <span className="flex h-6 w-8 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">{lowStockCount}</span>
                                                     </Link>
                                                 </li>

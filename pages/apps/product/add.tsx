@@ -809,7 +809,7 @@ const ProductAdd = () => {
             const errors: any = {};
             if (!variant.sku) errors.sku = 'SKU cannot be empty';
             // if (variant.quantity <= 0 || isNaN(variant.quantity)) errors.quantity = 'Quantity must be a valid number and greater than 0';
-         if (variant.regularPrice <= 0 || isNaN(variant.regularPrice)) errors.regularPrice = 'Price must be a valid number and greater than 0';
+            if (variant.regularPrice <= 0 || isNaN(variant.regularPrice)) errors.regularPrice = 'Price must be a valid number and greater than 0';
             // if (!variant.stackMgmt) errors.stackMgmt = 'Check Stack Management';
             return errors;
         });
@@ -2498,14 +2498,14 @@ const ProductAdd = () => {
                                 leaveFrom="opacity-100 scale-100"
                                 leaveTo="opacity-0 scale-95"
                             >
-                                <Dialog.Panel as="div" className="panel my-8 w-full overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark">
+                                <Dialog.Panel as="div" className="panel my-8 w-[70%] overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark">
                                     <div className="flex items-center justify-between bg-[#fbfbfb] px-5 py-3 dark:bg-[#121c2c]">
                                         <div className="text-lg font-bold">Preview</div>
                                         <button type="button" className="text-white-dark hover:text-dark" onClick={() => setIsOpenPreview(false)}>
                                             <IconX />
                                         </button>
                                     </div>
-                                    <div className="flex h-full w-full gap-3">
+                                    <div className="flex h-full w-full justify-center gap-3">
                                         <div className="panel flex  h-[600px] w-2/12 flex-col items-center overflow-scroll">
                                             {productPreview?.image?.length > 0 ? (
                                                 <div className="overflow-auto">

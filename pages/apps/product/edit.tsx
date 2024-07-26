@@ -1413,7 +1413,7 @@ const ProductEdit = (props: any) => {
 
     const previewClick = async () => {
         setPreviewLoading(true);
-        const savedContent = await editorInstance.save();
+        const savedContent = await editorInstance?.save();
 
         const styleRes = await styleRefetch({
             sampleParams,
@@ -2564,14 +2564,14 @@ const ProductEdit = (props: any) => {
                                 leaveFrom="opacity-100 scale-100"
                                 leaveTo="opacity-0 scale-95"
                             >
-                                <Dialog.Panel as="div" className="panel my-8 w-full overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark">
+                                <Dialog.Panel as="div" className="panel my-8 w-[70%] overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark" >
                                     <div className="flex items-center justify-between bg-[#fbfbfb] px-5 py-3 dark:bg-[#121c2c]">
                                         <div className="text-lg font-bold">Preview</div>
                                         <button type="button" className="text-white-dark hover:text-dark" onClick={() => setIsOpenPreview(false)}>
                                             <IconX />
                                         </button>
                                     </div>
-                                    <div className="flex h-full w-full gap-3">
+                                    <div className="flex justify-center h-full w-full gap-3">
                                         <div
                                             className="panel scrollbar-hide  flex h-[600px] w-2/12 flex-col items-center overflow-scroll"
                                             style={{ overflowY: 'scroll', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
@@ -2624,7 +2624,7 @@ const ProductEdit = (props: any) => {
                                                     {productPreview?.shortDescription}
                                                 </label>
                                             )}
-                                            <div className="panel w-full ">
+                                            <div className=" w-full ">
                                                 <div
                                                     style={{
                                                         borderBottom: '1px solid #EAEBED',

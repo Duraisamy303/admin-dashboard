@@ -25,17 +25,38 @@ import { date } from 'yup/lib/locale';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import IconEdit from '@/components/Icon/IconEdit';
-import { useMutation, useQuery } from '@apollo/client';
+import { useLazyQuery, useMutation, useQuery } from '@apollo/client';
 import { DELETE_PRODUCTS, CUSTOMER_ALL_LIST, DELETE_CUSTOMER } from '@/query/product';
 import { Failure, showDeleteAlert } from '@/utils/functions';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import moment from 'moment';
 import CommonLoader from '../elements/commonLoader';
+import IconArrowBackward from '@/components/Icon/IconArrowBackward';
+import IconArrowForward from '@/components/Icon/IconArrowForward';
+import { commonBody } from '@/utils/constant';
 
 const CustomerList = () => {
     const router = useRouter();
 
     const isRtl = useSelector((state: any) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
+
+    const [customerList, setCustomerList] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [recordsData, setRecordsData] = useState([]);
+    const [startCursor, setStartCursor] = useState(null);
+    const [endCursor, setEndCursor] = useState(null);
+    const [hasNextPage, setHasNextPage] = useState(false);
+    const [hasPreviousPage, setHasPreviousPage] = useState(false);
+    const [search, setSearch] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState(null);
+    const [status, setStatus] = useState(null);
+
+    const dispatch = useDispatch();
+
+    useEffect(() => {
+        dispatch(setPageTitle('Products'));
+    }, [dispatch]);
+    const PAGE_SIZE = 10;
 
     const {
         error,
@@ -44,128 +65,142 @@ const CustomerList = () => {
         refetch: customerListRefetch,
     } = useQuery(CUSTOMER_ALL_LIST, {
         variables: {
-            first: 1000,
+            first: PAGE_SIZE,
+            after: null,
             filter: {
                 dateJoined: null,
                 numberOfOrders: null,
+                search: search,
             },
             sort: {
                 direction: 'ASC',
                 field: 'LAST_NAME',
             },
-            PERMISSION_HANDLE_CHECKOUTS: true,
-            PERMISSION_HANDLE_PAYMENTS: true,
-            PERMISSION_HANDLE_TAXES: true,
-            PERMISSION_IMPERSONATE_USER: true,
-            PERMISSION_MANAGE_APPS: true,
-            PERMISSION_MANAGE_CHANNELS: true,
-            PERMISSION_MANAGE_CHECKOUTS: true,
-            PERMISSION_MANAGE_DISCOUNTS: true,
-            PERMISSION_MANAGE_GIFT_CARD: true,
-            PERMISSION_MANAGE_MENUS: true,
-            PERMISSION_MANAGE_OBSERVABILITY: true,
-            PERMISSION_MANAGE_ORDERS: true,
-            PERMISSION_MANAGE_ORDERS_IMPORT: true,
-            PERMISSION_MANAGE_PAGES: true,
-            PERMISSION_MANAGE_PAGE_TYPES_AND_ATTRIBUTES: true,
-            PERMISSION_MANAGE_PLUGINS: true,
-            PERMISSION_MANAGE_PRODUCTS: true,
-            PERMISSION_MANAGE_PRODUCT_TYPES_AND_ATTRIBUTES: true,
-            PERMISSION_MANAGE_SETTINGS: true,
-            PERMISSION_MANAGE_SHIPPING: true,
-            PERMISSION_MANAGE_STAFF: true,
-            PERMISSION_MANAGE_TAXES: true,
-            PERMISSION_MANAGE_TRANSLATIONS: true,
-            PERMISSION_MANAGE_USERS: true,
+            ...commonBody,
         },
-        // variables: { channel: 'india-channel', first: 100, direction: 'DESC', field: 'CREATED_AT' }, // Pass variables here
+        onCompleted: (data) => {
+            console.log('data: ', data);
+            commonPagination(data);
+        },
     });
 
-    const [customerList, setCustomerList] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [fetchNextPage] = useLazyQuery(CUSTOMER_ALL_LIST, {
+        onCompleted: (data) => {
+            commonPagination(data);
+        },
+    });
 
-    useEffect(() => {
-        getCustomerList();
-    }, [customerData]);
+    const [fetchPreviousPage] = useLazyQuery(CUSTOMER_ALL_LIST, {
+        onCompleted: (data) => {
+            commonPagination(data);
+        },
+    });
 
-    const getCustomerList = () => {
-        setLoading(true);
-        if (customerData) {
-            if (customerData && customerData.customers && customerData.customers?.edges?.length > 0) {
-                const newData = customerData.customers?.edges?.map((item: any) => ({
-                    ...item.node,
-                    name: item?.node?.firstName + item?.node?.lastName,
-                    email: item?.node?.email,
-                    orderCount: item?.node?.orders?.totalCount,
-                    dateJoined: moment(item?.node?.dateJoined).format('YYYY-MM-DD'),
-                }));
-
-                // const sorting: any = sortBy(newData, 'id');
-                setCustomerList(newData);
-                setLoading(false);
-
-                // const newData = categoryData.categories.edges.map((item) => item.node).map((item)=>{{...item,product:isTemplateExpression.products.totalCount}});
-            } else {
-                setLoading(false);
-            }
-        } else {
-            setLoading(false);
-        }
+    const commonPagination = (data) => {
+        const customers = data?.customers?.edges;
+        const pageInfo = data?.customers?.pageInfo;
+        setRecordsData(
+            customers?.map((item) => ({
+                ...item.node,
+                name: item.node.firstName + item.node.lastName,
+                email: item.node.email,
+                orderCount: item.node.orders.totalCount,
+                dateJoined: moment(item.node.dateJoined).format('YYYY-MM-DD'),
+            }))
+        );
+        setStartCursor(pageInfo?.startCursor || null);
+        setEndCursor(pageInfo?.endCursor || null);
+        setHasNextPage(pageInfo?.hasNextPage || false);
+        setHasPreviousPage(pageInfo?.hasPreviousPage || false);
     };
 
-    const dispatch = useDispatch();
-
-    useEffect(() => {
-        dispatch(setPageTitle('Products'));
-    });
-
-    const [page, setPage] = useState(1);
-    const PAGE_SIZES = [10, 20, 30, 50, 100];
-    const [pageSize, setPageSize] = useState(PAGE_SIZES[0]);
-    const [initialRecords, setInitialRecords] = useState([]);
-    const [recordsData, setRecordsData] = useState(initialRecords);
-
-    const [deleteCustomer] = useMutation(DELETE_CUSTOMER);
-
-    const [selectedRecords, setSelectedRecords] = useState<any>([]);
-
-    const [search, setSearch] = useState('');
-    const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
-        columnAccessor: 'id',
-        direction: 'asc',
-    });
-
-    useEffect(() => {
-        // Sort finishList by 'id' and update initialRecords
-        setInitialRecords(customerList);
-    }, [customerList]);
-
-    // Log initialRecords when it changes
-    useEffect(() => {}, [initialRecords]);
-
-    useEffect(() => {
-        setPage(1);
-    }, [pageSize]);
-
-    useEffect(() => {
-        const from = (page - 1) * pageSize;
-        const to = from + pageSize;
-        setRecordsData([...initialRecords.slice(from, to)]);
-    }, [page, pageSize, initialRecords]);
-
-    useEffect(() => {
-        setInitialRecords(() => {
-            return customerList.filter((item: any) => {
-                const name = item?.firstName + item?.lastName;
-                return name?.toLowerCase().includes(search.toLowerCase()) || item?.email?.toLowerCase().includes(search.toLowerCase());
-            });
+    const handleNextPage = () => {
+        fetchNextPage({
+            variables: {
+                first: PAGE_SIZE,
+                after: endCursor,
+                before: null,
+                filter: {
+                    dateJoined: null,
+                    numberOfOrders: null,
+                    search: search,
+                },
+                sort: {
+                    direction: 'ASC',
+                    field: 'LAST_NAME',
+                },
+                ...commonBody,
+            },
         });
-    }, [search]);
+    };
 
-    useEffect(() => {
-        const data = sortBy(initialRecords, sortStatus.columnAccessor);
-        setInitialRecords(initialRecords);
-    }, [sortStatus]);
+    const handlePreviousPage = () => {
+        fetchPreviousPage({
+            variables: {
+                last: PAGE_SIZE,
+                before: startCursor,
+                filter: {
+                    dateJoined: null,
+                    numberOfOrders: null,
+                    search: search,
+                },
+                sort: {
+                    direction: 'ASC',
+                    field: 'LAST_NAME',
+                },
+                ...commonBody,
+            },
+        });
+    };
+
+    const refresh = async () => {
+        console.log('refresh: ');
+        try {
+            const { data } = await customerListRefetch({
+                variables: {
+                    last: PAGE_SIZE,
+                    after: null,
+                    before: null,
+                    filter: {
+                        dateJoined: null,
+                        numberOfOrders: null,
+                    },
+                    sort: {
+                        direction: 'ASC',
+                        field: 'LAST_NAME',
+                    },
+                    ...commonBody,
+                },
+            });
+            commonPagination(data);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+    const handleSearchChange = async (e) => {
+        setSearch(e);
+        if (e == '') {
+            refresh();
+        } else {
+            const res = await customerListRefetch({
+                variables: {
+                    last: PAGE_SIZE,
+                    before: startCursor,
+                    filter: {
+                        dateJoined: null,
+                        numberOfOrders: null,
+                        search: e,
+                    },
+                    sort: {
+                        direction: 'ASC',
+                        field: 'LAST_NAME',
+                    },
+                    ...commonBody,
+                },
+            });
+            commonPagination(res?.data);
+        }
+    };
 
     // Product table create
     const CreateProduct = () => {
@@ -173,54 +208,10 @@ const CustomerList = () => {
     };
 
     const BulkDeleteProduct = async () => {
-        showDeleteAlert(
-            async () => {
-                if (selectedRecords.length === 0) {
-                    Swal.fire('Cancelled', 'Please select at least one record!', 'error');
-                    return;
-                }
-                const records = selectedRecords?.map((item: any) => item.id);
-
-                const { data }: any = deleteCustomer({
-                    variables: {
-                        ids: records,
-                    },
-                });
-
-                const updatedRecordsData = recordsData.filter((dataRecord: any) => !records.includes(dataRecord.id));
-                setRecordsData(updatedRecordsData);
-                await customerListRefetch();
-
-                Swal.fire('Deleted!', 'Your Customer has been deleted.', 'success');
-            },
-            () => {
-                Swal.fire('Cancelled', 'Your Customer List is safe :)', 'error');
-            }
-        );
         await customerListRefetch();
     };
 
-    const DeleteProduct = async (record: any) => {
-        showDeleteAlert(
-            async () => {
-                const { data }: any = deleteCustomer({
-                    variables: {
-                        ids: [record.id],
-                    },
-                });
-
-                const updatedRecordsData = recordsData.filter((dataRecord: any) => dataRecord.id !== record.id);
-                setRecordsData(updatedRecordsData);
-                await customerListRefetch();
-
-                Swal.fire('Deleted!', 'Your Customer has been deleted.', 'success');
-            },
-            () => {
-                Swal.fire('Cancelled', 'Your Product List is safe :)', 'error');
-            }
-        );
-        await customerListRefetch();
-    };
+    const DeleteProduct = async (record: any) => {};
 
     return (
         <div>
@@ -236,7 +227,7 @@ const CustomerList = () => {
                         </button> */}
                     </div>
                     <div className="mt-5 md:mt-0 md:flex  md:ltr:ml-auto md:rtl:mr-auto">
-                        <input type="text" className="form-input  mb-3 mr-2 w-full md:mb-0 md:w-auto" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                        <input type="text" className="form-input  mb-3 mr-2 w-full md:mb-0 md:w-auto" placeholder="Search..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
                         <div className="dropdown mb-3 mr-0  md:mb-0 md:mr-2">
                             <Dropdown
                                 placement={`${isRtl ? 'bottom-start' : 'bottom-end'}`}
@@ -273,17 +264,9 @@ const CustomerList = () => {
                             className="table-hover whitespace-nowrap"
                             records={recordsData}
                             columns={[
-                                // { accessor: 'id', sortable: true },
                                 {
                                     accessor: 'name',
                                     sortable: true,
-                                    // render: (row) => (
-                                    //     <>
-                                    //         <div  >
-                                    //             {row.name}
-                                    //         </div>
-                                    //     </>
-                                    // ),
                                 },
 
                                 { accessor: 'email', sortable: true },
@@ -301,7 +284,6 @@ const CustomerList = () => {
                                     ),
                                 },
                                 {
-                                    // Custom column for actions
                                     accessor: 'actions', // You can use any accessor name you want
                                     title: 'Actions',
                                     // Render method for custom column
@@ -311,18 +293,6 @@ const CustomerList = () => {
                                                 <button className="flex hover:text-info" onClick={() => router.push(`/customer/edit?id=${row.id}`)}>
                                                     <IconEdit className="h-4.5 w-4.5" />
                                                 </button>
-                                                {/* <button
-                                                className="flex hover:text-info"
-                                                onClick={() => {
-                                                    if (row.status == 'Draft') {
-                                                        Failure('Product is Draft !');
-                                                    } else {
-                                                        window.open(`http://www1.prade.in/product-details/${row.id}`, '_blank'); // '_blank' parameter opens the link in a new tab
-                                                    }
-                                                }}
-                                            >
-                                                <IconEye />
-                                            </button> */}
 
                                                 <button type="button" className="flex hover:text-danger" onClick={() => DeleteProduct(row)}>
                                                     <IconTrashLines />
@@ -333,22 +303,28 @@ const CustomerList = () => {
                                 },
                             ]}
                             highlightOnHover
-                            totalRecords={initialRecords.length}
-                            recordsPerPage={pageSize}
-                            page={page}
-                            onPageChange={(p) => setPage(p)}
-                            recordsPerPageOptions={PAGE_SIZES}
-                            onRecordsPerPageChange={setPageSize}
-                            sortStatus={sortStatus}
-                            onSortStatusChange={setSortStatus}
-                            selectedRecords={selectedRecords}
-                            onSelectedRecordsChange={(selectedRecords) => {
-                                setSelectedRecords(selectedRecords);
+                            totalRecords={recordsData?.length}
+                            recordsPerPage={PAGE_SIZE}
+                            page={null} // Add this line to set the current page
+                            onPageChange={(p) => {}} // Dummy handler for onPageChange
+                            sortStatus={{
+                                columnAccessor: 'name',
+                                direction: 'asc',
                             }}
+                            onSortStatusChange={() => {}}
+                            withBorder={true}
                             minHeight={200}
-                            paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
+                            paginationText={({ from, to, totalRecords }) => ''}
                         />
                     )}
+                </div>
+                <div className="mt-5 flex justify-end gap-3">
+                    <button disabled={!hasPreviousPage} onClick={handlePreviousPage} className={`btn ${!hasPreviousPage ? 'btn-disabled' : 'btn-primary'}`}>
+                        <IconArrowBackward />
+                    </button>
+                    <button disabled={!hasNextPage} onClick={handleNextPage} className={`btn ${!hasNextPage ? 'btn-disabled' : 'btn-primary'}`}>
+                        <IconArrowForward />
+                    </button>
                 </div>
             </div>
         </div>

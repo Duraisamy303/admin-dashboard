@@ -38,6 +38,10 @@ export default function Media() {
         longPress: false,
         mediaType: 'all',
         loading: false,
+        alt: '',
+        title: '',
+        caption: '',
+        description: '',
     });
 
     useEffect(() => {
@@ -47,7 +51,6 @@ export default function Media() {
     useEffect(() => {
         filterByType();
     }, [state.mediaType]);
-    console.log('imageList: ', state.imageList);
 
     const getMediaImage = async () => {
         try {
@@ -197,6 +200,25 @@ export default function Media() {
         }
     };
 
+    const handleClickImage = async (item) => {
+        console.log("item: ", item);
+        let url = `https://prade.blr1.cdn.digitaloceanspaces.com/${item.key}`;
+        const response = await fetch(url, {
+            method: 'HEAD', // Using 'HEAD' to get headers only
+        });
+        let data = {};
+        response.headers.forEach((value, key) => {
+            data[key] = value;
+        });
+        setState({
+            selectImg: item,
+            alt: data['x-amz-meta-alt-text'] ? data['x-amz-meta-alt-text'] : '',
+            title: data['x-amz-meta-title'] ? data['x-amz-meta-title'] : '',
+            caption: data['x-amz-meta-caption'] ? data['x-amz-meta-caption'] : '',
+            description: data['x-amz-meta-description'] ? data['x-amz-meta-description'] : '',
+        });
+    };
+
     return (
         <div className=" ">
             <div className="panel mb-5 flex flex-col gap-5 md:flex-row md:items-center">
@@ -306,10 +328,7 @@ export default function Media() {
                                                     onMouseUp={handleMouseUp}
                                                     onMouseLeave={handleMouseLeave}
                                                     onClick={() => {
-                                                        setState({ selectImg: item });
-                                                        if (!state.longPress) {
-                                                            handleImageSelect(item);
-                                                        }
+                                                        handleClickImage(item);
                                                     }}
                                                 >
                                                     {item?.key?.endsWith('.mp4') ? (
@@ -334,7 +353,6 @@ export default function Media() {
                                     <div className="col-span-3  pl-5">
                                         {/* <div className="border-b border-gray-200 pb-5"> */}
                                         <div className="">
-
                                             <div>
                                                 <p className="mb-2 text-lg font-semibold">ATTACHMENT DETAILS</p>
                                             </div>
@@ -360,10 +378,10 @@ export default function Media() {
                                                 Delete permanently
                                             </a>
                                         </div>
-                                        {/* <div className="pr-5">
+                                        <div className="pr-5">
                                             <div className="mt-5">
                                                 <label className="mb-2">Alt Text</label>
-                                                <textarea className="form-input" placeholder="Enter Alt Text"></textarea>
+                                                <textarea className="form-input" placeholder="Enter Alt Text" value={state.alt} onChange={(e) => setState({ alt: e.target.value })}></textarea>
                                                 <span>
                                                     <a href="#" className="text-primary underline">
                                                         Learn how to describe the purpose of the image
@@ -373,12 +391,22 @@ export default function Media() {
                                             </div>
                                             <div className="mt-5">
                                                 <label className="mb-2">Title</label>
-                                                <input type="text" className="form-input" placeholder="Enter Title" />
+                                                <input type="text" value={state.title} onChange={(e) => setState({ title: e.target.value })} className="form-input" placeholder="Enter Title" />
                                             </div>
 
                                             <div className="mt-5">
+                                                <label className="mb-2">Description</label>
+                                                <textarea
+                                                    className="form-input"
+                                                    value={state.description}
+                                                    onChange={(e) => setState({ description: e.target.value })}
+                                                    placeholder="Enter Caption"
+                                                ></textarea>
+                                            </div>
+                                            <div className="mt-5">
                                                 <label className="mb-2">Caption</label>
-                                                <textarea className="form-input" placeholder="Enter Caption"></textarea>
+
+                                                <textarea className="form-input" placeholder="Enter Alt Text" value={state.caption} onChange={(e) => setState({ caption: e.target.value })}></textarea>
                                             </div>
 
                                             <div className="mt-5">
@@ -394,7 +422,7 @@ export default function Media() {
                                                     {'Update'}
                                                 </button>
                                             </div>
-                                        </div> */}
+                                        </div>
                                     </div>
                                 )}
                             </div>

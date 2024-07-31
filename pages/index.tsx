@@ -274,6 +274,7 @@ const Index = () => {
             tags: item.node.tags?.length > 0 ? item.node?.tags?.map((tag) => tag?.name).join(',') : '-',
             stock: checkStock(item.node.variants) ? 'In stock' : 'Out of stock',
             id: item.node.id,
+            orderNumber: item.node.orderNo
         }));
 
         return newData;
@@ -1120,7 +1121,10 @@ const expandedRows=(row)=>{
                                     </>
                                 ),
                             },
+                            { accessor: 'orderNumber', sortable: true },
+
                             { accessor: 'sku', sortable: true, title: 'SKU' },
+                            
                             { accessor: 'stock', sortable: false },
                             { accessor: 'status', sortable: true },
                             { accessor: 'price', sortable: true },

@@ -43,6 +43,7 @@ import IconLoader from '@/components/Icon/IconLoader';
 import Link from 'next/link';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import CommonLoader from '../elements/commonLoader';
+import OrderQuickEdit from '@/components/orderQuickEdit';
 
 const Orders = () => {
     const isRtl = useSelector((state: any) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
@@ -87,6 +88,7 @@ const Orders = () => {
     const [exportBy, setExportBy] = useState('');
     const [endDate, setEndDate] = useState('');
     const [startDate, setStartDate] = useState(getCurrentDateTime());
+    const [expandedRow, setExpandedRows] = useState(getCurrentDateTime());
 
     // error message
     const [currencyPopup, setCurrencyPopup] = useState('');
@@ -101,7 +103,7 @@ const Orders = () => {
 
         if (router.query?.customer) {
             body = {
-                first: 500,
+                first:200,
                 direction: 'DESC',
                 field: 'CREATED_AT',
                 filter: { created: null, customer: router.query?.customer },
@@ -373,13 +375,13 @@ const Orders = () => {
         const newData = res?.map((item: any) => ({
             ...item.node,
             order: orderNumber(item),
-            date: dayjs(item?.node?.updatedAt).format('MMM D, YYYY'),
+            date: dayjs(item?.node?.created).format('MMM D, YYYY'),
             total: `${item?.node?.total.gross.currency} ${addCommasToNumber(item?.node?.total.gross.amount)}`,
             status: OrderStatus(item?.node?.status),
             paymentStatus: PaymentStatus(item?.node?.paymentStatus),
             invoice: item?.node?.invoices?.length > 0 ? item?.node?.invoices[0]?.number : '-',
             shipmentTracking: item?.node?.fulfillments?.length > 0 ? `${item?.node?.courierPartner?.name}\n${item?.node?.fulfillments[0]?.trackingNumber}` : '-',
-
+            ...item,
             // shipmentTracking:item?.node?.fulfillments?.length>0 ?{`${item?.node?.courierPartner?.name} ${"\n"} ${item?.node?.courierPartner?.trackingUrl}${item?.node?.fulfillments[0]?.trackingNumber}`}:"-"
         }));
 
@@ -487,6 +489,10 @@ const Orders = () => {
         } catch (error) {
             console.log('error: ', error);
         }
+    };
+
+    const expandedRows = (row) => {
+        setExpandedRows(row.id === expandedRow ? null : row.id);
     };
 
     return (
@@ -606,7 +612,20 @@ const Orders = () => {
                             columns={[
                                 // { accessor: 'id', sortable: true },
                                 // { accessor: 'image', sortable: true, render: (row) => <img src={row.image} alt="Product" className="h-10 w-10 object-cover ltr:mr-2 rtl:ml-2" /> },
-                                { accessor: 'order', sortable: true },
+                                {
+                                    accessor: 'order',
+                                    sortable: true,
+                                    render: (row, index) => (
+                                        <>
+                                            <div className="">{row.order}</div>
+                                            <div className="flex gap-3">
+                                                <button onClick={() => expandedRows(row)} className=" cursor-pointer text-blue-400 underline">
+                                                    Quick Edit
+                                                </button>
+                                            </div>
+                                        </>
+                                    ),
+                                },
                                 { accessor: 'invoice', sortable: true, title: 'Invoice Number' },
 
                                 { accessor: 'date', sortable: true },
@@ -615,48 +634,48 @@ const Orders = () => {
                                     sortable: true,
                                     title: 'Order status',
 
-                                    // render: (row) => (
-                                    //     <div
-                                    //         className={`flex w-max gap-4 rounded-full px-2 py-1 ${
-                                    //             row?.status === 'Processing'
-                                    //                 ? 'bg-blue-200 text-blue-800'
-                                    //                 : row?.status === 'Completed'
-                                    //                 ? 'bg-green-200 text-green-800'
-                                    //                 : row?.status === 'UNFULFILLED'
-                                    //                 ? 'bg-red-200 text-red-800'
-                                    //                 : row?.status === 'Cancelled'
-                                    //                 ? 'bg-gray-200 text-gray-800'
-                                    //                 : ''
-                                    //         }`}
-                                    //     >
-                                    //         {row?.status}
-                                    //     </div>
-                                    // ),
+                                    render: (row) => (
+                                        <div
+                                            className={`flex w-max gap-4 rounded-full px-2 py-1 ${
+                                                row?.status === 'Processing'
+                                                    ? 'bg-blue-200 text-blue-800'
+                                                    : row?.status === 'Completed'
+                                                    ? 'bg-green-200 text-green-800'
+                                                    : row?.status === 'UNFULFILLED'
+                                                    ? 'bg-red-200 text-red-800'
+                                                    : row?.status === 'Cancelled'
+                                                    ? 'bg-gray-200 text-gray-800'
+                                                    : ''
+                                            }`}
+                                        >
+                                            {row?.status}
+                                        </div>
+                                    ),
                                 },
                                 {
                                     accessor: 'paymentStatus',
                                     sortable: true,
                                     title: 'Payment status',
 
-                                    // render: (row) => (
-                                    //     <div
-                                    //         className={`flex w-max gap-4 rounded-full px-2 py-1 ${
-                                    //             row?.paymentStatus === 'Processing'
-                                    //                 ? 'bg-blue-200 text-blue-800'
-                                    //                 : row?.paymentStatus === 'Pending'
-                                    //                 ? 'bg-yellow-200 text-yellow-800'
-                                    //                 : row?.paymentStatus === 'Completed'
-                                    //                 ? 'bg-green-200 text-green-800'
-                                    //                 : row?.paymentStatus === 'UNFULFILLED'
-                                    //                 ? 'bg-red-200 text-red-800'
-                                    //                 : row?.paymentStatus === 'Cancelled'
-                                    //                 ? 'bg-gray-200 text-gray-800'
-                                    //                 : ''
-                                    //         }`}
-                                    //     >
-                                    //         {row?.paymentStatus}
-                                    //     </div>
-                                    // ),
+                                    render: (row) => (
+                                        <div
+                                            className={`flex w-max gap-4 rounded-full px-2 py-1 ${
+                                                row?.paymentStatus === 'Processing'
+                                                    ? 'bg-blue-200 text-blue-800'
+                                                    : row?.paymentStatus === 'Pending'
+                                                    ? 'bg-yellow-200 text-yellow-800'
+                                                    : row?.paymentStatus === 'Completed'
+                                                    ? 'bg-green-200 text-green-800'
+                                                    : row?.paymentStatus === 'UNFULFILLED'
+                                                    ? 'bg-red-200 text-red-800'
+                                                    : row?.paymentStatus === 'Cancelled'
+                                                    ? 'bg-gray-200 text-gray-800'
+                                                    : ''
+                                            }`}
+                                        >
+                                            {row?.paymentStatus}
+                                        </div>
+                                    ),
                                 },
                                 {
                                     accessor: 'shipmentTracking',
@@ -701,6 +720,20 @@ const Orders = () => {
                                     ),
                                 },
                             ]}
+                            rowExpansion={{
+                                collapseProps: {
+                                    transitionDuration: 500,
+                                    animateOpacity: false,
+                                    transitionTimingFunction: 'ease-out',
+                                },
+                                allowMultiple: false,
+                                content: ({ record }) =>
+                                    expandedRow === record.id ? (
+                                        <div>
+                                            <OrderQuickEdit id={record?.id} updateList={()=>getOrderList()} closeExpand={() => setExpandedRows(null)} />
+                                        </div>
+                                    ) : null,
+                            }}
                             highlightOnHover
                             totalRecords={initialRecords.length}
                             recordsPerPage={pageSize}
@@ -752,11 +785,6 @@ const Orders = () => {
                                                     ? { name: '' }
                                                     : {
                                                           name: modalContant?.name,
-                                                          //   description: modalContant?.description,
-
-                                                          //   count: modalContant?.count,
-                                                          //   image: modalContant?.image,
-                                                          //   parentCategory: modalContant?.name,
                                                       }
                                             }
                                             validationSchema={SubmittedForm}
@@ -766,77 +794,12 @@ const Orders = () => {
                                         >
                                             {({ errors, submitCount, touched, setFieldValue, values }: any) => (
                                                 <Form className="space-y-5">
-                                                    {/* <div className={submitCount ? (errors.image ? 'has-error' : 'has-success') : ''}>
-                                                        <label htmlFor="image">Image</label>
-                                                        <input
-                                                            id="image"
-                                                            name="image"
-                                                            type="file"
-                                                            onChange={(event: any) => {
-                                                                setFieldValue('image', event.currentTarget.files[0]);
-                                                            }}
-                                                            className="form-input"
-                                                        />
-                                                        {values.image && typeof values.image === 'string' && (
-                                                            <img src={values.image} alt="Product Image" style={{ width: '30px', height: 'auto', paddingTop: '5px' }} />
-                                                        )}
-                                                        {submitCount ? errors.image ? <div className="mt-1 text-danger">{errors.image}</div> : <div className="mt-1 text-success"></div> : ''}
-                                                    </div> */}
-
                                                     <div className={submitCount ? (errors.name ? 'has-error' : 'has-success') : ''}>
                                                         <label htmlFor="fullName">Name </label>
                                                         <Field name="name" type="text" id="fullName" placeholder="Enter Name" className="form-input" />
 
                                                         {submitCount ? errors.name ? <div className="mt-1 text-danger">{errors.name}</div> : <div className="mt-1 text-success"></div> : ''}
                                                     </div>
-
-                                                    {/* <div className={submitCount ? (errors.description ? 'has-error' : 'has-success') : ''}>
-                                                        <label htmlFor="description">description </label>
-                                                        <Field name="description" as="textarea" id="description" placeholder="Enter Description" className="form-input" />
-
-                                                        {submitCount ? (
-                                                            errors.description ? (
-                                                                <div className="mt-1 text-danger">{errors.description}</div>
-                                                            ) : (
-                                                                <div className="mt-1 text-success"></div>
-                                                            )
-                                                        ) : (
-                                                            ''
-                                                        )}
-                                                    </div> */}
-
-                                                    {/* <div className={submitCount ? (errors.slug ? 'has-error' : 'has-success') : ''}>
-                                                        <label htmlFor="slug">Slug </label>
-                                                        <Field name="slug" type="text" id="slug" placeholder="Enter Description" className="form-input" />
-
-                                                        {submitCount ? errors.slug ? <div className="mt-1 text-danger">{errors.slug}</div> : <div className="mt-1 text-success"></div> : ''}
-                                                    </div> */}
-
-                                                    {/* <div className={submitCount ? (errors.count ? 'has-error' : 'has-success') : ''}>
-                                                        <label htmlFor="count">Count</label>
-                                                        <Field name="count" type="number" id="count" placeholder="Enter Count" className="form-input" />
-
-                                                        {submitCount ? errors.count ? <div className="mt-1 text-danger">{errors.count}</div> : <div className="mt-1 text-success"></div> : ''}
-                                                    </div> */}
-
-                                                    {/* <div className={submitCount ? (errors.parentCategory ? 'has-error' : 'has-success') : ''}>
-                                                        <label htmlFor="parentCategory">Parent Category</label>
-                                                        <Field as="select" name="parentCategory" className="form-select">
-                                                            <option value="">Open this select menu</option>
-                                                            <option value="Anklets">Anklets</option>
-                                                            <option value="BlackThread">__Black Thread</option>
-                                                            <option value="Kada">__Kada</option>
-                                                        </Field>
-                                                        {submitCount ? (
-                                                            errors.parentCategory ? (
-                                                                <div className=" mt-1 text-danger">{errors.parentCategory}</div>
-                                                            ) : (
-                                                                <div className=" mt-1 text-[#1abc9c]"></div>
-                                                            )
-                                                        ) : (
-                                                            ''
-                                                        )}
-                                                    </div> */}
 
                                                     <button type="submit" className="btn btn-primary !mt-6">
                                                         {modalTitle === null ? 'Submit' : 'Update'}
@@ -851,38 +814,6 @@ const Orders = () => {
                     </div>
                 </Dialog>
             </Transition>
-
-            {/* Full View Category data*/}
-            {/* <Transition appear show={viewModal} as={Fragment}>
-                <Dialog as="div" open={viewModal} onClose={() => setViewModal(false)}>
-                    <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-                        <div className="fixed inset-0" />
-                    </Transition.Child>
-                    <div className="fixed inset-0 z-[999] overflow-y-auto bg-[black]/60">
-                        <div className="flex min-h-screen items-start justify-center px-4">
-                            <Transition.Child
-                                as={Fragment}
-                                enter="ease-out duration-300"
-                                enterFrom="opacity-0 scale-95"
-                                enterTo="opacity-100 scale-100"
-                                leave="ease-in duration-200"
-                                leaveFrom="opacity-100 scale-100"
-                                leaveTo="opacity-0 scale-95"
-                            >
-                                <Dialog.Panel as="div" className="panel my-8 w-full max-w-lg overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark">
-                                    <div className="flex items-center justify-between bg-[#fbfbfb] px-5 py-3 dark:bg-[#121c2c]">
-                                        <div className="text-lg font-bold">View Category</div>
-                                        <button type="button" className="text-white-dark hover:text-dark" onClick={() => setViewModal(false)}>
-                                            <IconX />
-                                        </button>
-                                    </div>
-                                    <div className="mb-5 p-5"></div>
-                                </Dialog.Panel>
-                            </Transition.Child>
-                        </div>
-                    </div>
-                </Dialog>
-            </Transition> */}
 
             <Modal
                 addHeader={'Select a Currency'}

@@ -538,6 +538,10 @@ export const OrderStatus = (status: any) => {
 export const PaymentStatus = (status: any) => {
     if (status === 'NOT_CHARGED') {
         return 'Pending';
+    } else if (status === 'FULLY_REFUNDED') {
+        return 'Fully Refunded';
+    } else if (status === 'PARTIALLY_REFUNDED') {
+        return 'Partially Refunded';
     } else {
         return 'Completed';
     }
@@ -633,7 +637,6 @@ export const fetchImagesFromS3 = async (searchTerm = '') => {
                     ContinuationToken: continuationToken,
                 })
                 .promise();
-
             allObjects = [...allObjects, ...data.Contents];
             isTruncated = data.IsTruncated;
             continuationToken = data.NextContinuationToken;
@@ -918,4 +921,14 @@ export const addNewFile = async (e: any) => {
     } catch (error) {
         console.error('Error uploading file:', error);
     }
+};
+
+export const validateDateTime = (dateTimeString) => {
+    const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+    if (!regex.test(dateTimeString)) {
+        return false;
+    }
+
+    const date = new Date(dateTimeString);
+    return !isNaN(date.getTime());
 };

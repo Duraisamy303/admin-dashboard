@@ -24,6 +24,8 @@ const Index = () => {
     const [hasPreviousPage, setHasPreviousPage] = useState(false);
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('');
+    const [selectPage, setSelectPage] = useState(20);
+
     const [status, setStatus] = useState('');
     const [dropIndex, setDropIndex] = useState(null);
     const [parentLists, setParentLists] = useState([]);
@@ -35,9 +37,7 @@ const Index = () => {
         } else if (category && category !== '') {
             filter.categories = [category];
         }
-        if (availability) {
-            filter.stockAvailability = availability;
-        }
+       
         return filter;
     };
 
@@ -63,7 +63,7 @@ const Index = () => {
     const { loading: getLoading, refetch: fetchLowStockList } = useQuery(MERCHANDISING_PAGINATION, {
         variables: {
             channel: 'india-channel',
-            first: PAGE_SIZE,
+            first: selectPage,
             after: null,
             search: search,
             sortBy: { direction: 'ASC', field: 'ORDER_NO' },
@@ -105,7 +105,7 @@ const Index = () => {
         fetchNextPage({
             variables: {
                 channel: 'india-channel',
-                first: PAGE_SIZE,
+                first: selectPage,
                 after: endCursor,
                 search: search,
                 sortBy: { direction: 'ASC', field: 'ORDER_NO' },
@@ -118,7 +118,7 @@ const Index = () => {
         fetchPreviousPage({
             variables: {
                 channel: 'india-channel',
-                last: PAGE_SIZE,
+                last: selectPage,
                 before: startCursor,
                 search: search,
                 sortBy: { direction: 'ASC', field: 'ORDER_NO' },
@@ -132,7 +132,7 @@ const Index = () => {
         fetchLowStockList({
             variables: {
                 channel: 'india-channel',
-                first: PAGE_SIZE,
+                first: selectPage,
                 after: null,
                 search: e,
                 sortBy: { direction: 'ASC', field: 'ORDER_NO' },
@@ -215,15 +215,53 @@ const Index = () => {
 
     const handleCategoryChange = (e) => {
         setSelectedCategory(e.target.value);
+        if(e.target.value == ""){
+            fetchLowStockList({
+                variables: {
+                    channel: 'india-channel',
+                    first: selectPage,
+                    after: null,
+                    search: search,
+                },
+            });
+        }else{
         fetchLowStockList({
             variables: {
                 channel: 'india-channel',
-                first: PAGE_SIZE,
+                first: selectPage,
                 after: null,
                 search: search,
                 filter: buildFilter(e.target.value, status),
             },
         });
+    }
+    };
+
+    const filter = [10, 20, 50, 100, 200];
+
+    const handlePageChange = (e) => {
+        setSelectPage(e.target.value);
+        if(e.target.value == ""){
+            fetchLowStockList({
+                variables: {
+                    channel: 'india-channel',
+                    first: 20,
+                    after: null,
+                    search: search,
+                    filter: buildFilter(e.target.value, status),
+                },
+            }); 
+        }else{
+        fetchLowStockList({
+            variables: {
+                channel: 'india-channel',
+                first: e.target.value,
+                after: null,
+                search: search,
+                filter: buildFilter(e.target.value, status),
+            },
+        });
+    }
     };
 
     return (
@@ -232,15 +270,18 @@ const Index = () => {
                 <div className="flex items-center gap-5">
                     <h5 className="text-lg font-semibold dark:text-white-light">Merchandising</h5>
                 </div>
-                <div>
-                    <button type="button" className="btn btn-primary w-full md:mb-0 md:w-auto" onClick={() => router.push('/apps/product/add')}>
-                        + Create
-                    </button>
-                </div>
+               
             </div>
             <div className="mb-5 mt-5 flex justify-between md:mb-0 md:mt-0 md:flex md:ltr:ml-auto md:rtl:mr-auto">
-                <div>
+                <div className='flex gap-5'>
                     <input type="text" className=" form-input mb-3 mr-2 h-[40px] md:mb-0 md:w-auto " placeholder="Search..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
+               
+                    <select className="form-select flex-1" value={selectPage} onChange={(e) => handlePageChange(e)}>
+                        <option value="">Select a Page</option>
+                        {filter.map((parent) => (
+                            <option value={parent}>{parent}</option>
+                        ))}
+                    </select>
                 </div>
                 <div>
                     <select className="form-select flex-1" value={selectedCategory} onChange={handleCategoryChange}>
@@ -270,18 +311,18 @@ const Index = () => {
                             </div>
                         ))
                     ) : (
-                        <div className=' flex items-center justify-center'>No Data Found</div>
+                        <div className=" flex items-center justify-center">No Data Found</div>
                     )}
                 </div>
             )}
-            <div className="mt-5 flex justify-end gap-3">
+            {/* <div className="mt-5 flex justify-end gap-3">
                 <button disabled={!hasPreviousPage} onClick={handlePreviousPage} className={`btn ${!hasPreviousPage ? 'btn-disabled' : 'btn-primary'}`}>
                     <IconArrowBackward />
                 </button>
                 <button disabled={!hasNextPage} onClick={handleNextPage} className={`btn ${!hasNextPage ? 'btn-disabled' : 'btn-primary'}`}>
                     <IconArrowForward />
                 </button>
-            </div>
+            </div> */}
         </div>
     );
 };

@@ -1,5 +1,6 @@
 import IconX from '@/components/Icon/IconX';
 import {
+    accessKeyId,
     addNewFile,
     deleteImagesFromS3,
     docFilter,
@@ -10,6 +11,7 @@ import {
     imageFilter,
     months,
     objIsEmpty,
+    secretAccessKey,
     separateFiles,
     showDeleteAlert,
     useSetState,
@@ -22,7 +24,7 @@ import Swal from 'sweetalert2';
 import CommonLoader from './elements/commonLoader';
 import pdf from '../public/assets/images/pdf.png';
 import docs from '../public/assets/images/docs.jpg';
-
+import AWS from 'aws-sdk';
 import Image from 'next/image';
 
 export default function Media() {
@@ -56,6 +58,7 @@ export default function Media() {
         try {
             setState({ loading: true });
             const res = await fetchImagesFromS3();
+            console.log('res: ', res);
             if (state.mediaType == 'all') {
                 setState({ imageList: res });
             } else if (state.mediaType == 'image') {
@@ -201,21 +204,113 @@ export default function Media() {
     };
 
     const handleClickImage = async (item) => {
-        console.log("item: ", item);
         let url = `https://prade.blr1.cdn.digitaloceanspaces.com/${item.key}`;
         const response = await fetch(url, {
             method: 'HEAD', // Using 'HEAD' to get headers only
         });
+        console.log("response: ", response);
+
         let data = {};
         response.headers.forEach((value, key) => {
             data[key] = value;
         });
+        console.log('data: ', data);
+
         setState({
             selectImg: item,
             alt: data['x-amz-meta-alt-text'] ? data['x-amz-meta-alt-text'] : '',
             title: data['x-amz-meta-title'] ? data['x-amz-meta-title'] : '',
             caption: data['x-amz-meta-caption'] ? data['x-amz-meta-caption'] : '',
             description: data['x-amz-meta-description'] ? data['x-amz-meta-description'] : '',
+        });
+    };
+
+    const updateMetaData = async () => {
+        await deleteImagesFromS3(state.selectImg?.key);
+        getMediaImage();
+        handleUpload();
+    };
+
+    const handleUpload = async () => {
+        try {
+            const formData = new FormData();
+
+            let fileMetadata = state.selectImg;
+            const presignedPostData:any = await generatePresignedPost(state.selectImg);
+            const response = await fetch(fileMetadata.url);
+            const blob = await response.blob();
+            const lastModifiedTimestamp = new Date(fileMetadata.LastModified).getTime();
+            const file = new File([blob], fileMetadata.key, {
+                type:getMimeType(fileMetadata.key) ,
+                lastModified: lastModifiedTimestamp,
+            });
+
+            Object.keys(presignedPostData.fields).forEach((key) => {
+                formData.append(key, presignedPostData.fields[key]);
+            });
+            formData.append("file", file);
+            const responsedf = await axios.post(presignedPostData.url, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            getMediaImage();
+
+        } catch (error) {
+            console.error('Error uploading file:', error);
+        }
+    };
+
+    const getMimeType = (fileName) => {
+        console.log("fileName: ", fileName);
+        const extension = fileName.split('.').pop().toLowerCase();
+        console.log("extension: ", extension);
+        const mimeTypes = {
+            jpeg: 'image/jpeg',
+            jpg: 'image/jpg',
+            png: 'image/png',
+            webp: 'image/webp',
+            gif: 'image/gif',
+            pdf: 'application/pdf',
+            // Add more MIME types as needed
+        };
+        return mimeTypes[extension] || 'application/octet-stream'; // Default MIME type
+    };
+
+    const generatePresignedPost = (file) => {
+        const spacesEndpoint = new AWS.Endpoint('https://prade.blr1.digitaloceanspaces.com');
+
+        const s3 = new AWS.S3({
+            endpoint: spacesEndpoint,
+            accessKeyId: 'DO00MUC2HWP9YVLPXKXT', // Add your access key here
+            secretAccessKey: 'W9N9b51nxVBvpS59Er9aB6Ht7xx2ZXMrbf3vjBBR8OA', // Add your secret key here
+        });
+        const params = {
+            Bucket: 'prade', // Your Space name
+            Fields: {
+                key: file.key, // File name
+                acl: 'public-read',
+                'x-amz-meta-alt-text': state.alt, // Alternative Text metadata
+                'x-amz-meta-title': state.title, // Title metadata
+                'x-amz-meta-caption': state.caption, // Caption metadata
+                'x-amz-meta-description': state.description, // Description metadata
+            },
+            Conditions: [
+                ['content-length-range', 0, 1048576], // 1 MB limit
+                ['starts-with', '$Content-Type', ''], // Allow any content type
+              
+            ],
+            Expires: 60, // 1 minute expiration
+        };
+
+        return new Promise((resolve, reject) => {
+            s3.createPresignedPost(params, (err, data) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(data);
+                }
+            });
         });
     };
 
@@ -418,7 +513,7 @@ export default function Media() {
                                                 {state.copied ? <label className="mt-2 text-green-500">Copied</label> : <label className="mt-2">Copy Link</label>}
                                             </div>
                                             <div className="flex justify-end">
-                                                <button type="submit" className="btn btn-primary " onClick={() => {}}>
+                                                <button type="submit" className="btn btn-primary " onClick={() => updateMetaData()}>
                                                     {'Update'}
                                                 </button>
                                             </div>

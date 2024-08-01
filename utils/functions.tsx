@@ -708,19 +708,12 @@ export const generatePresignedPost = async (file) => {
         Fields: {
             key: uniqueFilename, // File name
             acl: 'public-read',
-            // 'x-amz-meta-alt-text': metadata.altText, // Alternative Text metadata
-            // 'x-amz-meta-title': metadata.title, // Title metadata
-            // 'x-amz-meta-caption': metadata.caption, // Caption metadata
-            // 'x-amz-meta-description': metadata.description, // Description metadata
+        
         },
         Conditions: [
             ['content-length-range', 0, 104857600], // 100 MB limit
             ['starts-with', '$Content-Type', ''], // Allow any content type
             ['eq', '$key', uniqueFilename],
-            // ['eq', '$x-amz-meta-alt-text', metadata.altText], // Validate Alternative Text
-            // ['eq', '$x-amz-meta-title', metadata.title], // Validate Title
-            // ['eq', '$x-amz-meta-caption', metadata.caption], // Validate Caption
-            // ['eq', '$x-amz-meta-description', metadata.description], // Validate Description
         ],
         Expires: 60, // 1 minute expiration
     };

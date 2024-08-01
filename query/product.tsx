@@ -18252,6 +18252,8 @@ export const REFUND_DATA = gql`
                     orderLine {
                         ...RefundOrderLine
                         __typename
+                        productName
+                        productSku
                     }
                     __typename
                 }
@@ -18280,6 +18282,110 @@ export const REFUND_DATA = gql`
         }
         thumbnail(size: 64) {
             url
+            __typename
+        }
+        __typename
+    }
+`;
+
+export const REARANGE_ORDER = gql`
+    mutation BulkUpdateProducts($input: BulkUpdateProductsInput!) {
+        productmenuorderupdate(input: $input) {
+            success
+            updatedCount
+        }
+    }
+`;
+
+export const MERCHANDISING_PAGINATION = gql`
+    query ProductListPaginatedInitialandNext($channel: String!, $first: Int!, $after: String, $search: String!, $filter: ProductFilterInput) {
+        products(first: $first, after: $after, channel: $channel, filter: $filter, search: $search, sortBy: { direction: ASC, field: ORDER_NO }) {
+            totalCount
+            edges {
+                node {
+                    ...ProductListItem
+                    tags {
+                        name
+                        id
+                        __typename
+                    }
+                    __typename
+                }
+                cursor
+                __typename
+            }
+            pageInfo {
+                endCursor
+                hasNextPage
+                hasPreviousPage
+                startCursor
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment ProductListItem on Product {
+        id
+        name
+        slug
+        orderNo
+        defaultVariant {
+            id
+            name
+            sku
+        }
+        pricing {
+            priceRange {
+                start {
+                    gross {
+                        amount
+                        currency
+                        __typename
+                    }
+                    __typename
+                }
+                stop {
+                    gross {
+                        amount
+                        currency
+                        __typename
+                    }
+                    __typename
+                }
+                __typename
+            }
+            discount {
+                currency
+                __typename
+            }
+            __typename
+        }
+        category {
+            id
+            name
+            __typename
+        }
+        thumbnail(size: 1024) {
+            url
+            alt
+            __typename
+        }
+        variants {
+            id
+            sku
+            quantityAvailable
+            __typename
+        }
+        media {
+            url
+            __typename
+        }
+        description
+        updatedAt
+        channelListings {
+            publishedAt
+            isPublished
             __typename
         }
         __typename

@@ -1039,9 +1039,12 @@ const expandedRows=(row)=>{
                         Export
                     </button>
                 </div>
-                <div>
+                <div className='flex gap-5'>
                     <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => router.push('/apps/product/add')}>
                         + Create
+                    </button>
+                    <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => router.push('/merchandising')}>
+                        Merchandising
                     </button>
                 </div>
             </div>

@@ -31,6 +31,8 @@ import {
     SEND_GIFT_CART,
     DRAFT_ORDER_CANCEL,
     UNFULFILLMENT_ORDER,
+    REFUND_DATA,
+    ORDER_FULLFILMENT_REFUND,
 } from '@/query/product';
 import { Loader } from '@mantine/core';
 import moment from 'moment';
@@ -46,6 +48,7 @@ import {
     formatCurrency,
     freeShipping,
     getCurrentDateTime,
+    isEmptyObject,
     mintDateTime,
     objIsEmpty,
     profilePic,
@@ -65,6 +68,7 @@ import IconLoader from '@/components/Icon/IconLoader';
 import { useDispatch } from 'react-redux';
 import { setPageTitle } from '@/store/themeConfigSlice';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
+import ErrorMessage from '@/components/Layouts/ErrorMessage';
 
 const Editorder = () => {
     const router = useRouter();
@@ -136,6 +140,7 @@ const Editorder = () => {
     const [sendInvoice] = useMutation(SEND_INVOICE);
     const [sendPayslip] = useMutation(SEND_PAYLSIP);
     const [sendGiftCart] = useMutation(SEND_GIFT_CART);
+    const [orderFullfilmentRefund, { loading: refundLoading }] = useMutation(ORDER_FULLFILMENT_REFUND);
 
     // updateFullfillStatus
 
@@ -150,8 +155,12 @@ const Editorder = () => {
         },
     });
 
+    const { refetch: refundDataRefetch } = useQuery(REFUND_DATA);
+
     const [lines, setLines] = useState([]);
     const [isGiftWrap, setIsGiftWrap] = useState([]);
+
+    const refundAmtType = ['Automatic Amount', 'Manual Amount'];
 
     const { data: countryData } = useQuery(COUNTRY_LIST);
 
@@ -166,6 +175,7 @@ const Editorder = () => {
     });
 
     const [orderData, setOrderData] = useState<any>({});
+    console.log('orderData: ', orderData);
     const [discountOpen, setDiscountOpen] = useState(false);
     const [openInvoice, setOpenInvoice] = useState(false);
     const [updateInvoideLoading, setUpdateInvoideLoading] = useState(false);
@@ -180,8 +190,12 @@ const Editorder = () => {
 
     const [isEdited, setIsEdited] = useState<any>({});
     const [fullfillData, setFullfillData] = useState([]);
+    const [quantities, setQuantities] = useState({});
+    const [applyAllProduct, setApplyAllProduct] = useState(false);
 
     const [paymentStatus, setPaymentStatus] = useState('');
+    const [refundStatus, setRefundStatus] = useState('');
+
     const [selectedCurrency, setSelectedCurrency] = useState('');
     const [currencyPopup, setCurrencyPopup] = useState('');
     const [currencyLoading, setCurrencyLoading] = useState(false);
@@ -205,6 +219,11 @@ const Editorder = () => {
     const [addNoteLoading, setAddNoteLoading] = useState(false);
     const [invoiceSendLoading, setInvoiceSendLoading] = useState(false);
     const [sendPayslipLoading, setSendPayslipLoading] = useState(false);
+    const [selectedItem, setSelectedItem] = useState(refundAmtType[0]);
+    const [manualAmount, setManualAmount] = useState(null);
+    const [manualAmtError, setManualAmtError] = useState(null);
+    const [maxRefundAmt, setMaxRefundAmt] = useState(null);
+    console.log('maxRefundAmt: ', maxRefundAmt);
 
     //CountryList
     const [countryList, setCountryList] = useState([]);
@@ -216,6 +235,9 @@ const Editorder = () => {
     const [stateList, setStateList] = useState([]);
 
     const [loading, setLoading] = useState(false);
+    const [refundData, setRefundData] = useState(null);
+    const [refundProduct, setRefundProduct] = useState(null);
+
     const [confirmLoading, setConfirmLoading] = useState(false);
 
     const [isOpenPayslip, setIsOpenPayslip] = useState(false);
@@ -233,13 +255,19 @@ const Editorder = () => {
     const [waitingStatus, setWaitingStatus] = useState('');
     const [notesList, setNotesList] = useState([]);
     const [updateLoading, setUpdateLoading] = useState(false);
+    const [isOpenRefund, setIsOpenRefund] = useState(false);
     const [trackingError, setTrackingError] = useState(false);
     const [shippingError, setShippingError] = useState(false);
     const [isGiftCart, setIsGiftCart] = useState(false);
+    const [totalAmount, setTotalAmount] = useState(null);
 
     useEffect(() => {
         getOrderData();
     }, [orderDetails]);
+
+    useEffect(() => {
+        getRefundData();
+    }, [id]);
 
     useEffect(() => {
         getCustomer();
@@ -315,7 +343,12 @@ const Editorder = () => {
                 setIsGiftWrap(orderDetails?.order?.isGiftWrap);
                 setLoading(false);
                 setOrderStatus(orderDetails?.order?.status);
-                setPaymentStatus(orderDetails?.order?.paymentStatus);
+                if (orderDetails?.order?.paymentStatus == 'FULLY_CHARGED' || orderDetails?.order?.paymentStatus == 'NOT_CHARGET') {
+                    setPaymentStatus(orderDetails?.order?.paymentStatus);
+                } else {
+                    setPaymentStatus('FULLY_CHARGED');
+                    setRefundStatus(orderDetails?.order?.paymentStatus);
+                }
                 const billing = orderDetails?.order?.billingAddress;
                 const shipping = orderDetails?.order?.shippingAddress;
                 if (orderDetails?.order?.discounts?.length > 0) {
@@ -373,15 +406,34 @@ const Editorder = () => {
         }
     };
 
-    // const sumOldCurrentBalance = (giftCards: any[]) => {
-    //     return giftCards?.reduce((sum: any, card: any) => {
-    //         const usedInOrderEvents = card.events.filter((event: any) => event.type === 'USED_IN_ORDER');
-    //         const oldCurrentBalanceSum = usedInOrderEvents?.reduce((eventSum: any, event: any) => {
-    //             return eventSum + (event.balance.oldCurrentBalance ? event.balance.oldCurrentBalance.amount : 0);
-    //         }, 0);
-    //         return sum + oldCurrentBalanceSum;
-    //     }, 0);
-    // };
+    const getRefundData = async () => {
+        try {
+            const res = await refundDataRefetch({
+                orderId: id,
+            });
+            setRefundData(res?.data?.order);
+            console.log('res?.data?.order: ', res?.data?.order);
+            const filterByRefundData = res?.data?.order?.fulfillments?.find((item) => item.status != 'REFUNDED');
+            setRefundProduct(filterByRefundData);
+
+            if (res?.data?.order?.lines) {
+                const initialQuantities = filterByRefundData?.lines?.reduce((acc, item, index) => {
+                    acc[item.id] = 0;
+                    return acc;
+                }, {});
+                setQuantities(initialQuantities);
+            }
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
+    useEffect(() => {
+        const newTotalAmount = refundProduct?.lines?.reduce((total, item) => {
+            return total + (quantities[item.id] || 0) * item?.orderLine?.unitPrice?.gross?.amount;
+        }, 0);
+        setTotalAmount(newTotalAmount);
+    }, [quantities, refundProduct]);
 
     const sumOldCurrentBalance = (giftCards) => {
         const balanceMap = giftCards
@@ -466,14 +518,6 @@ const Editorder = () => {
                 Swal.fire('Cancelled', 'Your notes list is safe :)', 'error');
             }
         );
-    };
-
-    const BillingInputs = () => {
-        setShowBillingInputs(!showBillingInputs);
-    };
-
-    const ShippingInputs = () => {
-        setShowShippingInputs(!showShippingInputs);
     };
 
     const validationSchema = Yup.object().shape({
@@ -991,6 +1035,198 @@ const Editorder = () => {
         }
     };
 
+    const handleQuantityChange = (id, newQuantity) => {
+        const maxQuantity = refundProduct?.lines?.find((item) => item.id === id).quantity;
+        setQuantities((prevQuantities) => ({
+            ...prevQuantities,
+            [id]: Math.min(newQuantity, maxQuantity),
+        }));
+    };
+
+    const handleQtyChange = async (item) => {
+        const res = await refundDataRefetch({
+            orderId: id,
+        });
+        if (!item) {
+            const filterByRefundData = res?.data?.order?.fulfillments?.find((item) => item.status != 'REFUNDED');
+            if (res?.data?.order?.lines) {
+                const initialQuantities = filterByRefundData?.lines?.reduce((acc, item, index) => {
+                    acc[item.id] = 0;
+                    return acc;
+                }, {});
+                setQuantities(initialQuantities);
+                setApplyAllProduct(item);
+                // setSelectedItem(selectedItem);
+            }
+        } else {
+            const filterByRefundData = res?.data?.order?.fulfillments?.find((item) => item.status != 'REFUNDED');
+            const transformedData = filterByRefundData?.lines?.reduce((acc, item) => {
+                acc[item.id] = item.quantity;
+                return acc;
+            }, {});
+
+            setQuantities(transformedData);
+            setApplyAllProduct(item);
+            // setSelectedItem('Automatic Amount');
+        }
+    };
+
+    const maxRefundCalculation = () => {
+        let amt = null;
+
+        if (orderData?.totalRefunded?.amount == 0) {
+            amt = refundData?.total?.gross?.amount;
+        } else {
+            amt = refundData?.total?.gross?.amount - orderData?.totalRefunded?.amount;
+        }
+        let final = amt - orderData?.shippingPrice?.gross?.amount;
+        setMaxRefundAmt(final);
+        return addCommasToNumber(final);
+    };
+
+    const setTotalAmountCalc = () => {
+        let isDisable = false;
+        let maxRefundAmt = 0;
+        if (orderData?.totalRefunded?.amount == 0) {
+            maxRefundAmt = refundData?.total?.gross?.amount;
+        } else {
+            maxRefundAmt = refundData?.total?.gross?.amount - orderData?.totalRefunded?.amount;
+        }
+        const ttt = refundProduct.lines?.reduce((total, line) => {
+            const lineTotal = line.orderLine.unitPrice.gross.amount * line.orderLine.quantity;
+            return total + lineTotal;
+        }, 0);
+
+        if (selectedItem == 'Manual Amount') {
+            isDisable = true;
+        } else if (Number(maxRefundAmt) == Number(ttt)) {
+            isDisable = false;
+        } else if (Number(maxRefundAmt) < Number(ttt)) {
+            isDisable = true;
+        }
+
+        return isDisable;
+    };
+
+    const handleRefund = async () => {
+        try {
+            let input: any = {
+                includeShippingCosts: false,
+                orderLines: [],
+            };
+            if (selectedItem == 'Manual Amount') {
+                if (manualAmount == null) {
+                    Failure('Please enter valid amount');
+                } else {
+                    input.amountToRefund = Number(manualAmount);
+                    const response = await orderFullfilmentRefund({
+                        variables: {
+                            input,
+                            order: id,
+                        },
+                    });
+                    if (response?.data?.orderFulfillmentRefundProducts?.errors?.length > 0) {
+                        Failure(response?.data?.orderFulfillmentRefundProducts?.errors[0]?.message);
+                        setIsOpenRefund(false);
+                    } else {
+                        getRefundData();
+                        setIsOpenRefund(false);
+                        setSelectedItem(refundAmtType[0]);
+                        const res = await getOrderDetails({
+                            variables: {
+                                id: id,
+                                isStaffUser: true,
+                            },
+                        });
+                        setManualAmount(null);
+                        setManualAmtError('');
+                    }
+                }
+            } else {
+                const filteredData = Object.entries(quantities)
+                    .filter(([key, value]) => value !== 0) // Keep entries with value different from 0
+                    .reduce((acc, [key, value]) => {
+                        acc[key] = value; // Rebuild the object with filtered entries
+                        return acc;
+                    }, {});
+                console.log('filteredData', filteredData);
+                if (isEmptyObject(filteredData)) {
+                    Failure('Please select  a product quantity');
+                } else {
+                    input.fulfillmentLines = Object.entries(filteredData)?.map(([key, value]) => ({
+                        fulfillmentLineId: key,
+                        quantity: value,
+                    }));
+
+                    console.log('inputssss: ', input);
+
+                    const response = await orderFullfilmentRefund({
+                        variables: {
+                            input,
+                            order: id,
+                        },
+                    });
+                    if (response?.data?.orderFulfillmentRefundProducts?.errors?.length > 0) {
+                        Failure(response?.data?.orderFulfillmentRefundProducts?.errors[0]?.message);
+                        setIsOpenRefund(false);
+                    } else {
+                        getRefundData();
+                        setIsOpenRefund(false);
+                        setSelectedItem(refundAmtType[0]);
+                        const res = await getOrderDetails({
+                            variables: {
+                                id: id,
+                                isStaffUser: true,
+                            },
+                        });
+                    }
+                }
+            }
+
+            // Handle the response if needed
+        } catch (error) {
+            // Log detailed error information
+            console.error('Error processing refund:', error);
+        }
+    };
+    const showRefundBtn = () => {
+        let show = false;
+        // UNCONFIRMED
+        // CANCELED
+        // UNFULFILLED
+        // FULFILLED
+
+        // NOT_CHARGET
+        // FULLY_CHARGED
+        // FULLY_REFUNDED
+        // PARTIALLY_REFUNDED
+        const netAmount = orderData?.total?.gross?.amount - orderData?.totalRefunded?.amount;
+        if (netAmount == orderData?.shippingPrice?.gross?.amount) {
+            show = false;
+        }
+        else if (paymentStatus == 'PARTIALLY_REFUNDED' || paymentStatus == 'FULLY_CHARGED') {
+            show = true;
+        } else if (orderStatus == 'CANCELED') {
+            if (paymentStatus == 'FULLY_REFUNDED') {
+                show = false;
+            } else if (orderData?.fulfillments && orderData?.fulfillments?.length > 0) {
+                show = true;
+            }
+        } 
+        return show;
+    };
+
+    const showRefundText = () => {
+        let show = false;
+        if (orderData?.fulfillments?.length > 0) {
+            const filteredData = orderData?.fulfillments.filter((fulfillment) => fulfillment.status === 'REFUNDED');
+            if (filteredData.length > 0) {
+                show = true;
+            }
+        }
+        return show;
+    };
+
     return (
         <>
             <>
@@ -1051,29 +1287,12 @@ const Editorder = () => {
                                                 <option value="CANCELED">Cancelled</option>
                                             </select>
                                         </div>
-                                        {/* )} */}
-                                        {/* <div className="col-span-4">
-                                                    <label htmlFor="regularPrice" className="block pr-2 text-sm font-medium text-gray-700">
-                                                        Payment Method:
-                                                    </label>
-                                                    <select
-                                                        disabled={paymentStatus == 'FULLY_CHARGED'}
-                                                        className="form-select"
-                                                        // value={paymentStatus}
-                                                        onChange={(e) => {
-                                                            const status = e.target.value;
-                                                        }}
-                                                    >
-                                                        <option value="NOT_CHARGET">RazorPay</option>
-                                                        <option value="FULLY_CHARGED">COD</option>
-                                                    </select>
-                                                </div> */}
                                         <div className="col-span-4">
                                             <label htmlFor="regularPrice" className="block pr-2 text-sm font-medium text-gray-700">
                                                 Payment Status:
                                             </label>
                                             <select
-                                                disabled={paymentStatus == 'FULLY_CHARGED'}
+                                                disabled={paymentStatus == 'FULLY_CHARGED' || paymentStatus == 'FULLY_REFUNDED' || paymentStatus == 'PARTIALLY_REFUNDED'}
                                                 className="form-select"
                                                 value={paymentStatus}
                                                 onChange={(e) => {
@@ -1085,10 +1304,23 @@ const Editorder = () => {
                                                     }
                                                 }}
                                             >
-                                                <option value="NOT_CHARGET">payment pending</option>
-                                                <option value="FULLY_CHARGED">payment completed</option>
+                                                <option value="NOT_CHARGET">Payment pending</option>
+                                                <option value="FULLY_CHARGED">Payment completed</option>
+                                                {/* <option value="FULLY_REFUNDED">Fully refunded</option>
+                                                <option value="PARTIALLY_REFUNDED">Partially refunded</option> */}
                                             </select>
                                         </div>
+                                        {showRefundText() && (
+                                            <div className="col-span-4">
+                                                <label htmlFor="regularPrice" className="block pr-2 text-sm font-medium text-gray-700">
+                                                    Refund Status:
+                                                </label>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="rounded-2xl bg-green-100 p-2 text-sm font-semibold text-green-700">{refundStatus}</div>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {orderData?.paymentMethod?.name && (
                                             <div className="col-span-4">
                                                 <label htmlFor="regularPrice" className="block pr-2 text-sm font-medium text-gray-700">
@@ -1598,42 +1830,6 @@ const Editorder = () => {
                                                     {errors['shipping.phone'] && <div className="mt-1 text-danger">{errors['shipping.phone']}</div>}
                                                 </div>
                                             </div>
-
-                                            {/* <div className="mt-5 grid grid-cols-12 gap-3">
-                                                    <div className="col-span-12">
-                                                        <label htmlFor="payments" className=" text-sm font-medium text-gray-700">
-                                                            Payment method:
-                                                        </label>
-                                                        <select
-                                                            className="form-select mr-3"
-                                                            id="shippingpayments"
-                                                            name="shipping.paymentMethod"
-                                                            value={formData.shipping.paymentMethod}
-                                                            onChange={handleChange}
-                                                        >
-                                                            <option value="private-note">Private note</option>
-                                                            <option value="note-customer">Note to customer</option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-
-                                                <div className="mt-5 grid grid-cols-12 gap-3">
-                                                    <div className="col-span-12">
-                                                        <label htmlFor="transaction" className=" text-sm font-medium text-gray-700">
-                                                            Transaction ID
-                                                        </label>
-                                                        <input type="text" className="form-input" name="shipping.transactionId" value={formData.shipping.transactionId} onChange={handleChange} />
-
-                                                    </div>
-                                                </div>
-                                                <div className="mt-5 grid grid-cols-12 gap-3">
-                                                    <div className="col-span-12">
-                                                        <label htmlFor="phone" className=" text-sm font-medium text-gray-700">
-                                                            Customer Provided note:
-                                                        </label>
-                                                        <textarea className="form-input" name="note" id="note" cols="30" rows="2"></textarea>
-                                                    </div>
-                                                </div> */}
                                         </>
                                     )}
                                 </div>
@@ -1819,6 +2015,7 @@ const Editorder = () => {
                                             </div>
                                         </div>
                                     </div>
+
                                     {orderData?.paymentStatus == 'FULLY_CHARGED' && (
                                         <div className="mt-4 flex items-center justify-between font-semibold">
                                             <div>Paid Amount</div>
@@ -1833,19 +2030,38 @@ const Editorder = () => {
                                             </div>
                                         </div>
                                     )}
-                                    {/* {orderData?.totalCaptured?.amount !== 0 && (
-                                        <div className="mt-4 flex items-center justify-between font-semibold">
-                                            <div>Paid Amount</div>
-                                            <div>
-                                                <div className="pl-3 text-sm">
-                                                    {orderData?.totalCaptured?.currency == 'USD' ? '$' : '₹'}
-                                                    {roundOff(orderData?.totalCaptured?.amount)}
+                                    {showRefundText() && (
+                                        <>
+                                            <div className="mt-4 flex items-center justify-between font-semibold">
+                                                <div>Refunded Amount</div>
+                                                <div>
+                                                    <div className="ml-[50px] justify-end">{`${formatCurrency(orderData?.totalRefunded?.currency)}${addCommasToNumber(
+                                                        orderData?.totalRefunded?.amount
+                                                    )}`}</div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    )} */}
+
+                                            <div className="mt-4 flex items-center justify-between font-semibold">
+                                                <div>Net Amount</div>
+                                                <div>
+                                                    <div className="pl-3 text-sm">{`${formatCurrency(orderData?.totalRefunded?.currency)}${addCommasToNumber(
+                                                        orderData?.total?.gross?.amount - orderData?.totalRefunded?.amount
+                                                    )}`}</div>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
+                            {showRefundBtn() && (
+                                <div className=" mb-5 mt-5  ">
+                                    <div className=" pt-3">
+                                        <button onClick={() => setIsOpenRefund(true)} className="btn btn-primary">
+                                            {updateLoading ? <IconLoader /> : 'Refund'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         {isGiftCart ? (
                             orderData?.giftCardsPurchased?.length > 0 ? (
@@ -1922,48 +2138,47 @@ const Editorder = () => {
 
                     <div className="col-span-3">
                         {orderStatus != 'UNCONFIRMED' && (
-                            <div className="panel mb-5 p-5">
-                                <div className="mb-5 border-b border-gray-200 pb-2 ">
-                                    <h3 className="text-lg font-semibold">Order Actions</h3>
-                                </div>
-                                {orderStatus == 'FULFILLED' && (
-                                    <div className="col-span-4 pb-4">
-                                        <div className="items-center justify-between ">
-                                            <label htmlFor="status" className="block pr-2 text-sm font-medium text-gray-700">
-                                                Shipping Provider
-                                            </label>
-                                        </div>
+                            <>
+                                <div className="panel mb-5 p-5">
+                                    <div className="mb-5 border-b border-gray-200 pb-2 ">
+                                        <h3 className="text-lg font-semibold">Order Actions</h3>
+                                    </div>
+                                    {orderStatus == 'FULFILLED' && (
+                                        <div className="col-span-4 pb-4">
+                                            <div className="items-center justify-between ">
+                                                <label htmlFor="status" className="block pr-2 text-sm font-medium text-gray-700">
+                                                    Shipping Provider
+                                                </label>
+                                            </div>
 
-                                        <select className="form-select" value={shippingPatner} onChange={(e) => setShippingPatner(e.target.value)}>
-                                            <option value="">Choose Shipping Provider</option>
-                                            {customerData?.map((item: any) => (
-                                                <option key={item?.node?.id} value={item?.node?.id}>
-                                                    {item?.node?.name}
-                                                </option>
-                                            ))}
+                                            <select className="form-select" value={shippingPatner} onChange={(e) => setShippingPatner(e.target.value)}>
+                                                <option value="">Choose Shipping Provider</option>
+                                                {customerData?.map((item: any) => (
+                                                    <option key={item?.node?.id} value={item?.node?.id}>
+                                                        {item?.node?.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {shippingPatner == '' && shippingError && <div className=" text-danger">Required this field</div>}
+                                            <input type="text" className={`form-input mt-4`} placeholder="Tracking number" value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value)} />
+                                            {trackingNumber == '' && trackingError && <div className=" text-danger">Required this field</div>}
+                                        </div>
+                                    )}
+                                    <div>
+                                        <select className="form-select mr-3">
+                                            <option value="">Choose An Action</option>
+                                            <option value="Email Invoice">Email Invoice</option>
                                         </select>
-                                        {shippingPatner == '' && shippingError && <div className=" text-danger">Required this field</div>}
-                                        <input type="text" className={`form-input mt-4`} placeholder="Tracking number" value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value)} />
-                                        {trackingNumber == '' && trackingError && <div className=" text-danger">Required this field</div>}
                                     </div>
-                                )}
-                                <div>
-                                    <select className="form-select mr-3">
-                                        <option value="">Choose An Action</option>
-                                        <option value="Email Invoice">Email Invoice</option>
-                                    </select>
-                                </div>
-                                <div className="mt-5 border-t border-gray-200 pb-2 ">
-                                    <div className=" pt-3">
-                                        {/* <a href="#" className="text-danger underline">
-                                            Move To Trash
-                                        </a> */}
-                                        <button onClick={() => handleSubmit()} className="btn btn-outline-primary">
-                                            {updateLoading ? <IconLoader /> : 'Update'}
-                                        </button>
+                                    <div className="mt-5 flex justify-between border-t border-gray-200 pb-2 ">
+                                        <div className=" pt-3">
+                                            <button onClick={() => handleSubmit()} className="btn btn-outline-primary">
+                                                {updateLoading ? <IconLoader /> : 'Update'}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </>
                         )}
                         <div className="panel max-h-[810px]  overflow-y-auto p-5">
                             <div className="mb-5 border-b border-gray-200 pb-2 ">
@@ -2435,6 +2650,190 @@ const Editorder = () => {
                             </button>
                             <button type="submit" className="btn btn-primary ltr:ml-4 rtl:mr-4" onClick={() => handleSetChannel()}>
                                 {currencyLoading ? <IconLoader /> : 'Confirm'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            />
+
+            <Modal
+                addHeader={'Refunds'}
+                open={isOpenRefund}
+                isFullWidth
+                close={() => setIsOpenRefund(false)}
+                renderComponent={() => (
+                    <div className="p-5">
+                        <div className="panel p-5">
+                            {refundProduct?.lines?.length > 0 && (
+                                <>
+                                    <div className="table-responsive">
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>Item</th>
+
+                                                    <th className="w-1">Cost</th>
+                                                    <th className="w-1">Qty</th>
+                                                    <th>Total</th>
+
+                                                    <th className="w-1"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {refundProduct?.lines?.map((item: any, index: any) => (
+                                                    <tr className="panel align-top" key={index}>
+                                                        <td className="flex ">
+                                                            <img src={item?.orderLine?.thumbnail?.url} height={50} width={50} alt="Selected" className="object-cover" />
+                                                            <div>
+                                                                <div className="pl-5">{item?.orderLine?.productName}</div>
+                                                                <div className="pl-5">{item?.orderLine?.productSku}</div>
+                                                            </div>
+                                                        </td>
+
+                                                        <td>{`${formatCurrency(item?.orderLine?.unitPrice?.gross?.currency)}${addCommasToNumber(item?.orderLine?.unitPrice?.gross?.amount)}`} </td>
+
+                                                        <td>{item?.orderLine?.quantity}</td>
+                                                        <td className="relative">
+                                                            <input
+                                                                type="number"
+                                                                value={quantities[item?.id]}
+                                                                disabled={setTotalAmountCalc()}
+                                                                onChange={(e) => handleQuantityChange(item?.id, Math.max(0, Number(e.target.value)))}
+                                                                min="0"
+                                                                max={item?.quantity}
+                                                                className="form-input pr-8"
+                                                            />
+                                                            <span className="absolute right-8  top-[21px] transform items-center">/ {item?.quantity}</span>
+                                                        </td>
+                                                        <td>
+                                                            <td>{`${formatCurrency(item?.orderLine?.unitPrice?.gross?.currency)}${addCommasToNumber(
+                                                                (quantities[item?.id] || 0) * item?.orderLine?.unitPrice?.gross?.amount
+                                                            )}`}</td>
+
+                                                            {/* <td>{`${formatCurrency(item?.unitPrice?.gross?.currency)}${addCommasToNumber(item?.unitPrice?.gross?.amount)}`} </td> */}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div>
+                                        <div className="mt-4 flex justify-end gap-3">
+                                            <input
+                                                type="checkbox"
+                                                checked={applyAllProduct}
+                                                disabled={setTotalAmountCalc()}
+                                                onChange={(e) => {
+                                                    handleQtyChange(e.target.checked);
+                                                }}
+                                                className="form-checkbox border-white-light dark:border-white-dark ltr:mr-0 rtl:ml-0"
+                                            />
+                                            <label
+                                                className="text-md cursor-pointer font-semibold dark:text-white-light"
+                                                onClick={() => {
+                                                    if (!setTotalAmountCalc()) {
+                                                        handleQtyChange(!applyAllProduct);
+                                                    }
+                                                }}
+                                            >
+                                                Apply All Products
+                                            </label>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            <div className="">
+                                <div className="mb-4  mt-4 bg-[#fbfbfb] text-lg font-medium dark:bg-[#121c2c]">Refunded Amount</div>
+                                <div className="flex items-center gap-4">
+                                    {refundAmtType.map((item) => (
+                                        <div key={item} className="flex gap-3">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedItem === item}
+                                                onChange={() => {
+                                                    setSelectedItem(item);
+                                                }}
+                                                className="form-checkbox border-white-light dark:border-white-dark ltr:mr-0 rtl:ml-0"
+                                            />
+                                            <label
+                                                className="text-md cursor-pointer font-semibold dark:text-white-light"
+                                                onClick={() => {
+                                                    setSelectedItem(item);
+                                                }}
+                                            >
+                                                {item}
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+                                {selectedItem == 'Manual Amount' && (
+                                    <div>
+                                        <div className=" mt-4 bg-[#fbfbfb] text-sm font-medium dark:bg-[#121c2c]">Manual Amount</div>
+                                        <input
+                                            type="number"
+                                            value={manualAmount}
+                                            onChange={(e) => {
+                                                if (e.target.value > maxRefundAmt) {
+                                                    setManualAmtError('Amount cannot be bigger than max refund');
+                                                } else {
+                                                    setManualAmount(e.target.value);
+                                                    setManualAmtError('');
+                                                    // setTotalAmount(e.target.value);
+                                                }
+                                            }}
+                                            className="form-input w-[200px]"
+                                        />
+                                        {manualAmtError && <ErrorMessage message={manualAmtError} />}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="mt-6 flex flex-col justify-between px-4 sm:flex-row">
+                                <div className="mb-8 sm:mb-0"></div>
+                                <div className=" flex flex-col gap-5">
+                                    <div className="flex items-center justify-between ">
+                                        <div>SubTotal</div>
+                                        <div>{`${formatCurrency(refundData?.total?.gross?.currency)}${addCommasToNumber(
+                                            refundData?.total?.gross?.amount - refundData?.shippingPrice?.gross?.amount
+                                        )}`}</div>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <div>Shipping Rate</div>
+                                        <div>{`${formatCurrency(refundData?.shippingPrice?.gross?.currency)}${addCommasToNumber(refundData?.shippingPrice?.gross?.amount)}`}</div>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <div>Total</div>
+                                        <div>{`${formatCurrency(refundData?.total?.gross?.currency)}${addCommasToNumber(refundData?.total?.gross?.amount)}`}</div>
+                                    </div>
+
+                                    <div className=" flex items-center justify-between gap-3">
+                                        <div> Previously refunded</div>
+                                        <div>{`${formatCurrency(refundData?.total?.gross?.currency)}${addCommasToNumber(orderData?.totalRefunded?.amount)}`}</div>
+                                    </div>
+
+                                    <div className=" flex items-center justify-between gap-3 font-semibold">
+                                        <div>Maximum Refund Amount</div>
+                                        <div>
+                                            <div>{`${formatCurrency(refundData?.totalCaptured?.currency)}${maxRefundCalculation()}`}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-3 flex items-center justify-between gap-3 font-semibold">
+                                        <div>Total Refund Amount</div>
+                                        <div>
+                                            <div>{`${formatCurrency(refundData?.totalCaptured?.currency)}${addCommasToNumber(totalAmount) || addCommasToNumber(0)}`}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 flex items-center justify-end">
+                            <button type="button" className="btn btn-outline-danger gap-2" onClick={() => setIsOpenRefund(false)}>
+                                Cancel
+                            </button>
+                            <button type="submit" className="btn btn-primary ltr:ml-4 rtl:mr-4" onClick={() => handleRefund()}>
+                                {refundLoading ? <IconLoader /> : 'Confirm'}
                             </button>
                         </div>
                     </div>

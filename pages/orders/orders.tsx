@@ -103,7 +103,7 @@ const Orders = () => {
 
         if (router.query?.customer) {
             body = {
-                first:200,
+                first: 200,
                 direction: 'DESC',
                 field: 'CREATED_AT',
                 filter: { created: null, customer: router.query?.customer },
@@ -670,7 +670,7 @@ const Orders = () => {
                                                     ? 'bg-red-200 text-red-800'
                                                     : row?.paymentStatus === 'Cancelled'
                                                     ? 'bg-gray-200 text-gray-800'
-                                                    : ''
+                                                    : 'bg-purple-200 text-purple-800'
                                             }`}
                                         >
                                             {row?.paymentStatus}
@@ -730,7 +730,7 @@ const Orders = () => {
                                 content: ({ record }) =>
                                     expandedRow === record.id ? (
                                         <div>
-                                            <OrderQuickEdit id={record?.id} updateList={()=>getOrderList()} closeExpand={() => setExpandedRows(null)} />
+                                            <OrderQuickEdit id={record?.id} updateList={() => getOrderList()} closeExpand={() => setExpandedRows(null)} />
                                         </div>
                                     ) : null,
                             }}

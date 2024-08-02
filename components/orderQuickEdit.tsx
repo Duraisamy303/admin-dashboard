@@ -753,7 +753,7 @@ const OrderQuickEdit = (props: any) => {
                                                     </div> */}
                                         </div>
                                     )}
-                                    <div className="panel col-span-4  overflow-y-auto p-5">
+                                    <div className=" col-span-4  overflow-y-auto ">
                                         <div className=" flex items-center justify-between border-b border-gray-200 pb-2 ">
                                             <h3 className="text-lg font-semibold">Payslip</h3>
 
@@ -806,7 +806,7 @@ const OrderQuickEdit = (props: any) => {
                                             )
                                         )}
                                     </div>
-                                    <div className="panel col-span-4  overflow-y-auto p-5">
+                                    <div className=" col-span-4  overflow-y-auto">
                                         <div className=" flex items-center justify-between border-b border-gray-200 pb-2 ">
                                             <h3 className="text-lg font-semibold">Invoice</h3>
                                             {orderData?.invoices?.length > 0 && (

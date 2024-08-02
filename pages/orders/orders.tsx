@@ -103,7 +103,7 @@ const Orders = () => {
 
         if (router.query?.customer) {
             body = {
-                first: 200,
+                first: 500,
                 direction: 'DESC',
                 field: 'CREATED_AT',
                 filter: { created: null, customer: router.query?.customer },
@@ -539,7 +539,7 @@ const Orders = () => {
                                 Export
                             </button>
                         </div>
-                        <div className="dropdown  ml-2 ">
+                        {/* <div className="dropdown  ml-2 ">
                             <Dropdown
                                 placement={`${isRtl ? 'bottom-start' : 'bottom-end'}`}
                                 btnClassName="btn btn-outline-primary dropdown-toggle"
@@ -560,7 +560,7 @@ const Orders = () => {
                                     </li>
                                 </ul>
                             </Dropdown>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
                 {exportBy == 'custom' && (
@@ -711,18 +711,18 @@ const Orders = () => {
                                                     <IconPencil className="ltr:mr-2 rtl:ml-2" />
                                                 </button>
                                             </Tippy>
-                                            <Tippy content="Delete">
+                                            {/* <Tippy content="Delete">
                                                 <button type="button" onClick={() => DeleteOrder(row)}>
                                                     <IconTrashLines />
                                                 </button>
-                                            </Tippy>
+                                            </Tippy> */}
                                         </>
                                     ),
                                 },
                             ]}
                             rowExpansion={{
                                 collapseProps: {
-                                    transitionDuration: 500,
+                                    transitionDuration: 20,
                                     animateOpacity: false,
                                     transitionTimingFunction: 'ease-out',
                                 },
@@ -743,10 +743,10 @@ const Orders = () => {
                             onRecordsPerPageChange={setPageSize}
                             sortStatus={sortStatus}
                             onSortStatusChange={setSortStatus}
-                            selectedRecords={selectedRecords}
-                            onSelectedRecordsChange={(selectedRecords) => {
-                                setSelectedRecords(selectedRecords);
-                            }}
+                            // selectedRecords={selectedRecords}
+                            // onSelectedRecordsChange={(selectedRecords) => {
+                            //     setSelectedRecords(selectedRecords);
+                            // }}
                             minHeight={200}
                             paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
                         />

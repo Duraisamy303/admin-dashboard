@@ -175,7 +175,6 @@ const Editorder = () => {
     });
 
     const [orderData, setOrderData] = useState<any>({});
-    console.log('orderData: ', orderData);
     const [discountOpen, setDiscountOpen] = useState(false);
     const [openInvoice, setOpenInvoice] = useState(false);
     const [updateInvoideLoading, setUpdateInvoideLoading] = useState(false);
@@ -194,6 +193,7 @@ const Editorder = () => {
     const [applyAllProduct, setApplyAllProduct] = useState(false);
 
     const [paymentStatus, setPaymentStatus] = useState('');
+    console.log('paymentStatus: ', paymentStatus);
     const [refundStatus, setRefundStatus] = useState('');
 
     const [selectedCurrency, setSelectedCurrency] = useState('');
@@ -223,7 +223,6 @@ const Editorder = () => {
     const [manualAmount, setManualAmount] = useState(null);
     const [manualAmtError, setManualAmtError] = useState(null);
     const [maxRefundAmt, setMaxRefundAmt] = useState(null);
-    console.log('maxRefundAmt: ', maxRefundAmt);
 
     //CountryList
     const [countryList, setCountryList] = useState([]);
@@ -237,7 +236,6 @@ const Editorder = () => {
     const [loading, setLoading] = useState(false);
     const [refundData, setRefundData] = useState(null);
     const [refundProduct, setRefundProduct] = useState(null);
-
     const [confirmLoading, setConfirmLoading] = useState(false);
 
     const [isOpenPayslip, setIsOpenPayslip] = useState(false);
@@ -256,6 +254,7 @@ const Editorder = () => {
     const [notesList, setNotesList] = useState([]);
     const [updateLoading, setUpdateLoading] = useState(false);
     const [isOpenRefund, setIsOpenRefund] = useState(false);
+    const [showRefundButton, setShowRefundBtn] = useState(false);
     const [trackingError, setTrackingError] = useState(false);
     const [shippingError, setShippingError] = useState(false);
     const [isGiftCart, setIsGiftCart] = useState(false);
@@ -288,6 +287,7 @@ const Editorder = () => {
         if (orderDetails) {
             if (orderDetails && orderDetails?.order) {
                 //Invoice
+                getRefundData();
 
                 if (orderDetails?.order?.invoices?.length > 0) {
                     setInvoiceNumber(orderDetails?.order?.invoices[0]?.number?.slice(-4));
@@ -343,7 +343,8 @@ const Editorder = () => {
                 setIsGiftWrap(orderDetails?.order?.isGiftWrap);
                 setLoading(false);
                 setOrderStatus(orderDetails?.order?.status);
-                if (orderDetails?.order?.paymentStatus == 'FULLY_CHARGED' || orderDetails?.order?.paymentStatus == 'NOT_CHARGET') {
+                showRefundBtn(orderDetails?.order);
+                if (orderDetails?.order?.paymentStatus == 'FULLY_CHARGED' || orderDetails?.order?.paymentStatus == 'NOT_CHARGED') {
                     setPaymentStatus(orderDetails?.order?.paymentStatus);
                 } else {
                     setPaymentStatus('FULLY_CHARGED');
@@ -412,8 +413,7 @@ const Editorder = () => {
                 orderId: id,
             });
             setRefundData(res?.data?.order);
-            console.log('res?.data?.order: ', res?.data?.order);
-            const filterByRefundData = res?.data?.order?.fulfillments?.find((item) => item.status != 'REFUNDED');
+            const filterByRefundData = res?.data?.order?.fulfillments?.find((item) => item.status == 'FULFILLED');
             setRefundProduct(filterByRefundData);
 
             if (res?.data?.order?.lines) {
@@ -626,7 +626,7 @@ const Editorder = () => {
                 if (res?.data?.orderFulfill?.errors?.length > 0) {
                     setIsOrderOpen(false);
                 } else {
-                    setOrderStatus('Shipped');
+                    setOrderStatus('FULFILLED');
                     setIsOrderOpen(false);
                     Success('Order status updated');
                 }
@@ -1081,7 +1081,7 @@ const Editorder = () => {
         }
         let final = amt - orderData?.shippingPrice?.gross?.amount;
         setMaxRefundAmt(final);
-        return addCommasToNumber(final);
+        return final.toFixed(2);
     };
 
     const setTotalAmountCalc = () => {
@@ -1115,7 +1115,7 @@ const Editorder = () => {
                 orderLines: [],
             };
             if (selectedItem == 'Manual Amount') {
-                if (manualAmount == null) {
+                if (manualAmount == null && manualAmount == "") {
                     Failure('Please enter valid amount');
                 } else {
                     input.amountToRefund = Number(manualAmount);
@@ -1143,42 +1143,44 @@ const Editorder = () => {
                     }
                 }
             } else {
-                const filteredData = Object.entries(quantities)
-                    .filter(([key, value]) => value !== 0) // Keep entries with value different from 0
-                    .reduce((acc, [key, value]) => {
-                        acc[key] = value; // Rebuild the object with filtered entries
-                        return acc;
-                    }, {});
-                console.log('filteredData', filteredData);
-                if (isEmptyObject(filteredData)) {
-                    Failure('Please select  a product quantity');
+                if (maxRefundAmt < totalAmount) {
+                    Failure(`Not allwed to Refund Amount.${"\n"}Max Refund Amount is ${addCommasToNumber(maxRefundAmt)}`);
                 } else {
-                    input.fulfillmentLines = Object.entries(filteredData)?.map(([key, value]) => ({
-                        fulfillmentLineId: key,
-                        quantity: value,
-                    }));
-
-                    console.log('inputssss: ', input);
-
-                    const response = await orderFullfilmentRefund({
-                        variables: {
-                            input,
-                            order: id,
-                        },
-                    });
-                    if (response?.data?.orderFulfillmentRefundProducts?.errors?.length > 0) {
-                        Failure(response?.data?.orderFulfillmentRefundProducts?.errors[0]?.message);
-                        setIsOpenRefund(false);
+                    const filteredData = Object.entries(quantities)
+                        .filter(([key, value]) => value !== 0) // Keep entries with value different from 0
+                        .reduce((acc, [key, value]) => {
+                            acc[key] = value; // Rebuild the object with filtered entries
+                            return acc;
+                        }, {});
+                    if (isEmptyObject(filteredData)) {
+                        Failure('Please select  a product quantity');
                     } else {
-                        getRefundData();
-                        setIsOpenRefund(false);
-                        setSelectedItem(refundAmtType[0]);
-                        const res = await getOrderDetails({
+                        input.fulfillmentLines = Object.entries(filteredData)?.map(([key, value]) => ({
+                            fulfillmentLineId: key,
+                            quantity: value,
+                        }));
+
+
+                        const response = await orderFullfilmentRefund({
                             variables: {
-                                id: id,
-                                isStaffUser: true,
+                                input,
+                                order: id,
                             },
                         });
+                        if (response?.data?.orderFulfillmentRefundProducts?.errors?.length > 0) {
+                            Failure(response?.data?.orderFulfillmentRefundProducts?.errors[0]?.message);
+                            setIsOpenRefund(false);
+                        } else {
+                            getRefundData();
+                            setIsOpenRefund(false);
+                            setSelectedItem(refundAmtType[0]);
+                            const res = await getOrderDetails({
+                                variables: {
+                                    id: id,
+                                    isStaffUser: true,
+                                },
+                            });
+                        }
                     }
                 }
             }
@@ -1189,31 +1191,18 @@ const Editorder = () => {
             console.error('Error processing refund:', error);
         }
     };
-    const showRefundBtn = () => {
+    const showRefundBtn = (data) => {
+        let without_shipping_amount = Number(data?.total?.gross?.amount) - Number(data?.shippingPrice?.gross?.amount);
+        let totalRefunded = data?.totalRefunded?.amount;
         let show = false;
-        // UNCONFIRMED
-        // CANCELED
-        // UNFULFILLED
-        // FULFILLED
-
-        // NOT_CHARGET
-        // FULLY_CHARGED
-        // FULLY_REFUNDED
-        // PARTIALLY_REFUNDED
-        const netAmount = orderData?.total?.gross?.amount - orderData?.totalRefunded?.amount;
-        if (netAmount == orderData?.shippingPrice?.gross?.amount) {
+        if (data?.actions?.length == 0) {
             show = false;
-        }
-        else if (paymentStatus == 'PARTIALLY_REFUNDED' || paymentStatus == 'FULLY_CHARGED') {
-            show = true;
-        } else if (orderStatus == 'CANCELED') {
-            if (paymentStatus == 'FULLY_REFUNDED') {
-                show = false;
-            } else if (orderData?.fulfillments && orderData?.fulfillments?.length > 0) {
+        } else {
+            if (data?.actions[0] == 'REFUND' && totalRefunded < without_shipping_amount) {
                 show = true;
             }
-        } 
-        return show;
+        }
+        setShowRefundBtn(show);
     };
 
     const showRefundText = () => {
@@ -1292,7 +1281,7 @@ const Editorder = () => {
                                                 Payment Status:
                                             </label>
                                             <select
-                                                disabled={paymentStatus == 'FULLY_CHARGED' || paymentStatus == 'FULLY_REFUNDED' || paymentStatus == 'PARTIALLY_REFUNDED'}
+                                                disabled={paymentStatus == 'FULLY_CHARGED'}
                                                 className="form-select"
                                                 value={paymentStatus}
                                                 onChange={(e) => {
@@ -2000,7 +1989,7 @@ const Editorder = () => {
                                             <div>Discount</div>
                                             <div>
                                                 {orderData?.discounts[0]?.amount?.currency == 'USD' ? '$' : '₹'}
-                                                {orderData?.discounts[0]?.amount?.amount}
+                                                {addCommasToNumber(orderData?.discounts[0]?.amount?.amount)}
                                             </div>
                                         </div>
                                     )}
@@ -2053,7 +2042,7 @@ const Editorder = () => {
                                     )}
                                 </div>
                             </div>
-                            {showRefundBtn() && (
+                            {showRefundButton && (
                                 <div className=" mb-5 mt-5  ">
                                     <div className=" pt-3">
                                         <button onClick={() => setIsOpenRefund(true)} className="btn btn-primary">
@@ -2771,7 +2760,7 @@ const Editorder = () => {
                                     <div>
                                         <div className=" mt-4 bg-[#fbfbfb] text-sm font-medium dark:bg-[#121c2c]">Manual Amount</div>
                                         <input
-                                            type="number"
+                                            type="text"
                                             value={manualAmount}
                                             onChange={(e) => {
                                                 if (e.target.value > maxRefundAmt) {

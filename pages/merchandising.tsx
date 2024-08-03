@@ -29,15 +29,15 @@ const Index = () => {
     const [status, setStatus] = useState('');
     const [dropIndex, setDropIndex] = useState(null);
     const [parentLists, setParentLists] = useState([]);
+    const [draggedIndex, setDraggedIndex] = useState(null);
 
     const buildFilter = (category, availability) => {
-        const filter: any = {};
+        const filter:any = {};
         if (router?.query?.category) {
             filter.categories = [router?.query?.category];
         } else if (category && category !== '') {
             filter.categories = [category];
         }
-       
         return filter;
     };
 
@@ -46,11 +46,10 @@ const Index = () => {
         return parentCategories.map(({ node }) => ({
             id: node.id,
             name: node.name,
-            children:
-                node.children?.edges.map(({ node }) => ({
-                    id: node.id,
-                    name: node.name,
-                })) || [],
+            children: node.children?.edges.map(({ node }) => ({
+                id: node.id,
+                name: node.name,
+            })) || [],
         }));
     };
 
@@ -143,56 +142,53 @@ const Index = () => {
 
     const handleDragStart = (e, id, index) => {
         e.dataTransfer.setData('id', id);
-        setDropIndex(index);
+        setDraggedIndex(index);
+        setDropIndex(index); // Initialize dropIndex with the dragged index
     };
 
     const handleDragOver = (e) => {
         e.preventDefault();
     };
 
+    const handleDragEnter = (e, index) => {
+        setDropIndex(index);
+    };
+
     const handleDrop = async (e, targetIndex) => {
         e.preventDefault();
         const draggedId = e.dataTransfer.getData('id');
-        const draggedIndex = dropIndex;
 
         if (draggedIndex !== -1 && draggedIndex !== targetIndex) {
             const newRecordsData = [...recordsData];
             const [draggedItem] = newRecordsData.splice(draggedIndex, 1);
             newRecordsData.splice(targetIndex, 0, draggedItem);
 
-            // Determine the range to update based on the drag and drop positions
             const startIndex = Math.min(draggedIndex, targetIndex);
             const endIndex = Math.max(draggedIndex, targetIndex) + 1;
 
-            // Extract the updated portion of the array
             const updatedRange = newRecordsData.slice(startIndex, endIndex);
 
-            console.log('Updated Range:', updatedRange);
             const formattedUpdatedRange = updatedRange.map((item, index) => ({
                 productId: item.id,
-                orderNo: startIndex + index + 1, // Adjust order number based on startIndex
+                orderNo: startIndex + index + 1,
             }));
-            console.log('formattedUpdatedRange: ', formattedUpdatedRange);
-            const res = await reorder({
+
+            await reorder({
                 variables: {
                     input: {
                         updates: formattedUpdatedRange,
                     },
                 },
             });
-            console.log('res: ', res);
 
-            // Set the updated data and recalculate order numbers
             setRecordsData(newRecordsData);
-
-            // Log the dragged and dropped products
-            console.log('Dragged Product:', draggedItem);
-            console.log('Dropped Product:', recordsData[targetIndex]);
         }
+
+        setDraggedIndex(null); // Reset draggedIndex
+        setDropIndex(null); // Reset dropIndex
     };
 
     const tableFormat = (products) => {
-        console.log('products: ', products);
         const newData = products?.map((item) => ({
             ...item.node,
             image: productImg(item?.node),
@@ -215,7 +211,7 @@ const Index = () => {
 
     const handleCategoryChange = (e) => {
         setSelectedCategory(e.target.value);
-        if(e.target.value == ""){
+        if (e.target.value == "") {
             fetchLowStockList({
                 variables: {
                     channel: 'india-channel',
@@ -224,24 +220,24 @@ const Index = () => {
                     search: search,
                 },
             });
-        }else{
-        fetchLowStockList({
-            variables: {
-                channel: 'india-channel',
-                first: selectPage,
-                after: null,
-                search: search,
-                filter: buildFilter(e.target.value, status),
-            },
-        });
-    }
+        } else {
+            fetchLowStockList({
+                variables: {
+                    channel: 'india-channel',
+                    first: selectPage,
+                    after: null,
+                    search: search,
+                    filter: buildFilter(e.target.value, status),
+                },
+            });
+        }
     };
 
     const filter = [10, 20, 50, 100, 200];
 
     const handlePageChange = (e) => {
         setSelectPage(e.target.value);
-        if(e.target.value == ""){
+        if (e.target.value == "") {
             fetchLowStockList({
                 variables: {
                     channel: 'india-channel',
@@ -250,32 +246,31 @@ const Index = () => {
                     search: search,
                     filter: buildFilter(e.target.value, status),
                 },
-            }); 
-        }else{
-        fetchLowStockList({
-            variables: {
-                channel: 'india-channel',
-                first: e.target.value,
-                after: null,
-                search: search,
-                filter: buildFilter(e.target.value, status),
-            },
-        });
-    }
+            });
+        } else {
+            fetchLowStockList({
+                variables: {
+                    channel: 'india-channel',
+                    first: e.target.value,
+                    after: null,
+                    search: search,
+                    filter: buildFilter(e.target.value, status),
+                },
+            });
+        }
     };
 
     return (
         <div>
-            <div className="panel  mb-5 flex items-center justify-between gap-5">
+            <div className="panel mb-5 flex items-center justify-between gap-5">
                 <div className="flex items-center gap-5">
                     <h5 className="text-lg font-semibold dark:text-white-light">Merchandising</h5>
                 </div>
-               
             </div>
             <div className="mb-5 mt-5 flex justify-between md:mb-0 md:mt-0 md:flex md:ltr:ml-auto md:rtl:mr-auto">
                 <div className='flex gap-5'>
-                    <input type="text" className=" form-input mb-3 mr-2 h-[40px] md:mb-0 md:w-auto " placeholder="Search..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
-               
+                    <input type="text" className="form-input mb-3 mr-2 h-[40px] md:mb-0 md:w-auto" placeholder="Search..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
+
                     <select className="form-select flex-1" value={selectPage} onChange={(e) => handlePageChange(e)}>
                         <option value="">Select a Page</option>
                         {filter.map((parent) => (
@@ -305,13 +300,21 @@ const Index = () => {
                 <div className="grid grid-cols-5 gap-5 pt-5">
                     {recordsData?.length > 0 ? (
                         recordsData.map((record, index) => (
-                            <div key={record.id} className="card" draggable onDragStart={(e) => handleDragStart(e, record.id, index)} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, index)}>
+                            <div
+                                key={record.id}
+                                className={`card ${draggedIndex === index ? 'dragging' : ''} ${dropIndex === index && draggedIndex !== null ? 'drag-over' : ''}`}
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, record.id, index)}
+                                onDragOver={handleDragOver}
+                                onDragEnter={(e) => handleDragEnter(e, index)}
+                                onDrop={(e) => handleDrop(e, index)}
+                            >
                                 <img src={record.image} alt={record.name} className="h-48 w-full object-cover" />
                                 <div className="mt-2 text-center">{record.name}</div>
                             </div>
                         ))
                     ) : (
-                        <div className=" flex items-center justify-center">No Data Found</div>
+                        <div className="flex items-center justify-center">No Data Found</div>
                     )}
                 </div>
             )}

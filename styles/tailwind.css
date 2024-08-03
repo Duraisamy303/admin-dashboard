@@ -707,3 +707,10 @@ pre.hljs {
 .swal2-container .swal2-popup.swal2-toast.color-success {
     @apply bg-success;
 }
+.dragging {
+    opacity: 0.5;
+}
+
+.drag-over {
+    background-color: rgba(0, 0, 0, 0.1);
+}

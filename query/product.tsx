@@ -18391,3 +18391,60 @@ export const MERCHANDISING_PAGINATION = gql`
         __typename
     }
 `;
+
+export const ADD_NEW_MEDIA_IMAGE = gql`
+    mutation CreateFile($input: FileInput!) {
+        fileCreate(input: $input) {
+            file {
+                id
+                fileUrl
+                alt
+                description
+                caption
+                title
+            }
+            fileErrors {
+                message
+            }
+        }
+    }
+`;
+export const UPDATE_MEDIA_IMAGE = gql`
+    mutation UpdateFile($file_url: String!, $input: FileInput!) {
+        fileUpdate(fileUrl: $file_url, input: $input) {
+            file {
+                id
+                fileUrl
+                alt
+                description
+                caption
+                title
+            }
+            fileErrors {
+                message
+            }
+        }
+    }
+`;
+
+export const DELETE_MEDIA_IMAGE = gql`
+    mutation DeleteFile($file_url: String!) {
+        fileDelete(fileUrl: $file_url) {
+            errors {
+                message
+            }
+        }
+    }
+`;
+
+export const GET_MEDIA_IMAGE = gql`
+    query GetFileData($fileurl: String) {
+        fileByFileurl(fileUrl: $fileurl) {
+            alt
+            caption
+            description
+            fileUrl
+            title
+        }
+    }
+`;

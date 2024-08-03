@@ -9,7 +9,18 @@ import { Dialog, Transition } from '@headlessui/react';
 import IconX from '@/components/Icon/IconX';
 import * as Yup from 'yup';
 import { useMutation, useQuery } from '@apollo/client';
-import { CATEGORY_LIST, CREATE_CATEGORY, DELETE_CATEGORY, PRODUCT_LIST, UPDATE_CATEGORY, UPDATE_CATEGORY_NEW } from '@/query/product';
+import {
+    ADD_NEW_MEDIA_IMAGE,
+    CATEGORY_LIST,
+    CREATE_CATEGORY,
+    DELETE_CATEGORY,
+    DELETE_MEDIA_IMAGE,
+    GET_MEDIA_IMAGE,
+    PRODUCT_LIST,
+    UPDATE_CATEGORY,
+    UPDATE_CATEGORY_NEW,
+    UPDATE_MEDIA_IMAGE,
+} from '@/query/product';
 import { PARENT_CATEGORY_LIST } from '@/query/product';
 import IconLoader from '@/components/Icon/IconLoader';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
@@ -23,14 +34,18 @@ import {
     filterImages,
     formatOptions,
     generatePresignedPost,
+    getFileNameFromUrl,
+    getFileType,
     months,
     objIsEmpty,
     profilePic,
+    showDeleteAlert,
 } from '@/utils/functions';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import moment from 'moment';
 import CommonLoader from '../elements/commonLoader';
+import Swal from 'sweetalert2';
 
 const EditCategory = () => {
     const router = useRouter();
@@ -61,6 +76,12 @@ const EditCategory = () => {
     const [mediaMonth, setMediaMonth] = useState('all');
     const [description, setDescription] = useState('');
     const [loadings, setLoading] = useState(false);
+    const [alt, setAlt] = useState('');
+    const [caption, setCaption] = useState('');
+    const [mediaData, setMediaData] = useState(null);
+    console.log('mediaData: ', mediaData);
+    const [title, setTitle] = useState('');
+    const [mediaDescription, setMediaDescription] = useState('');
 
     const { data: parentList } = useQuery(PARENT_CATEGORY_LIST, {
         variables: { channel: 'india-channel' },
@@ -78,6 +99,11 @@ const EditCategory = () => {
 
     //Mutation
     const [updateCategory, { loading }] = useMutation(UPDATE_CATEGORY_NEW);
+
+    const [addNewImages] = useMutation(ADD_NEW_MEDIA_IMAGE);
+    const [updateImages, { loading: mediaUpdateLoading }] = useMutation(UPDATE_MEDIA_IMAGE);
+    const [deleteImages] = useMutation(DELETE_MEDIA_IMAGE);
+    const { data, refetch: getListRefetch } = useQuery(GET_MEDIA_IMAGE);
 
     useEffect(() => {
         getMediaImage();
@@ -183,7 +209,7 @@ const EditCategory = () => {
     };
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(selectedImg?.url).then(() => {
+        navigator.clipboard.writeText(selectedImg).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
         });
@@ -196,16 +222,86 @@ const EditCategory = () => {
             getMediaImage();
             setMediaTab(1);
             setLoading(false);
+            const fileType = await getFileType(res);
+            const body = {
+                fileUrl: res,
+                title: '',
+                alt: '',
+                description: '',
+                caption: '',
+                fileType: fileType,
+            };
+            console.log('body: ', body);
+
+            const response = await addNewImages({
+                variables: {
+                    input: body,
+                },
+            });
+            Success('File added successfully');
         } catch (error) {
             console.error('Error uploading file:', error);
         }
     };
 
+    const handleClickImage = async (item) => {
+        console.log('item: ', item);
+        let url = `https://prade.blr1.digitaloceanspaces.com/${item.key}`;
+
+        const res = await getListRefetch({
+            fileurl: url,
+        });
+
+        const result = res.data?.fileByFileurl;
+        if (result) {
+            setSelectedImg(result?.fileUrl);
+            setAlt(result?.alt);
+            setTitle(result?.title);
+            setMediaDescription(result?.description);
+            setCaption(result?.caption);
+            setMediaData({ size: item.Size, lastModified: item.LastModified });
+        }
+    };
+
+    const updateMediaMetaData = async () => {
+        try {
+            const fileType = await getFileType(selectedImg);
+
+            const res = await updateImages({
+                variables: {
+                    file_url: selectedImg,
+                    input: {
+                        fileUrl: selectedImg,
+                        fileType: fileType,
+                        alt: alt,
+                        description: mediaDescription,
+                        caption: caption,
+                        title: title,
+                    },
+                },
+            });
+            Success('File updated successfully');
+
+            console.log('res: ', res);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
+    const mediaImageDelete = async () => {
+        showDeleteAlert(deleteImage, () => {
+            Swal.fire('Cancelled', 'Your Image List is safe :)', 'error');
+        });
+    };
+
     const deleteImage = async () => {
         try {
-            const res = await deleteImagesFromS3(selectedImg?.key);
+            const key = getFileNameFromUrl(selectedImg);
+            await deleteImagesFromS3(key);
+            await deleteImages({ variables: { file_url: selectedImg } });
             getMediaImage();
-            setSelectedImg({});
+            setSelectedImg(null);
+            Swal.fire('Deleted!', 'Your files have been deleted.', 'success');
         } catch (error) {
             console.error('Error deleting file:', error);
         }
@@ -271,7 +367,7 @@ const EditCategory = () => {
                     as="div"
                     open={mediaOpen}
                     onClose={() => {
-                        setSelectedImg({});
+                        setSelectedImg(null);
                         setMediaOpen(false);
                     }}
                 >
@@ -379,13 +475,8 @@ const EditCategory = () => {
                                                                 mediaImages?.map((item) => (
                                                                     <div
                                                                         key={item.url}
-                                                                        className={`flex h-[200px] w-[170px] overflow-hidden p-2  ${selectedImg?.url == item?.url ? 'border-4 border-blue-500' : ''}`}
-                                                                        // onMouseDown={() => handleMouseDown(item)}
-                                                                        // onMouseUp={handleMouseUp}
-                                                                        // onMouseLeave={handleMouseLeave}
-                                                                        onClick={() => {
-                                                                            setSelectedImg(item);
-                                                                        }}
+                                                                        className={`flex h-[200px] w-[170px] overflow-hidden p-2  ${selectedImg == item?.url ? 'border-4 border-blue-500' : ''}`}
+                                                                        onClick={() => handleClickImage(item)}
                                                                     >
                                                                         {item?.key?.endsWith('.mp4') ? (
                                                                             <video controls src={item.url} className="h-full w-full object-cover">
@@ -401,43 +492,35 @@ const EditCategory = () => {
                                                                 <div className="col-span-6 flex h-64 items-center justify-center">No Data Found</div>
                                                             )}
                                                         </div>
-                                                        {/* <div className="flex justify-center pt-5">
-                                                                    <div className=" text-center">
-                                                                        <p>Showing 80 of 2484 media items</p>
-                                                                        <div className="flex justify-center">
-                                                                            <button className="btn btn-primary mt-2">Load more</button>
-                                                                        </div>
-                                                                    </div>
-                                                                </div> */}
                                                     </div>
-                                                    {!objIsEmpty(selectedImg) && (
+                                                    {selectedImg && (
                                                         <div className="col-span-3 h-[450px] overflow-y-scroll pl-5">
                                                             {/* <div className="border-b border-gray-200 pb-5"> */}
                                                             <div className="">
                                                                 <div>
                                                                     <p className="mb-2 text-lg font-semibold">ATTACHMENT DETAILS</p>
                                                                 </div>
-                                                                {selectedImg?.url?.endsWith('.mp4') ? (
-                                                                    <video controls src={selectedImg?.url} className="h-full w-full object-cover" style={{ height: '300px' }}>
+                                                                {selectedImg?.endsWith('.mp4') ? (
+                                                                    <video controls src={selectedImg} className="h-full w-full object-cover" style={{ height: '300px' }}>
                                                                         Your browser does not support the video tag.
                                                                     </video>
                                                                 ) : (
-                                                                    <img src={selectedImg.url} alt="" className="h-full w-full" />
+                                                                    <img src={selectedImg} alt="" className="h-full w-full" />
                                                                 )}
 
-                                                                <p className="mt-2 font-semibold">{selectedImg?.key}</p>
-                                                                <p className="text-sm">{moment(selectedImg?.LastModified).format('MMM d, yyyy')}</p>
-                                                                <p className="text-sm">{(selectedImg?.Size / 1024).toFixed(2)} KB</p>
+                                                                <p className="mt-2 font-semibold">{selectedImg}</p>
+                                                                <p className="text-sm">{moment(mediaData?.lastModified).format("DD-MM-YYYY")}</p>
+                                                                <p className="text-sm">{(mediaData?.size / 1024).toFixed(2)} KB</p>
 
                                                                 {/* <p className="text-sm">1707 by 2560 pixels</p> */}
-                                                                <a href="#" className="text-danger underline" onClick={() => deleteImage()}>
+                                                                <a href="#" className="text-danger underline" onClick={() => mediaImageDelete()}>
                                                                     Delete permanently
                                                                 </a>
                                                             </div>
-                                                            {/* <div className="pr-5">
+                                                            <div className="pr-5">
                                                                 <div className="mt-5">
                                                                     <label className="mb-2">Alt Text</label>
-                                                                    <textarea className="form-input" placeholder="Enter Alt Text"></textarea>
+                                                                    <textarea className="form-input" placeholder="Enter Alt Text" value={alt} onChange={(e) => setAlt(e.target.value)}></textarea>
                                                                     <span>
                                                                         <a href="#" className="text-primary underline">
                                                                             Learn how to describe the purpose of the image
@@ -447,26 +530,43 @@ const EditCategory = () => {
                                                                 </div>
                                                                 <div className="mt-5">
                                                                     <label className="mb-2">Title</label>
-                                                                    <input type="text" className="form-input" placeholder="Enter Title" />
+                                                                    <input type="text" className="form-input" placeholder="Enter Title" value={title} onChange={(e) => setTitle(e.target.value)} />
                                                                 </div>
 
                                                                 <div className="mt-5">
                                                                     <label className="mb-2">Caption</label>
-                                                                    <textarea className="form-input" placeholder="Enter Caption"></textarea>
+                                                                    <textarea
+                                                                        className="form-input"
+                                                                        placeholder="Enter Caption"
+                                                                        value={caption}
+                                                                        onChange={(e) => setCaption(e.target.value)}
+                                                                    ></textarea>
+                                                                </div>
+
+                                                                <div className="mt-5">
+                                                                    <label className="mb-2">Description</label>
+                                                                    <textarea
+                                                                        className="form-input"
+                                                                        placeholder="Enter Caption"
+                                                                        value={mediaDescription}
+                                                                        onChange={(e) => setMediaDescription(e.target.value)}
+                                                                    ></textarea>
                                                                 </div>
 
                                                                 <div className="mt-5">
                                                                     <label className="mb-2">File URL</label>
-                                                                    <input type="text" className="form-input" placeholder="Enter Title" value={selectedImg?.url} />
+                                                                    <input type="text" className="form-input" placeholder="Enter Title" value={selectedImg} />
                                                                     <button className="btn btn-primary-outline mt-2 text-sm" onClick={handleCopy}>
                                                                         Copy URL to Clipboard
                                                                     </button>
                                                                     {copied ? <label className="mt-2 text-green-500">Copied</label> : <label className="mt-2">Copy Link</label>}
                                                                 </div>
-                                                                <div className="mt-5">
-                                                                    <p>Required fields are marked *</p>
+                                                                <div className="flex justify-end">
+                                                                    <button type="submit" className="btn btn-primary " onClick={() => updateMediaMetaData()}>
+                                                                        {mediaUpdateLoading ? <IconLoader /> : 'Update'}
+                                                                    </button>
                                                                 </div>
-                                                            </div> */}
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </div>
@@ -475,12 +575,12 @@ const EditCategory = () => {
                                                         type="button"
                                                         className="btn btn-primary"
                                                         onClick={() => {
-                                                            if (objIsEmpty(selectedImg)) {
+                                                            if (selectedImg == null) {
                                                                 Failure('Please select an image');
                                                             } else {
-                                                                setPreviewUrl(selectedImg?.url);
+                                                                setPreviewUrl(selectedImg);
                                                                 setMediaOpen(false);
-                                                                setSelectedImg({});
+                                                                setSelectedImg(null);
                                                             }
                                                         }}
                                                     >

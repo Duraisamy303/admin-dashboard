@@ -47,6 +47,10 @@ import {
     UPDATE_VARIANT,
     UPDATE_VARIANT_LIST,
     PRODUCT_LIST_BY_ID,
+    ADD_NEW_MEDIA_IMAGE,
+    UPDATE_MEDIA_IMAGE,
+    DELETE_MEDIA_IMAGE,
+    GET_MEDIA_IMAGE,
 } from '@/query/product';
 import {
     Failure,
@@ -58,6 +62,8 @@ import {
     fetchImagesFromS3,
     formatOptions,
     generatePresignedPost,
+    getFileNameFromUrl,
+    getFileType,
     getValueByKey,
     imageFilter,
     isEmptyObject,
@@ -89,6 +95,10 @@ const ProductEdit = (props: any) => {
     const [mediaImages, setMediaImages] = useState([]);
     const [selectedImg, setSelectedImg] = useState(null);
     const [selectedImages, setSelectedImages] = useState([]);
+    const [alt, setAlt] = useState('');
+    const [caption, setCaption] = useState('');
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
     const [mediaTab, setMediaTab] = useState(0);
     const [loading, setLoading] = useState(false);
     const dispatch = useDispatch();
@@ -116,7 +126,7 @@ const ProductEdit = (props: any) => {
     const [shortDescription, setShortDescription] = useState('');
     const [mediaSearch, setMediaSearch] = useState('');
 
-    const [description, setDescription] = useState('');
+    const [mediaDescription, setMediaDescription] = useState('');
     const [selectedCollection, setSelectedCollection] = useState<any>([]);
     const [publish, setPublish] = useState('published');
 
@@ -212,7 +222,11 @@ const ProductEdit = (props: any) => {
     const [updateProduct] = useMutation(UPDATE_PRODUCT);
     const [deleteVarient] = useMutation(DELETE_VARIENT);
     const longPressTimeout = useRef(null);
-    const [createProductMedia] = useMutation(PRODUCT_MEDIA_CREATE);
+
+    const [addNewImages] = useMutation(ADD_NEW_MEDIA_IMAGE);
+    const [updateImages, { loading: mediaUpdateLoading }] = useMutation(UPDATE_MEDIA_IMAGE);
+    const [deleteImages] = useMutation(DELETE_MEDIA_IMAGE);
+    const { data, refetch: getListRefetch } = useQuery(GET_MEDIA_IMAGE);
 
     const { data: productSearch, refetch: productSearchRefetch } = useQuery(PRODUCT_BY_NAME);
 
@@ -225,7 +239,7 @@ const ProductEdit = (props: any) => {
     const [modal4, setModal4] = useState(false);
 
     const [productType, setProductType] = useState([]);
-    const [mediaData, setMediaData] = useState([]);
+    const [mediaData, setMediaData] = useState(null);
     const [productList, setProductList] = useState([]);
     const [isOpenPreview, setIsOpenPreview] = useState(false);
     const [previewLoading, setPreviewLoading] = useState(false);
@@ -429,7 +443,6 @@ const ProductEdit = (props: any) => {
                     const desc = getValueByKey(data?.metadata, 'description');
                     setDescription(desc);
 
-                    setMediaData(data?.media);
                     setThumbnail(data?.thumbnail?.url);
 
                     if (data?.media?.length > 0) {
@@ -676,37 +689,11 @@ const ProductEdit = (props: any) => {
 
     const selectCat = (cat: any) => {
         setselectedCat(cat);
-        // console.log("cat: ", cat);
     };
 
     const selectedCollections = (data: any) => {
         setSelectedCollection(data);
     };
-
-    // Function to handle file selection
-    // const handleFileChange = async (e) => {
-    //     try {
-    //         setLoading(true);
-
-    //         const presignedPostData: any = await generatePresignedPost(e.target.files[0]);
-
-    //         const formData = new FormData();
-    //         Object.keys(presignedPostData.fields).forEach((key) => {
-    //             formData.append(key, presignedPostData.fields[key]);
-    //         });
-    //         formData.append('file', e.target.files[0]);
-
-    //         const response = await axios.post(presignedPostData.url, formData, {
-    //             headers: {
-    //                 'Content-Type': 'multipart/form-data',
-    //             },
-    //         });
-    //         getMediaImage();
-    //         setMediaTab(1);
-    //     } catch (error) {
-    //         console.error('Error uploading file:', error);
-    //     }
-    // };
 
     const handleFileChange = async (e: any) => {
         try {
@@ -715,6 +702,24 @@ const ProductEdit = (props: any) => {
             getMediaImage();
             setMediaTab(1);
             setLoading(false);
+            setSelectedImages([]);
+            const fileType = await getFileType(res);
+            const body = {
+                fileUrl: res,
+                title: '',
+                alt: '',
+                description: '',
+                caption: '',
+                fileType: fileType,
+            };
+            console.log('body: ', body);
+
+            const response = await addNewImages({
+                variables: {
+                    input: body,
+                },
+            });
+            Success('File added successfully');
         } catch (error) {
             console.error('Error uploading file:', error);
         }
@@ -1286,7 +1291,7 @@ const ProductEdit = (props: any) => {
     };
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(selectedImg?.url).then(() => {
+        navigator.clipboard.writeText(selectedImg).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
         });
@@ -1363,15 +1368,24 @@ const ProductEdit = (props: any) => {
             setImages(arr);
             setModal2(false);
             setSelectedImages([]);
-            setSelectedImg({});
+            setSelectedImg(null);
         }
+    };
+
+    const mediaImageDelete = async () => {
+        showDeleteAlert(deleteImage, () => {
+            Swal.fire('Cancelled', 'Your Image List is safe :)', 'error');
+        });
     };
 
     const deleteImage = async () => {
         try {
-            const res = await deleteImagesFromS3(selectedImg?.key);
+            const key = getFileNameFromUrl(selectedImg);
+            await deleteImagesFromS3(key);
+            await deleteImages({ variables: { file_url: selectedImg } });
             getMediaImage();
-            setSelectedImg({});
+            setSelectedImg(null);
+            Swal.fire('Deleted!', 'Your files have been deleted.', 'success');
         } catch (error) {
             console.error('Error deleting file:', error);
         }
@@ -1527,6 +1541,51 @@ const ProductEdit = (props: any) => {
         setPreviewLoading(false);
     };
 
+    const handleClickImage = async (item) => {
+        let url = `https://prade.blr1.digitaloceanspaces.com/${item.key}`;
+
+        const res = await getListRefetch({
+            fileurl: url,
+        });
+
+        const result = res.data?.fileByFileurl;
+        console.log('result: ', result);
+        if (result) {
+            setSelectedImg(result?.fileUrl);
+            handleImageSelect(item);
+            setAlt(result?.alt);
+            setTitle(result?.title);
+            setMediaDescription(result?.description);
+            setCaption(result?.caption);
+            setMediaData({ size: item.Size, lastModified: item.LastModified });
+        }
+    };
+
+    const updateMediaMetaData = async () => {
+        try {
+            const fileType = await getFileType(selectedImg);
+            console.log('fileType: ', fileType);
+
+            const res = await updateImages({
+                variables: {
+                    file_url: selectedImg,
+                    input: {
+                        fileUrl: selectedImg,
+                        fileType: fileType,
+                        alt: alt,
+                        description: mediaDescription,
+                        caption: caption,
+                        title: title,
+                    },
+                },
+            });
+            Success('File updated successfully');
+
+            console.log('res: ', res);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
     return (
         <div>
             <div className="  mt-6">
@@ -2109,7 +2168,7 @@ const ProductEdit = (props: any) => {
                                 onClick={() => {
                                     setMediaTab(1);
                                     setModal2(true);
-                                    setSelectedImg({});
+                                    setSelectedImg(null);
                                 }}
                             >
                                 Add product gallery images
@@ -2291,7 +2350,7 @@ const ProductEdit = (props: any) => {
                     as="div"
                     open={modal2}
                     onClose={() => {
-                        setSelectedImg({});
+                        setSelectedImg(null);
                         setModal2(false);
                     }}
                 >
@@ -2315,6 +2374,8 @@ const ProductEdit = (props: any) => {
                                         <button
                                             onClick={() => {
                                                 setModal2(false);
+                                                setSelectedImg(null);
+                                                setSelectedImages([]);
                                             }}
                                             type="button"
                                             className="text-white-dark hover:text-dark"
@@ -2426,12 +2487,7 @@ const ProductEdit = (props: any) => {
                                                                         onMouseDown={() => handleMouseDown(item)}
                                                                         onMouseUp={handleMouseUp}
                                                                         onMouseLeave={handleMouseLeave}
-                                                                        onClick={() => {
-                                                                            setSelectedImg(item);
-                                                                            if (!isLongPress) {
-                                                                                handleImageSelect(item);
-                                                                            }
-                                                                        }}
+                                                                        onClick={() => handleClickImage(item)}
                                                                     >
                                                                         {item?.key?.endsWith('.mp4') ? (
                                                                             <video controls src={item.url} className="h-full w-full object-cover">
@@ -2460,25 +2516,24 @@ const ProductEdit = (props: any) => {
                                                                     </div>
                                                                 </div> */}
                                                     </div>
-                                                    {!objIsEmpty(selectedImg) && (
+                                                    {selectedImg && (
                                                         <div className="col-span-3 h-[450px] overflow-y-scroll pl-5">
                                                             {/* <div className="border-b border-gray-200 pb-5"> */}
                                                             <div className="">
-
                                                                 <div>
                                                                     <p className="mb-2 text-lg font-semibold">ATTACHMENT DETAILS</p>
                                                                 </div>
 
                                                                 {selectedImg?.key?.endsWith('.mp4') ? (
-                                                                    <video controls src={selectedImg.url} className="h-full w-full object-cover">
+                                                                    <video controls src={selectedImg} className="h-full w-full object-cover">
                                                                         Your browser does not support the video tag.
                                                                     </video>
-                                                                ) : selectedImg?.key?.endsWith('.pdf') ? (
+                                                                ) : selectedImg?.endsWith('.pdf') ? (
                                                                     <Image src={pdf} alt="Loading..." />
-                                                                ) : selectedImg?.key?.endsWith('.doc') ? (
+                                                                ) : selectedImg?.endsWith('.doc') ? (
                                                                     <Image src={docs} alt="Loading..." />
                                                                 ) : (
-                                                                    <img src={selectedImg.url} alt="" className="h-full w-full" />
+                                                                    <img src={selectedImg} alt="" className="h-full w-full" />
                                                                 )}
                                                                 {/* {selectedImg?.url?.endsWith('.mp4') ? (
                                                                     <video controls src={selectedImg?.url} className="h-full w-full object-cover" style={{ height: '300px' }}>
@@ -2487,19 +2542,20 @@ const ProductEdit = (props: any) => {
                                                                 ) : (
                                                                     <img src={selectedImg.url} alt="" className="h-full w-full" />
                                                                 )} */}
-                                                                <p className="mt-2 font-semibold">{selectedImg?.key}</p>
-                                                                <p className="text-sm">{moment(selectedImg?.LastModified).format('MMM d, yyyy')}</p>
-                                                                <p className="text-sm">{(selectedImg?.Size / 1024).toFixed(2)} KB</p>
+                                                                <p className="mt-2 font-semibold">{selectedImg}</p>
+
+                                                                <p className="text-sm">{moment(mediaData?.lastModified).format('DD-MM-YYYY')}</p>
+                                                                <p className="text-sm">{(mediaData?.size / 1024).toFixed(2)} KB</p>
 
                                                                 {/* <p className="text-sm">1707 by 2560 pixels</p> */}
-                                                                <a href="#" className="text-danger underline" onClick={() => deleteImage()}>
+                                                                <a href="#" className="text-danger underline" onClick={() => mediaImageDelete()}>
                                                                     Delete permanently
                                                                 </a>
                                                             </div>
-                                                            {/* <div className="pr-5">
+                                                            <div className="pr-5">
                                                                 <div className="mt-5">
                                                                     <label className="mb-2">Alt Text</label>
-                                                                    <textarea className="form-input" placeholder="Enter Alt Text"></textarea>
+                                                                    <textarea className="form-input" placeholder="Enter Alt Text" value={alt} onChange={(e) => setAlt(e.target.value)}></textarea>
                                                                     <span>
                                                                         <a href="#" className="text-primary underline">
                                                                             Learn how to describe the purpose of the image
@@ -2509,26 +2565,42 @@ const ProductEdit = (props: any) => {
                                                                 </div>
                                                                 <div className="mt-5">
                                                                     <label className="mb-2">Title</label>
-                                                                    <input type="text" className="form-input" placeholder="Enter Title" />
+                                                                    <input type="text" className="form-input" placeholder="Enter Title" value={title} onChange={(e) => setTitle(e.target.value)} />
                                                                 </div>
 
                                                                 <div className="mt-5">
                                                                     <label className="mb-2">Caption</label>
-                                                                    <textarea className="form-input" placeholder="Enter Caption"></textarea>
+                                                                    <textarea
+                                                                        className="form-input"
+                                                                        placeholder="Enter Caption"
+                                                                        value={caption}
+                                                                        onChange={(e) => setCaption(e.target.value)}
+                                                                    ></textarea>
+                                                                </div>
+                                                                <div className="mt-5">
+                                                                    <label className="mb-2">Description</label>
+                                                                    <textarea
+                                                                        className="form-input"
+                                                                        placeholder="Enter Caption"
+                                                                        value={mediaDescription}
+                                                                        onChange={(e) => setMediaDescription(e.target.value)}
+                                                                    ></textarea>
                                                                 </div>
 
                                                                 <div className="mt-5">
                                                                     <label className="mb-2">File URL</label>
-                                                                    <input type="text" className="form-input" placeholder="Enter Title" value={selectedImg?.url} />
+                                                                    <input type="text" className="form-input" placeholder="Enter Title" value={selectedImg} />
                                                                     <button className="btn btn-primary-outline mt-2 text-sm" onClick={handleCopy}>
                                                                         Copy URL to Clipboard
                                                                     </button>
                                                                     {copied ? <label className="mt-2 text-green-500">Copied</label> : <label className="mt-2">Copy Link</label>}
                                                                 </div>
-                                                                <div className="mt-5">
-                                                                    <p>Required fields are marked *</p>
+                                                                <div className="flex justify-end">
+                                                                    <button type="submit" className="btn btn-primary " onClick={() => updateMediaMetaData()}>
+                                                                        {mediaUpdateLoading ? <IconLoader /> : 'Update'}
+                                                                    </button>
                                                                 </div>
-                                                            </div> */}
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </div>
@@ -2564,14 +2636,14 @@ const ProductEdit = (props: any) => {
                                 leaveFrom="opacity-100 scale-100"
                                 leaveTo="opacity-0 scale-95"
                             >
-                                <Dialog.Panel as="div" className="panel my-8 w-[70%] overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark" >
+                                <Dialog.Panel as="div" className="panel my-8 w-[70%] overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark">
                                     <div className="flex items-center justify-between bg-[#fbfbfb] px-5 py-3 dark:bg-[#121c2c]">
                                         <div className="text-lg font-bold">Preview</div>
                                         <button type="button" className="text-white-dark hover:text-dark" onClick={() => setIsOpenPreview(false)}>
                                             <IconX />
                                         </button>
                                     </div>
-                                    <div className="flex justify-center h-full w-full gap-3">
+                                    <div className="flex h-full w-full justify-center gap-3">
                                         <div
                                             className="panel scrollbar-hide  flex h-[600px] w-2/12 flex-col items-center overflow-scroll"
                                             style={{ overflowY: 'scroll', scrollbarWidth: 'none', msOverflowStyle: 'none' }}

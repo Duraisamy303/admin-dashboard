@@ -1,5 +1,6 @@
 import IconX from '@/components/Icon/IconX';
 import {
+    Success,
     accessKeyId,
     addNewFile,
     deleteImagesFromS3,
@@ -8,6 +9,8 @@ import {
     generatePresignedPost,
     generatePresignedVideoPost,
     generateUniqueFilename,
+    getFileNameFromUrl,
+    getFileType,
     imageFilter,
     months,
     objIsEmpty,
@@ -26,14 +29,23 @@ import pdf from '../public/assets/images/pdf.png';
 import docs from '../public/assets/images/docs.jpg';
 import AWS from 'aws-sdk';
 import Image from 'next/image';
+import { useMutation, useQuery } from '@apollo/client';
+import { ADD_NEW_MEDIA_IMAGE, UPDATE_MEDIA_IMAGE, DELETE_MEDIA_IMAGE, GET_MEDIA_IMAGE } from '@/query/product';
+import { Description } from '@headlessui/react/dist/components/description/description';
+import IconLoader from '@/components/Icon/IconLoader';
 
 export default function Media() {
     const longPressTimeout = useRef(null);
 
+    const [addNewImages] = useMutation(ADD_NEW_MEDIA_IMAGE);
+    const [updateImages, { loading: mediaUpdateLoading }] = useMutation(UPDATE_MEDIA_IMAGE);
+    const [deleteImages] = useMutation(DELETE_MEDIA_IMAGE);
+    const { data, refetch: getListRefetch } = useQuery(GET_MEDIA_IMAGE);
+
     const [state, setState] = useSetState({
         tab: 1,
         imageList: [],
-        selectImg: {},
+        selectImg: null,
         date: 'all',
         selectedImages: [],
         copied: false,
@@ -44,6 +56,7 @@ export default function Media() {
         title: '',
         caption: '',
         description: '',
+        mediaData: null,
     });
 
     useEffect(() => {
@@ -58,7 +71,6 @@ export default function Media() {
         try {
             setState({ loading: true });
             const res = await fetchImagesFromS3();
-            console.log('res: ', res);
             if (state.mediaType == 'all') {
                 setState({ imageList: res });
             } else if (state.mediaType == 'image') {
@@ -77,12 +89,67 @@ export default function Media() {
         }
     };
 
+    const assignToserver = async (data) => {
+        try {
+            console.log('data: ', data);
+            // Filter out the 26th item (index 25)
+            const filteredData = data.filter((_, index) => index !== 26);
+            console.log('filteredData: ', filteredData);
+
+            // Loop through the filtered data
+            const loop = filteredData.map(async (item) => {
+                const fileType = await getFileType(item.url);
+                const key = getFileNameFromUrl(item.url);
+                let url = `https://prade.blr1.digitaloceanspaces.com/${key}`;
+                const body = {
+                    fileUrl: url,
+                    title: '',
+                    alt: '',
+                    description: '',
+                    caption: '',
+                    fileType: fileType,
+                };
+                console.log('body: ', body);
+
+                const response = await addNewImages({
+                    variables: {
+                        input: body,
+                    },
+                });
+            });
+
+            // Await all promises
+            await Promise.all(loop);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
     const handleFileChange = async (e: any) => {
         try {
             setState({ loading: true });
             const res = await addNewFile(e);
+            console.log('res: ', res);
+            const fileType = await getFileType(res);
+            const body = {
+                fileUrl: res,
+                title: '',
+                alt: '',
+                description: '',
+                caption: '',
+                fileType: fileType,
+            };
+            console.log('body: ', body);
+
+            const response = await addNewImages({
+                variables: {
+                    input: body,
+                },
+            });
             getMediaImage();
+
             setState({ tab: 1 });
+            Success('File added successfully');
             setState({ loading: false });
         } catch (error) {
             console.error('Error uploading file:', error);
@@ -127,7 +194,7 @@ export default function Media() {
     };
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(state.selectImg?.url).then(() => {
+        navigator.clipboard.writeText(state.selectImg).then(() => {
             setState({ copied: true });
             setTimeout(() => setState({ copied: false }), 2000);
         });
@@ -158,22 +225,19 @@ export default function Media() {
     };
 
     const multiImageDelete = async () => {
-        showDeleteAlert(
-            async () => {
-                await deleteImage();
-                Swal.fire('Deleted!', 'Your files have been deleted.', 'success');
-            },
-            () => {
-                Swal.fire('Cancelled', 'Your Image List is safe :)', 'error');
-            }
-        );
+        showDeleteAlert(deleteImage, () => {
+            Swal.fire('Cancelled', 'Your Image List is safe :)', 'error');
+        });
     };
 
     const deleteImage = async () => {
         try {
-            await deleteImagesFromS3(state.selectImg?.key);
+            const key = getFileNameFromUrl(state.selectImg);
+            await deleteImagesFromS3(key);
+            await deleteImages({ variables: { file_url: state.selectImg } });
             getMediaImage();
-            setState({ selectImg: {} });
+            setState({ selectImg: null });
+            Swal.fire('Deleted!', 'Your files have been deleted.', 'success');
         } catch (error) {
             console.error('Error deleting file:', error);
         }
@@ -204,31 +268,50 @@ export default function Media() {
     };
 
     const handleClickImage = async (item) => {
-        let url = `https://prade.blr1.cdn.digitaloceanspaces.com/${item.key}`;
-        const response = await fetch(url, {
-            method: 'HEAD', // Using 'HEAD' to get headers only
-        });
-        console.log("response: ", response);
+        let url = `https://prade.blr1.digitaloceanspaces.com/${item.key}`;
 
-        let data = {};
-        response.headers.forEach((value, key) => {
-            data[key] = value;
+        const res = await getListRefetch({
+            fileurl: url,
         });
-        console.log('data: ', data);
 
-        setState({
-            selectImg: item,
-            alt: data['x-amz-meta-alt-text'] ? data['x-amz-meta-alt-text'] : '',
-            title: data['x-amz-meta-title'] ? data['x-amz-meta-title'] : '',
-            caption: data['x-amz-meta-caption'] ? data['x-amz-meta-caption'] : '',
-            description: data['x-amz-meta-description'] ? data['x-amz-meta-description'] : '',
-        });
+        const result = res.data?.fileByFileurl;
+        console.log('result: ', result);
+        if (result) {
+            setState({
+                selectImg: result?.fileUrl,
+                alt: result?.alt,
+                title: result?.title,
+                caption: result?.caption,
+                description: result?.description,
+                mediaData: { size: item.Size, lastModified: item.LastModified },
+            });
+        }
     };
 
     const updateMetaData = async () => {
-        await deleteImagesFromS3(state.selectImg?.key);
-        getMediaImage();
-        handleUpload();
+        try {
+            const fileType = await getFileType(state.selectImg);
+            console.log('fileType: ', fileType);
+
+            const res = await updateImages({
+                variables: {
+                    file_url: state.selectImg,
+                    input: {
+                        fileUrl: state.selectImg,
+                        fileType: fileType,
+                        alt: state.alt,
+                        description: state.description,
+                        caption: state.caption,
+                        title: state.title,
+                    },
+                },
+            });
+            Success('File updated successfully');
+
+            console.log('res: ', res);
+        } catch (error) {
+            console.log('error: ', error);
+        }
     };
 
     const handleUpload = async () => {
@@ -236,35 +319,32 @@ export default function Media() {
             const formData = new FormData();
 
             let fileMetadata = state.selectImg;
-            const presignedPostData:any = await generatePresignedPost(state.selectImg);
+            const presignedPostData: any = await generatePresignedPost(state.selectImg);
             const response = await fetch(fileMetadata.url);
             const blob = await response.blob();
             const lastModifiedTimestamp = new Date(fileMetadata.LastModified).getTime();
             const file = new File([blob], fileMetadata.key, {
-                type:getMimeType(fileMetadata.key) ,
+                type: getMimeType(fileMetadata.key),
                 lastModified: lastModifiedTimestamp,
             });
 
             Object.keys(presignedPostData.fields).forEach((key) => {
                 formData.append(key, presignedPostData.fields[key]);
             });
-            formData.append("file", file);
+            formData.append('file', file);
             const responsedf = await axios.post(presignedPostData.url, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
             });
             getMediaImage();
-
         } catch (error) {
             console.error('Error uploading file:', error);
         }
     };
 
     const getMimeType = (fileName) => {
-        console.log("fileName: ", fileName);
         const extension = fileName.split('.').pop().toLowerCase();
-        console.log("extension: ", extension);
         const mimeTypes = {
             jpeg: 'image/jpeg',
             jpg: 'image/jpg',
@@ -298,7 +378,6 @@ export default function Media() {
             Conditions: [
                 ['content-length-range', 0, 1048576], // 1 MB limit
                 ['starts-with', '$Content-Type', ''], // Allow any content type
-              
             ],
             Expires: 60, // 1 minute expiration
         };
@@ -444,7 +523,7 @@ export default function Media() {
                                         )}
                                     </div>
                                 </div>
-                                {!objIsEmpty(state.selectImg) && (
+                                {state.selectImg && (
                                     <div className="col-span-3  pl-5">
                                         {/* <div className="border-b border-gray-200 pb-5"> */}
                                         <div className="">
@@ -452,22 +531,23 @@ export default function Media() {
                                                 <p className="mb-2 text-lg font-semibold">ATTACHMENT DETAILS</p>
                                             </div>
                                             <div className="">
-                                                {state.selectImg?.key?.endsWith('.mp4') ? (
-                                                    <video controls src={state.selectImg.url} className="">
+                                                {state.selectImg?.endsWith('.mp4') ? (
+                                                    <video controls src={state.selectImg} className="">
                                                         Your browser does not support the video tag.
                                                     </video>
-                                                ) : state.selectImg?.key?.endsWith('.pdf') ? (
+                                                ) : state.selectImg?.endsWith('.pdf') ? (
                                                     <Image src={pdf} alt="Loading..." />
-                                                ) : state.selectImg?.key?.endsWith('.doc') ? (
+                                                ) : state.selectImg?.endsWith('.doc') ? (
                                                     <Image src={docs} alt="Loading..." />
                                                 ) : (
-                                                    <img src={state.selectImg.url} alt="" className="" />
+                                                    <img src={state.selectImg} alt="" className="" />
                                                 )}
                                                 {/* <img src={state.selectImg?.url} alt="" className="" /> */}
                                             </div>
                                             <p className="mt-2 font-semibold">{state.selectImg?.key}</p>
-                                            <p className="text-sm">{moment(state.selectImg?.LastModified).format('MMM d, yyyy')}</p>
-                                            <p className="text-sm">{(state.selectImg?.Size / 1024).toFixed(2)} KB</p>
+
+                                            <p className="text-sm">{moment(state?.mediaData?.lastModified).format('DD-MM-YYYY')}</p>
+                                            <p className="text-sm">{(state?.mediaData?.size / 1024).toFixed(2)} KB</p>
 
                                             <a href="#" className="text-danger underline" onClick={() => multiImageDelete()}>
                                                 Delete permanently
@@ -506,7 +586,7 @@ export default function Media() {
 
                                             <div className="mt-5">
                                                 <label className="mb-2">File URL</label>
-                                                <input type="text" className="form-input" placeholder="Enter Title" value={state.selectImg?.url} />
+                                                <input type="text" className="form-input" placeholder="Enter Title" value={state.selectImg} />
                                                 <button className="btn btn-primary-outline mt-2 text-sm" onClick={handleCopy}>
                                                     Copy URL to Clipboard
                                                 </button>
@@ -514,7 +594,8 @@ export default function Media() {
                                             </div>
                                             <div className="flex justify-end">
                                                 <button type="submit" className="btn btn-primary " onClick={() => updateMetaData()}>
-                                                    {'Update'}
+                                                    {mediaUpdateLoading ? <IconLoader /> : 'Update'}
+
                                                 </button>
                                             </div>
                                         </div>

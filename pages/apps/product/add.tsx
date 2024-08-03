@@ -60,6 +60,10 @@ import {
     PRODUCT_MEDIA_CREATE_NEW,
     PRODUCT_LIST_BY_ID,
     RELATED_PRODUCT,
+    ADD_NEW_MEDIA_IMAGE,
+    UPDATE_MEDIA_IMAGE,
+    DELETE_MEDIA_IMAGE,
+    GET_MEDIA_IMAGE,
 } from '@/query/product';
 import {
     Failure,
@@ -71,6 +75,8 @@ import {
     fetchImagesFromS3,
     formatOptions,
     generatePresignedPost,
+    getFileNameFromUrl,
+    getFileType,
     imageFilter,
     isEmptyObject,
     months,
@@ -253,6 +259,11 @@ const ProductAdd = () => {
 
     const { data: productSearch, refetch: productSearchRefetch } = useQuery(PRODUCT_BY_NAME);
 
+    const [addNewImages] = useMutation(ADD_NEW_MEDIA_IMAGE);
+    const [updateImages, { loading: mediaUpdateLoading }] = useMutation(UPDATE_MEDIA_IMAGE);
+    const [deleteImages] = useMutation(DELETE_MEDIA_IMAGE);
+    const { data, refetch: getListRefetch } = useQuery(GET_MEDIA_IMAGE);
+
     useEffect(() => {
         const arr1 = {
             design: designData?.productDesigns,
@@ -326,6 +337,11 @@ const ProductAdd = () => {
     const [selectedCrosssell, setSelectedCrosssell] = useState([]);
     const [mediaImages, setMediaImages] = useState([]);
     const [selectedImg, setSelectedImg] = useState(null);
+    const [alt, setAlt] = useState('');
+    const [caption, setCaption] = useState('');
+    const [mediaData, setMediaData] = useState(null);
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
     const [selectedImages, setSelectedImages] = useState([]);
     const longPressTimeout = useRef(null);
 
@@ -837,147 +853,6 @@ const ProductAdd = () => {
         return attributeErrors;
     };
 
-    // const CreateProduct = async () => {
-    //     try {
-    //         const savedContent = await editorInstance.save();
-    //         const descr = JSON.stringify(savedContent, null, 2);
-    //         setCreateLoading(true);
-    //         // Reset error messages
-    //         setProductNameErrMsg('');
-    //         setSlugErrMsg('');
-    //         setSeoTittleErrMsg('');
-    //         setSeoDescErrMsg('');
-    //         setShortDesErrMsg('');
-    //         setCategoryErrMsg('');
-    //         setDescriptionErrMsg('');
-    //         setAttributeError('');
-    //         setVariantErrors([]);
-
-    //         // Validation
-    //         const errors = {
-    //             productName: productName.trim() === '' ? 'Product name cannot be empty' : '',
-    //             slug: slug.trim() === '' ? 'Slug cannot be empty' : '',
-    //             seoTittle: seoTittle.trim() === '' ? 'Seo title cannot be empty' : '',
-    //             seoDesc: seoDesc.trim() === '' ? 'Seo description cannot be empty' : '',
-    //             description: savedContent?.blocks?.length == 0 ? 'Description cannot be empty' : '',
-    //             shortDescription: shortDescription?.trim() === '' ? 'Short description cannot be empty' : '',
-    //             category: selectedCat?.length == 0 ? 'Category cannot be empty' : '',
-    //         };
-    //         console.log("errors: ", errors);
-
-    //         setProductNameErrMsg(errors.productName);
-    //         setSlugErrMsg(errors.slug);
-    //         setSeoTittleErrMsg(errors.seoTittle);
-    //         setSeoDescErrMsg(errors.seoDesc);
-    //         setDescriptionErrMsg(errors.description);
-    //         setShortDesErrMsg(errors.shortDescription);
-    //         setCategoryErrMsg(errors.category);
-
-    //         if (Object.values(errors).some((msg) => msg !== '')) {
-    //             setCreateLoading(false);
-    //         }
-    //         const variantErrors = variants?.map((variant) => {
-    //             const errors: any = {};
-    //             if (!variant.sku) errors.sku = 'SKU cannot be empty';
-    //             // if (variant.quantity <= 0 || isNaN(variant.quantity)) errors.quantity = 'Quantity must be a valid number and greater than 0';
-    //             // if (variant.regularPrice <= 0 || isNaN(variant.regularPrice)) errors.regularPrice = 'Regular Price must be a valid number and greater than 0';
-    //             // if (!variant.stackMgmt) errors.stackMgmt = 'Check Stack Management';
-    //             setCreateLoading(false);
-    //             console.log('errors: ', errors);
-
-    //             return errors;
-    //         });
-    //         console.log("variantErrors: ", variantErrors);
-
-    //         setVariantErrors(variantErrors);
-
-    //         const attributeErrors: any = {};
-    //         if (!selectedValues || Object.keys(selectedValues).length === 0) {
-    //             setCreateLoading(false);
-    //             setAttributeError('Attributes cannot be empty');
-    //         } else {
-    //             if (selectedValues?.stone?.length === 0) attributeErrors.stone = 'Stone cannot be empty';
-    //             if (selectedValues?.design?.length === 0) attributeErrors.design = 'Design cannot be empty';
-    //             if (selectedValues?.style?.length === 0) attributeErrors.style = 'Style cannot be empty';
-    //             if (selectedValues?.finish?.length === 0) attributeErrors.finish = 'Finish cannot be empty';
-
-    //             if (selectedValues?.type?.length === 0) attributeErrors.type = 'Type cannot be empty';
-    //             if (selectedValues?.size?.length === 0) attributeErrors.size = 'Size cannot be empty';
-    //             if (selectedValues?.stoneColor?.length === 0) attributeErrors.stoneColor = 'Stone color cannot be empty';
-
-    //             setCreateLoading(false);
-
-    //             setAttributeError(attributeErrors);
-    //         }
-
-    //         if (variantErrors.some((err) => Object.keys(err).length > 0)) {
-    //             setCreateLoading(false);
-
-    //             return; // Exit if any variant has errors
-    //         }
-
-    //         // const catId = selectedCat?.value;
-    //         const collectionId = selectedCollection?.map((item) => item.value) || [];
-    //         const tagId = selectedTag?.map((item) => item.value) || [];
-
-    //         let upsells = [];
-    //         if (selectedUpsell?.length > 0) {
-    //             upsells = selectedUpsell?.map((item) => item?.value);
-    //         }
-    //         let crosssells = [];
-    //         if (selectedCrosssell?.length > 0) {
-    //             crosssells = selectedCrosssell?.map((item) => item?.value);
-    //         }
-
-    //         const { data } = await addFormData({
-    //             variables: {
-    //                 input: {
-    //                     description: descr,
-    //                     attributes: [],
-    //                     category: selectedCat?.map((item) => item?.value),
-    //                     collections: collectionId,
-    //                     tags: tagId,
-    //                     name: productName,
-    //                     productType: 'UHJvZHVjdFR5cGU6Mg==',
-    //                     upsells,
-    //                     crosssells,
-    //                     seo: {
-    //                         description: seoDesc,
-    //                         title: seoTittle,
-    //                     },
-    //                     slug: slug,
-    //                     ...(menuOrder && menuOrder > 0 && { order_no: menuOrder }),
-    //                     ...(selectedValues && selectedValues.design && { prouctDesign: selectedValues.design }),
-    //                     ...(selectedValues && selectedValues.style && { productstyle: selectedValues.style }),
-    //                     ...(selectedValues && selectedValues.finish && { productFinish: selectedValues.finish }),
-    //                     ...(selectedValues && selectedValues.stone && { productStoneType: selectedValues.stone }),
-    //                     ...(selectedValues && selectedValues.type && { productItemtype: selectedValues.type }),
-    //                     ...(selectedValues && selectedValues.size && { productSize: selectedValues.size }),
-    //                     ...(selectedValues && selectedValues.stoneColor && { productStonecolor: selectedValues.stoneColor }),
-    //                 },
-    //             },
-    //         });
-
-    //         if (data?.productCreate?.errors?.length > 0) {
-    //             setCreateLoading(false);
-
-    //             Failure(data?.productCreate?.errors[0]?.message);
-    //         } else {
-    //             const productId = data?.productCreate?.product?.id;
-    //             productChannelListUpdate(productId);
-    //             if (imageUrl?.length > 0) {
-    //                 imageUrl.forEach(async (item) => {
-    //                     createMediaData(productId, item);
-
-    //                     // const imageUpload = await uploadImage(productId, item);
-    //                     // console.log('Image upload: ', imageUpload);
-    //                 });
-    //             }
-    //         }
-    //     } catch (error) {
-    //         console.log('Error: ', error);
-    //     }
-    // };
 
     const productChannelListUpdate = async (productId: any) => {
         try {
@@ -1334,38 +1209,24 @@ const ProductAdd = () => {
         }
     };
 
+    const multiImageDelete = async () => {
+        showDeleteAlert(deleteImage, () => {
+            Swal.fire('Cancelled', 'Your Image List is safe :)', 'error');
+        });
+    };
+
     const deleteImage = async () => {
         try {
-            const res = await deleteImagesFromS3(selectedImg?.key);
+            const key = getFileNameFromUrl(selectedImg);
+            await deleteImagesFromS3(key);
+            await deleteImages({ variables: { file_url: selectedImg } });
             getMediaImage();
-            setSelectedImg({});
+            setSelectedImg(null);
+            Swal.fire('Deleted!', 'Your files have been deleted.', 'success');
         } catch (error) {
             console.error('Error deleting file:', error);
         }
     };
-
-    // const handleFileChange = async (e) => {
-    //     try {
-    //         const presignedPostData: any = await generatePresignedPost(e.target.files[0]);
-
-    //         const formData = new FormData();
-    //         Object.keys(presignedPostData.fields).forEach((key) => {
-    //             formData.append(key, presignedPostData.fields[key]);
-    //         });
-    //         formData.append('file', e.target.files[0]);
-
-    //         const response = await axios.post(presignedPostData.url, formData, {
-    //             headers: {
-    //                 'Content-Type': 'multipart/form-data',
-    //             },
-    //         });
-
-    //         getMediaImage();
-    //         setMediaTab(1);
-    //     } catch (error) {
-    //         console.error('Error uploading file:', error);
-    //     }
-    // };
 
     const handleFileChange = async (e: any) => {
         try {
@@ -1374,17 +1235,62 @@ const ProductAdd = () => {
             getMediaImage();
             setMediaTab(1);
             setLoading(false);
+            setSelectedImages([]);
+            const fileType = await getFileType(res);
+            const body = {
+                fileUrl: res,
+                title: '',
+                alt: '',
+                description: '',
+                caption: '',
+                fileType: fileType,
+            };
+            console.log('body: ', body);
+
+            const response = await addNewImages({
+                variables: {
+                    input: body,
+                },
+            });
+            Success('File added successfully');
         } catch (error) {
             console.error('Error uploading file:', error);
         }
     };
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(selectedImg?.url).then(() => {
+        navigator.clipboard.writeText(selectedImg).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
         });
     };
+
+    const updateMediaMetaData = async () => {
+        try {
+            const fileType = await getFileType(selectedImg);
+            console.log('fileType: ', fileType);
+
+            const res = await updateImages({
+                variables: {
+                    file_url: selectedImg,
+                    input: {
+                        fileUrl: selectedImg,
+                        fileType: fileType,
+                        alt: alt,
+                        description: description,
+                        caption: caption,
+                        title: title,
+                    },
+                },
+            });
+            Success('File updated successfully');
+
+            console.log('res: ', res);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
     const handleImageSelect = (item) => {
         setSelectedImages((prevSelectedImages) => {
             if (prevSelectedImages.includes(item)) {
@@ -1439,6 +1345,27 @@ const ProductAdd = () => {
 
     const filterMediaByType = (e) => {
         setMediaType(e);
+    };
+
+    const handleClickImage = async (item) => {
+        let url = `https://prade.blr1.digitaloceanspaces.com/${item.key}`;
+
+        const res = await getListRefetch({
+            fileurl: url,
+        });
+
+        const result = res.data?.fileByFileurl;
+        console.log('result: ', result);
+        if (result) {
+            setSelectedImg(result?.fileUrl);
+            handleImageSelect(item);
+            setAlt(result?.alt);
+            setTitle(result?.title);
+            setDescription(result?.description);
+            setCaption(result?.caption);
+            setMediaData({ size: item.Size, lastModified: item.LastModified });
+
+        }
     };
 
     return (
@@ -1898,7 +1825,7 @@ const ProductAdd = () => {
                                 onClick={() => {
                                     setMediaTab(1);
                                     setModal2(true);
-                                    setSelectedImg({});
+                                    setSelectedImg(null);
                                 }}
                             >
                                 Add product gallery images
@@ -1939,7 +1866,8 @@ const ProductAdd = () => {
                     as="div"
                     open={modal2}
                     onClose={() => {
-                        setSelectedImg({});
+                        setSelectedImg(null);
+                        setSelectedImages([]);
                         setModal2(false);
                     }}
                 >
@@ -1963,6 +1891,8 @@ const ProductAdd = () => {
                                         <button
                                             onClick={() => {
                                                 setModal2(false);
+                                                setSelectedImg(null);
+                                                setSelectedImages([]);
                                             }}
                                             type="button"
                                             className="text-white-dark hover:text-dark"
@@ -1978,6 +1908,7 @@ const ProductAdd = () => {
                                                     getMediaImage();
                                                     setMediaType('all');
                                                     setMediaMonth('all'), setMediaSearch('');
+                                                    setSelectedImages([]);
                                                 }}
                                                 className={`${mediaTab == 0 ? 'bg-primary text-white !outline-none' : ''}
                                                     -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block `}
@@ -2072,12 +2003,7 @@ const ProductAdd = () => {
                                                                         onMouseDown={() => handleMouseDown(item)}
                                                                         onMouseUp={handleMouseUp}
                                                                         onMouseLeave={handleMouseLeave}
-                                                                        onClick={() => {
-                                                                            setSelectedImg(item);
-                                                                            if (!isLongPress) {
-                                                                                handleImageSelect(item);
-                                                                            }
-                                                                        }}
+                                                                        onClick={() => handleClickImage(item)}
                                                                     >
                                                                         {item?.key?.endsWith('.mp4') ? (
                                                                             <video controls src={item.url} className="h-full w-full object-cover">
@@ -2097,7 +2023,7 @@ const ProductAdd = () => {
                                                             )}
                                                         </div>
                                                     </div>
-                                                    {!objIsEmpty(selectedImg) && (
+                                                    {selectedImg && (
                                                         <div className="col-span-3 h-[450px] overflow-y-scroll pl-5">
                                                             {/* <div className="border-b border-gray-200 pb-5"> */}
                                                             <div className="">
@@ -2105,30 +2031,30 @@ const ProductAdd = () => {
                                                                     <p className="mb-2 text-lg font-semibold">ATTACHMENT DETAILS</p>
                                                                 </div>
                                                                 <div>
-                                                                    {selectedImg?.key?.endsWith('.mp4') ? (
-                                                                        <video controls src={selectedImg.url} className="h-full w-full object-cover">
+                                                                    {selectedImg?.endsWith('.mp4') ? (
+                                                                        <video controls src={selectedImg} className="h-full w-full object-cover">
                                                                             Your browser does not support the video tag.
                                                                         </video>
-                                                                    ) : selectedImg?.key?.endsWith('.pdf') ? (
+                                                                    ) : selectedImg?.endsWith('.pdf') ? (
                                                                         <Image src={pdf} alt="Loading..." />
-                                                                    ) : selectedImg?.key?.endsWith('.doc') ? (
+                                                                    ) : selectedImg?.endsWith('.doc') ? (
                                                                         <Image src={docs} alt="Loading..." />
                                                                     ) : (
-                                                                        <img src={selectedImg.url} alt="" className="h-full w-full" />
+                                                                        <img src={selectedImg} alt="" className="h-full w-full" />
                                                                     )}
                                                                 </div>
-                                                                <p className="mt-2 font-semibold">{selectedImg?.key}</p>
-                                                                <p className="text-sm">{moment(selectedImg?.LastModified).format('MMM d, yyyy')}</p>
-                                                                <p className="text-sm">{(selectedImg?.Size / 1024).toFixed(2)} KB</p>
-
-                                                                <a href="#" className="text-danger underline" onClick={() => deleteImage()}>
+                                                                <p className="mt-2 font-semibold">{selectedImg}</p>
+                                                                <p className="text-sm">{moment(mediaData?.lastModified).format("DD-MM-YYYY")}</p>
+                                                                <p className="text-sm">{(mediaData?.size / 1024).toFixed(2)} KB</p>
+                                                                
+                                                                <a href="#" className="text-danger underline" onClick={() => multiImageDelete()}>
                                                                     Delete permanently
                                                                 </a>
                                                             </div>
-                                                            {/* <div className="pr-5">
+                                                            <div className="pr-5">
                                                                 <div className="mt-5">
                                                                     <label className="mb-2">Alt Text</label>
-                                                                    <textarea className="form-input" placeholder="Enter Alt Text"></textarea>
+                                                                    <textarea className="form-input" placeholder="Enter Alt Text" value={alt} onChange={(e) => setAlt(e.target.value)}></textarea>
                                                                     <span>
                                                                         <a href="#" className="text-primary underline">
                                                                             Learn how to describe the purpose of the image
@@ -2138,26 +2064,45 @@ const ProductAdd = () => {
                                                                 </div>
                                                                 <div className="mt-5">
                                                                     <label className="mb-2">Title</label>
-                                                                    <input type="text" className="form-input" placeholder="Enter Title" />
+                                                                    <input type="text" className="form-input" placeholder="Enter Title" value={title} onChange={(e) => setTitle(e.target.value)} />
                                                                 </div>
 
                                                                 <div className="mt-5">
                                                                     <label className="mb-2">Caption</label>
-                                                                    <textarea className="form-input" placeholder="Enter Caption"></textarea>
+                                                                    <textarea
+                                                                        className="form-input"
+                                                                        placeholder="Enter Caption"
+                                                                        value={caption}
+                                                                        onChange={(e) => setCaption(e.target.value)}
+                                                                    ></textarea>
+                                                                </div>
+
+                                                                <div className="mt-5">
+                                                                    <label className="mb-2">Description</label>
+                                                                    <textarea
+                                                                        className="form-input"
+                                                                        placeholder="Enter Caption"
+                                                                        value={description}
+                                                                        onChange={(e) => setDescription(e.target.value)}
+                                                                    ></textarea>
                                                                 </div>
 
                                                                 <div className="mt-5">
                                                                     <label className="mb-2">File URL</label>
-                                                                    <input type="text" className="form-input" placeholder="Enter Title" value={selectedImg?.url} />
+                                                                    <input type="text" className="form-input" placeholder="Enter Title" value={selectedImg} />
                                                                     <button className="btn btn-primary-outline mt-2 text-sm" onClick={handleCopy}>
                                                                         Copy URL to Clipboard
                                                                     </button>
                                                                     {copied ? <label className="mt-2 text-green-500">Copied</label> : <label className="mt-2">Copy Link</label>}
                                                                 </div>
-                                                                <div className="mt-5">
-                                                                    <p>Required fields are marked *</p>
+                                                                <div className="flex justify-end">
+                                                                    <button type="submit" className="btn btn-primary " onClick={() => updateMediaMetaData()}>
+                                                                        {mediaUpdateLoading ? <IconLoader /> : 'Update'}
+
+                                                                    </button>
                                                                 </div>
-                                                            </div> */}
+                                                               
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </div>
@@ -2169,7 +2114,7 @@ const ProductAdd = () => {
                                                             setImageUrl([...urls, ...imageUrl]);
                                                             setModal2(false);
                                                             setSelectedImages([]);
-                                                            setSelectedImg({});
+                                                            setSelectedImg(null);
                                                         }}
                                                     >
                                                         Set Product Image

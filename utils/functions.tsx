@@ -708,7 +708,6 @@ export const generatePresignedPost = async (file) => {
         Fields: {
             key: uniqueFilename, // File name
             acl: 'public-read',
-        
         },
         Conditions: [
             ['content-length-range', 0, 104857600], // 100 MB limit
@@ -904,13 +903,16 @@ export const addNewFile = async (e: any) => {
             formData.append(key, presignedPostData.fields[key]);
         });
         formData.append('file', file);
-
         await axios.post(presignedPostData.url, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
         });
         await fetchImagesFromS3();
+        console.log('presignedPostData.url: ', presignedPostData.url);
+        const urls = `https://prade.blr1.digitaloceanspaces.com/${presignedPostData?.fields?.key}`;
+
+        return urls;
     } catch (error) {
         console.error('Error uploading file:', error);
     }
@@ -924,4 +926,41 @@ export const validateDateTime = (dateTimeString) => {
 
     const date = new Date(dateTimeString);
     return !isNaN(date.getTime());
+};
+
+export const getFileType = async (url) => {
+    const extensionToMime = {
+        jpg: 'image/jpg',
+        jpeg: 'image/jpeg',
+        png: 'image/png',
+        gif: 'image/gif',
+        webp: 'image/webp',
+        pdf: 'application/pdf',
+        doc: 'application/msword',
+        mp3: 'audio/mpeg',
+        wav: 'audio/wav',
+        mp4: 'audio/mp4',
+    };
+
+    try {
+        const response = await fetch(url, { method: 'HEAD' });
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        let contentType = response.headers.get('Content-Type');
+        if (contentType === 'binary/octet-stream') {
+            const extension = url.split('.').pop().toLowerCase();
+            contentType = extensionToMime[extension] || 'application/octet-stream';
+        }
+        return contentType;
+    } catch (error) {
+        console.error('There has been a problem with your fetch operation:', error);
+        return null;
+    }
+};
+export const getFileNameFromUrl = (url) => {
+    const urlObject = new URL(url);
+    const pathname = urlObject.pathname;
+    const filename = pathname.substring(pathname.lastIndexOf('/') + 1);
+    return filename;
 };

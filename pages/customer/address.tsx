@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, Select } from 'antd';
 import { useMutation, useQuery } from '@apollo/client';
 import { COUNTRY_LIST, CREATE_CUSTOMER_ADDRESS, CUSTOMER_ADDRESS, DELETE_CUSTOMER_ADDRESS, SET_DEFAULT_ADDRESS, STATE_LIST, UPDATE_CUSTOMER_ADDRESS } from '@/query/product';
 import { Failure, Success, objIsEmpty, useSetState } from '@/utils/functions';
@@ -7,16 +6,11 @@ import IconSettings from '@/components/Icon/IconSettings';
 import { useRouter } from 'next/router';
 import IconLoader from '@/components/Icon/IconLoader';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
+import Modal from '@/components/Modal';
 
-const Address=()=> {
+const Address = () => {
     const router = useRouter();
     const { id } = router.query;
-    const [showSettingsBox, setShowSettingsBox] = useState(null);
-    const [editAddressModalVisible, setEditAddressModalVisible] = useState(false);
-    const [selectedAddress, setSelectedAddress] = useState(null);
-    const [selectedCountry, setSelectedCountry] = useState(null);
-    const [selectedState, setSelectedState] = useState(null);
-
     const [state, setState] = useSetState({
         addressData: {},
         selectedAddress: {},
@@ -52,7 +46,7 @@ const Address=()=> {
 
     useEffect(() => {
         getAddress();
-    }, [data]);
+    }, [data, id]);
 
     const getAddress = async () => {
         try {
@@ -89,19 +83,6 @@ const Address=()=> {
         }
     };
 
-    // useEffect(() => {
-    //     function handleClickOutside(event: MouseEvent) {
-    //         if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-    //             setState({ index: null });
-    //         }
-    //     }
-
-    //     document.addEventListener('mousedown', handleClickOutside);
-    //     return () => {
-    //         document.removeEventListener('mousedown', handleClickOutside);
-    //     };
-    // }, [dropdownRef]);
-
     const handleSettingsClick = (index: number) => {
         if (state.index === index) {
             // If the clicked index is the same as the selected one, toggle it off
@@ -115,14 +96,6 @@ const Address=()=> {
     const handleChange = (e: any) => {
         const { name, value } = e.target;
         setState({ ...state, [name]: value });
-    };
-
-    const handleCountryChange = (value: any) => {
-        setState({ ...state, country: value });
-    };
-
-    const handleStateChange = (value: any) => {
-        setState({ ...state, countryArea: value });
     };
 
     const setDefaultBillingAddress = async (addressId: any) => {
@@ -172,34 +145,72 @@ const Address=()=> {
         }
     };
 
+    const validateInputs = () => {
+        const fieldsToValidate = [
+            { name: 'firstName', label: 'First name' },
+            { name: 'lastName', label: 'Last name' },
+            { name: 'streetAddress1', label: 'Street address' },
+            { name: 'streetAddress2', label: 'Street address' },
+            { name: 'city', label: 'City' },
+            { name: 'postalCode', label: 'PostalCode' },
+            // { name: 'email', label: 'Email' },
+            { name: 'country', label: 'Country' },
+        ];
+        if (state.countryAreaList?.length > 0) {
+            fieldsToValidate.push({ name: 'countryArea', label: 'CountryArea' });
+        }
+
+        console.log('fieldsToValidate: ', fieldsToValidate);
+
+        const errors: any = {};
+        console.log('state.phone: ', state.phone);
+
+        if (state.phone == '') {
+            errors.phone = 'Please enter a valid phone';
+        }
+        fieldsToValidate.forEach(({ name, label }) => {
+            if (!state[name]) {
+                errors[name] = `${label} is required`;
+            }
+        });
+        console.log('errors: ', errors);
+
+        setState({ errors });
+        return errors;
+    };
+
     const addAddress = async () => {
         try {
-            setState({ updateLoading: true });
-            const res = await createAddress({
-                variables: {
-                    id,
-                    input: {
-                        city: state.city,
-                        cityArea: '',
-                        companyName: state.companyName,
-                        country: state.country,
-                        countryArea: state.countryArea,
-                        firstName: state.firstName,
-                        lastName: state.lastName,
-                        phone: state.phone,
-                        postalCode: state.postalCode,
-                        streetAddress1: state.streetAddress1,
-                        streetAddress2: state.streetAddress1,
+            const errors = validateInputs();
+
+            if (Object.keys(errors).length === 0) {
+                setState({ updateLoading: true });
+                const res = await createAddress({
+                    variables: {
+                        id,
+                        input: {
+                            city: state.city,
+                            cityArea: '',
+                            companyName: state.companyName,
+                            country: state.country,
+                            countryArea: state.countryArea,
+                            firstName: state.firstName,
+                            lastName: state.lastName,
+                            phone: state.phone,
+                            postalCode: state.postalCode,
+                            streetAddress1: state.streetAddress1,
+                            streetAddress2: state.streetAddress1,
+                        },
                     },
-                },
-            });
-            if (res?.data?.addressCreate?.errors?.length > 0) {
-                Failure(res?.data?.addressCreate?.errors[0]?.message);
-                setState({ updateLoading: false });
-            } else {
-                getAddress();
-                Success('Address Added Successfully');
-                setState({ index: null, isOpen: false, updateLoading: false });
+                });
+                if (res?.data?.addressCreate?.errors?.length > 0) {
+                    Failure(res?.data?.addressCreate?.errors[0]?.message);
+                    setState({ updateLoading: false });
+                } else {
+                    getAddress();
+                    Success('Address Added Successfully');
+                    clearState();
+                }
             }
         } catch (error) {
             setState({ updateLoading: false });
@@ -210,39 +221,61 @@ const Address=()=> {
 
     const updateAddress = async () => {
         try {
-            setState({ updateLoading: true });
+            const errors = validateInputs();
 
-            const res = await editAddress({
-                variables: {
-                    id: state.selectedAddress?.id,
-                    input: {
-                        city: state.city,
-                        cityArea: '',
-                        companyName: state.companyName,
-                        country: state.country,
-                        countryArea: state.countryArea,
-                        firstName: state.firstName,
-                        lastName: state.lastName,
-                        phone: state.phone,
-                        postalCode: state.postalCode,
-                        streetAddress1: state.streetAddress1,
-                        streetAddress2: state.streetAddress1,
+            if (Object.keys(errors).length === 0) {
+                setState({ updateLoading: true });
+
+                const res = await editAddress({
+                    variables: {
+                        id: state.selectedAddress?.id,
+                        input: {
+                            city: state.city,
+                            cityArea: '',
+                            companyName: state.companyName,
+                            country: state.country,
+                            countryArea: state.countryArea,
+                            firstName: state.firstName,
+                            lastName: state.lastName,
+                            phone: state.phone,
+                            postalCode: state.postalCode,
+                            streetAddress1: state.streetAddress1,
+                            streetAddress2: state.streetAddress1,
+                        },
                     },
-                },
-            });
-            if (res?.data?.addressUpdate?.errors?.length > 0) {
-                Failure(res?.data?.addressUpdate?.errors[0]?.message);
-                setState({ updateLoading: false });
-            } else {
-                getAddress();
-                Success('Address Updated Successfully');
-                setState({ index: null, isOpen: false, updateLoading: false });
+                });
+                if (res?.data?.addressUpdate?.errors?.length > 0) {
+                    Failure(res?.data?.addressUpdate?.errors[0]?.message);
+                    setState({ updateLoading: false });
+                } else {
+                    getAddress();
+                    Success('Address Updated Successfully');
+                    clearState();
+                }
             }
         } catch (error) {
             setState({ updateLoading: false });
 
             console.log('error: ', error);
         }
+    };
+
+    const clearState = () => {
+        setState({
+            index: null,
+            errors: {},
+            isOpen: false,
+            newAddressLoader: false,
+            firstName: '',
+            lastName: '',
+            phone: '',
+            streetAddress1: '',
+            streetAddress2: '',
+            city: '',
+            postalCode: '',
+            companyName: '',
+            updateLoading: false,
+        });
     };
 
     return (
@@ -415,157 +448,133 @@ const Address=()=> {
 
             {/* Edit Address Modal */}
             <Modal
-                title={objIsEmpty(state.selectedAddress) ? 'Add Address' : 'Edit Address'}
-                visible={state.isOpen}
-                onCancel={() => setState({ isOpen: false })}
+                addHeader={objIsEmpty(state.selectedAddress) ? 'Add Address' : 'Edit Address'}
+                open={state.isOpen}
+                close={() => clearState()}
                 footer={null} // Remove footer if you don't need buttons
-            >
-                <form className="flex flex-col gap-4">
-                    <div className="profile__input-box col-md-6 ">
-                        <div className="profile__input">
-                          
+                renderComponent={() => (
+                    <form className="flex flex-col gap-4 p-4">
+                        <div className="profile__input-box col-md-6 ">
+                            <div className="profile__input">
+                                <input name="firstName" type="text" className="form-input" placeholder="Enter your first name" value={state.firstName} onChange={handleChange} />
+                                {state.errors.firstName && <p className="error-message mt-1 text-red-500">{state.errors.firstName}</p>}
+                            </div>
+                        </div>
+                        <div className="profile__input-box col-md-6">
+                            <div className="profile__input">
+                                <input name="lastName" type="text" className="form-input" placeholder="Enter your last name" value={state.lastName} onChange={handleChange} />
+                                {state.errors.lastName && <p className="error-message mt-1 text-red-500">{state.errors.lastName}</p>}
+                            </div>
+                        </div>
+                        <div className="profile__input-box">
+                            <div className="profile__input">
+                                <input name="companyName" type="text" className="form-input" placeholder="Enter your companyName" value={state.companyName} onChange={handleChange} />
+                                {/* {state.errors.companyName && <p className="error-message mt-1 text-red-500">{state.errors.companyName}</p>} */}
+                            </div>
+                        </div>
+                        <div className="profile__input-box">
+                            <div className="profile__input">
+                                <input name="phone" type="number" className="form-input" placeholder="Enter your phone number" value={state.phone} onChange={handleChange} />
+                                {state.errors.phone && <p className="error-message mt-1 text-red-500">{state.errors.phone}</p>}
+                            </div>
+                        </div>
 
-                            <input name="firstName" type="text" className="form-input" placeholder="Enter your first name" value={state.firstName} onChange={handleChange} />
-                            {state.errors.firstName && <p className="error-message mt-1 text-red-500">{state.errors.firstName}</p>}
+                        <div className="profile__input-box">
+                            <div className="profile__input">
+                                <input name="email" type="text" className="form-input" placeholder="Enter your email" value={state.email} onChange={handleChange} />
+                                {state.errors.email && <p className="error-message mt-1 text-red-500">{state.errors.email}</p>}
+                            </div>
                         </div>
-                    </div>
-                    <div className="profile__input-box col-md-6">
-                        <div className="profile__input">
-                            <input name="lastName" type="text" className="form-input" placeholder="Enter your last name" value={state.lastName} onChange={handleChange} />
-                            {state.errors.lastName && <p className="error-message mt-1 text-red-500">{state.errors.lastName}</p>}
-                        </div>
-                    </div>
-                    <div className="profile__input-box">
-                        <div className="profile__input">
-                            <input name="companyName" type="text" className="form-input" placeholder="Enter your companyName" value={state.companyName} onChange={handleChange} />
-                            {state.errors.companyName && <p className="error-message mt-1 text-red-500">{state.errors.companyName}</p>}
-                        </div>
-                    </div>
-                    <div className="profile__input-box">
-                        <div className="profile__input">
-                            <input name="phone" type="number" className="form-input" placeholder="Enter your phone number" value={state.phone} onChange={handleChange} />
-                            {state.errors.phone && <p className="error-message mt-1 text-red-500">{state.errors.phone}</p>}
-                        </div>
-                    </div>
 
-                    <div className="profile__input-box">
-                        <div className="profile__input">
-                            <input name="streetAddress1" type="text" className="form-input" placeholder="Enter your address1" value={state.streetAddress1} onChange={handleChange} />
-                            {state.errors.streetAddress1 && <p className="error-message mt-1 text-red-500">{state.errors.streetAddress1}</p>}
+                        <div className="profile__input-box">
+                            <div className="profile__input">
+                                <input name="streetAddress1" type="text" className="form-input" placeholder="Enter your address1" value={state.streetAddress1} onChange={handleChange} />
+                                {state.errors.streetAddress1 && <p className="error-message mt-1 text-red-500">{state.errors.streetAddress1}</p>}
+                            </div>
                         </div>
-                    </div>
-                    <div className="profile__input-box">
-                        <div className="profile__input">
-                            <input name="streetAddress2" type="text" className="form-input" placeholder="Enter your address2" value={state.streetAddress2} onChange={handleChange} />
-                            {state.errors.streetAddress2 && <p className="error-message mt-1 text-red-500">{state.errors.streetAddress2}</p>}
+                        <div className="profile__input-box">
+                            <div className="profile__input">
+                                <input name="streetAddress2" type="text" className="form-input" placeholder="Enter your address2" value={state.streetAddress2} onChange={handleChange} />
+                                {state.errors.streetAddress2 && <p className="error-message mt-1 text-red-500">{state.errors.streetAddress2}</p>}
+                            </div>
                         </div>
-                    </div>
-                    <div className="profile__input-box col-md-6">
-                        <div className="profile__input">
-                            <input name="city" type="text" className="form-input" placeholder="Enter your city" value={state.city} onChange={handleChange} />
-                            {state.errors.city && <p className="error-message mt-1 text-red-500">{state.errors.city}</p>}
+                        <div className="profile__input-box col-md-6">
+                            <div className="profile__input">
+                                <input name="city" type="text" className="form-input" placeholder="Enter your city" value={state.city} onChange={handleChange} />
+                                {state.errors.city && <p className="error-message mt-1 text-red-500">{state.errors.city}</p>}
+                            </div>
                         </div>
-                    </div>
-                    <div className="profile__input-box col-md-6">
-                        <div className="profile__input">
-                            <input name="postalCode" type="number" className="form-input" placeholder="Enter your postal code" value={state.postalCode} onChange={handleChange} />
-                            {state.errors.postalCode && <p className="error-message mt-1 text-red-500">{state.errors.postalCode}</p>}
+                        <div className="profile__input-box col-md-6">
+                            <div className="profile__input">
+                                <input name="postalCode" type="number" className="form-input" placeholder="Enter your postal code" value={state.postalCode} onChange={handleChange} />
+                                {state.errors.postalCode && <p className="error-message mt-1 text-red-500">{state.errors.postalCode}</p>}
+                            </div>
                         </div>
-                    </div>
-                    <div className="col-span-6">
-                        <label htmlFor="country" className=" text-sm font-medium text-gray-700">
-                            Country / Region
-                        </label>
-                        <select
-                            className={`form-select mr-3 ${state.errors.country && 'border border-danger focus:border-danger'}`}
-                            // className="form-select mr-3"
-                            id="billingcountry"
-                            name="country"
-                            value={state.country}
-                            onChange={async (e) => {
-                                handleChange(e);
-                                const selectedCountryCode = e.target.value;
-                                const selectedCountry: any = CountryList.find((country: any) => country.code === selectedCountryCode);
-                                if (selectedCountry) {
-                                    setState({ country: selectedCountry.code });
-                                    // setSelectedCountry(selectedCountry.country);
-                                }
-                                const res = await countryAreaRefetch({
-                                    code: selectedCountry.code,
-                                });
+                        <div className="col-span-6">
+                            <select
+                                className={`form-select mr-3 ${state.errors.country && 'border border-danger focus:border-danger'}`}
+                                id="billingcountry"
+                                name="country"
+                                value={state.country}
+                                onChange={async (e) => {
+                                    handleChange(e);
+                                    const selectedCountryCode = e.target.value;
+                                    const selectedCountry: any = CountryList.find((country: any) => country.code === selectedCountryCode);
+                                    if (selectedCountry) {
+                                        setState({ country: selectedCountry?.code });
+                                        const res = await countryAreaRefetch({
+                                            code: selectedCountry?.code,
+                                        });
 
-                                setState({ countryAreaList: res?.data?.addressValidationRules?.countryAreaChoices });
-                            }}
-                        >
-                            <option value={''}>Select country</option>
+                                        setState({ countryAreaList: res?.data?.addressValidationRules?.countryAreaChoices });
+                                    }
+                                }}
+                            >
+                                <option value={''}>Select country</option>
 
-                            {CountryList?.map((item: any) => (
-                                <option key={item.code} value={item.code}>
-                                    {item.country}
-                                </option>
-                            ))}
-                        </select>
-                        {state.errors.country && <div className="mt-1 text-danger">{state.errors.country}</div>}
-                    </div>
+                                {CountryList?.map((item: any) => (
+                                    <option key={item.code} value={item.code}>
+                                        {item.country}
+                                    </option>
+                                ))}
+                            </select>
+                            {state.errors.country && <div className="mt-1 text-danger">{state.errors.country}</div>}
+                        </div>
 
-                    <div className="col-span-6">
-                        <label htmlFor="country" className=" text-sm font-medium text-gray-700">
-                            CountryArea
-                        </label>
-                        <select
-                            className={`form-select mr-3 ${state.errors.country && 'border border-danger focus:border-danger'}`}
-                            // className="form-select mr-3"
-                            id="billingcountry"
-                            name="country"
-                            value={state.countryArea}
-                            onChange={async (e) => {
-                                // handleChange(e);
-                                setState({ countryArea: e.target.value });
-                            }}
-                            // value={selectedCountry}
-                            // onChange={(e) => getStateList(e.target.value)}
-                        >
-                            <option value={''}>Select country area</option>
+                        <div className="col-span-6">
+                            <select
+                                className={`form-select mr-3 ${state.errors.country && 'border border-danger focus:border-danger'}`}
+                                id="billingcountry"
+                                name="country"
+                                disabled={state.countryAreaList?.length == 0}
+                                value={state.countryArea}
+                                onChange={async (e) => {
+                                    setState({ countryArea: e.target.value });
+                                }}
+                            >
+                                <option value={''}>Select country area</option>
 
-                            {state.countryAreaList?.map((item: any) => (
-                                <option key={item.raw} value={item.raw}>
-                                    {item.raw}
-                                </option>
-                            ))}
-                        </select>
-                        {state.errors.country && <div className="mt-1 text-danger">{state.errors.country}</div>}
-                    </div>
+                                {state.countryAreaList?.map((item: any) => (
+                                    <option key={item.raw} value={item.raw}>
+                                        {item.raw}
+                                    </option>
+                                ))}
+                            </select>
+                            {state.errors.countryArea && <div className="mt-1 text-danger">{state.errors.countryArea}</div>}
+                        </div>
 
-                    <div className="mt-8 flex items-center justify-end">
-                        <button
-                            type="button"
-                            className="btn btn-outline-danger gap-2"
-                            onClick={() =>
-                                setState({
-                                    isOpen: false,
-                                    selectedAddress: {},
-                                    firstName: '',
-                                    lastName: '',
-                                    phone: '',
-                                    streetAddress1: '',
-                                    streetAddress2: '',
-                                    city: '',
-                                    countryArea: '',
-                                    postalCode: '',
-                                    country: '',
-                                    countryAreaList: [],
-                                })
-                            }
-                        >
-                            Cancel
-                        </button>
-                        <button type="button" onClick={() => (objIsEmpty(state.selectedAddress) ? addAddress() : updateAddress())} className="btn btn-primary ltr:ml-4 rtl:mr-4">
-                            {state.updateLoading ? <IconLoader /> : 'Confirm'}
-                        </button>
-                    </div>
-                </form>
-            </Modal>
+                        <div className="mt-8 flex items-center justify-end">
+                            <button type="button" className="btn btn-outline-danger gap-2" onClick={() => clearState()}>
+                                Cancel
+                            </button>
+                            <button type="button" onClick={() => (objIsEmpty(state.selectedAddress) ? addAddress() : updateAddress())} className="btn btn-primary ltr:ml-4 rtl:mr-4">
+                                {state.updateLoading ? <IconLoader /> : 'Confirm'}
+                            </button>
+                        </div>
+                    </form>
+                )}
+            />
         </div>
     );
-}
+};
 export default PrivateRouter(Address);

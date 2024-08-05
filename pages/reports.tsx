@@ -1,7 +1,7 @@
 import React, { Fragment, useEffect } from 'react';
 import { Tab } from '@headlessui/react';
 import Link from 'next/link';
-import { Failure, downloadExlcel, filterByDates, formatCurrency, getCurrentDateTime, getDateRange, mintDateTime, useSetState } from '@/utils/functions';
+import { Failure, downloadExlcel, filterByDates, formatCurrency, formatOptions, getCurrentDateTime, getDateRange, mintDateTime, useSetState } from '@/utils/functions';
 import IconDownload from '@/components/Icon/IconDownload';
 import Tippy from '@tippyjs/react';
 import IconPencil from '@/components/Icon/IconPencil';
@@ -96,6 +96,7 @@ const Reports = () => {
     const { data: country } = useQuery(COUNTRY_LIST);
 
     const { data: parentList, error: parentListError, refetch: parentListRefetch } = useQuery(PARENT_CATEGORY_LIST);
+    console.log('parentList: ', parentList);
 
     const [state, setState] = useSetState({
         orderSubMenu: 'Sales by date',
@@ -217,12 +218,11 @@ const Reports = () => {
 
     const GetcategoryFilterData = async () => {
         try {
-            const res: any = await parentListRefetch({
-                channel: 'india-channel',
-            });
+            const res: any = await parentListRefetch();
 
             const getparentCategoryList = res?.data?.categories?.edges;
-            setState({ categoryList: getparentCategoryList });
+            const options = formatOptions(getparentCategoryList);
+            setState({ categoryList: options });
             // setParentLists(getparentCategoryList);
         } catch (error) {
             console.log('error: ', error);
@@ -296,13 +296,11 @@ const Reports = () => {
             const response = res?.data?.salesByDate;
 
             const salesByDate = [
-              
-               
                 {
                     name: 'Orders placed',
                     value: response.noOfOrderListCount,
                 },
-              
+
                 {
                     name: 'Total items sold',
                     value: response.totalItemsSoldListCount,
@@ -1517,16 +1515,14 @@ const Reports = () => {
                                             <button className="flex w-full items-center justify-between bg-gray-200 p-4 text-lg font-medium dark:bg-gray-800"> Categories</button>
                                             <div className="border border-t-0 border-gray-300 p-4 dark:border-gray-700">
                                                 <Select
-                                                    placeholder="Select categories"
-                                                    options={state.categoryList.map((edge) => ({
-                                                        value: edge.node.id,
-                                                        label: edge.node.name,
-                                                    }))}
+                                                    isMulti
                                                     value={state.selectedCategory}
                                                     onChange={(data: any) => setState({ selectedCategory: data })}
-                                                    isSearchable={true}
-                                                    isMulti
+                                                    options={state.categoryList}
+                                                    placeholder="Select categories..."
+                                                    className="form-select"
                                                 />
+
                                                 {/* <button type="button" className="btn btn-primary mt-3 h-9" onClick={() => getSalesByCategory(state.selectedCategory)}>
                                                     Submit
                                                 </button> */}
@@ -1751,10 +1747,7 @@ const Reports = () => {
                                         <div className="border border-t-0 border-gray-300 p-4 dark:border-gray-700">
                                             <Select
                                                 placeholder="Select categories"
-                                                options={state.categoryList.map((edge) => ({
-                                                    value: edge.node.id,
-                                                    label: edge.node.name,
-                                                }))}
+                                                options={state.categoryList}
                                                 value={state.analysisSelectedCategory}
                                                 onChange={(data: any) => setState({ analysisSelectedCategory: data })}
                                                 isSearchable={true}

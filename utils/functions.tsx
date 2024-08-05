@@ -402,6 +402,9 @@ export const NotesMsg = [
     { type: 'CONFIRMED', message: 'Order was confirmed' },
     { type: 'FULFILLMENT_FULFILLED_ITEMS', message: 'Order status changed from Processing to Completed' },
     { type: 'ORDER_MARKED_AS_PAID', message: 'Order Payment status changed from Pending to Completed.' },
+    { type: 'ORDER_MARKED_AS_PAID', message: 'Order Payment status changed from Pending to Completed.' },
+    { type: 'PAYMENT_REFUNDED', message: 'Order Refund updated.' },
+    { type: 'FULFILLMENT_REFUNDED', message: 'Order Refund updated.' },
 ];
 
 export const objIsEmpty = (obj: object) => {
@@ -963,4 +966,21 @@ export const getFileNameFromUrl = (url) => {
     const pathname = urlObject.pathname;
     const filename = pathname.substring(pathname.lastIndexOf('/') + 1);
     return filename;
+};
+export const isValidImageUrl = (url) => {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
+    return imageExtensions.some((ext) => url?.toLowerCase().endsWith(ext));
+};
+
+export const getUniqueStates = (states:any) => {
+    const uniqueStates = [];
+    const seen = new Set();
+    states.forEach((state) => {
+        if (!seen.has(state.raw)) {
+            uniqueStates.push(state);
+            seen.add(state.raw);
+        }
+    });
+
+    return uniqueStates;
 };

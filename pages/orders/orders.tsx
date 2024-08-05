@@ -1,364 +1,133 @@
+import React, { useState, useEffect } from 'react';
+import { useQuery, useLazyQuery, useMutation } from '@apollo/client';
 import { DataTable, DataTableSortStatus } from 'mantine-datatable';
-import { useEffect, useState, Fragment, useRef } from 'react';
-import sortBy from 'lodash/sortBy';
-import { useDispatch, useSelector } from 'react-redux';
-import { setPageTitle } from '../../store/themeConfigSlice';
-import IconBell from '@/components/Icon/IconBell';
-import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
-import IconTrashLines from '@/components/Icon/IconTrashLines';
-import IconPencil from '@/components/Icon/IconPencil';
-import { Button, Loader } from '@mantine/core';
-import Dropdown from '../../components/Dropdown';
-import IconCaretDown from '@/components/Icon/IconCaretDown';
-import { Dialog, Transition } from '@headlessui/react';
-import IconX from '@/components/Icon/IconX';
-import Image1 from '@/public/assets/images/profile-1.jpeg';
-import Image2 from '@/public/assets/images/profile-2.jpeg';
-import Image3 from '@/public/assets/images/profile-3.jpeg';
-import { Field, Form, Formik } from 'formik';
-import * as Yup from 'yup';
-import Swal from 'sweetalert2';
-import IconEye from '@/components/Icon/IconEye';
-import { CREATE_DESIGN, CREATE_DRAFT_ORDER, CREATE_FINISH, DELETE_FINISH, EXPORT_LIST, FINISH_LIST, ORDER_LIST, UPDATE_DESIGN, UPDATE_FINISH } from '@/query/product';
-import { useMutation, useQuery } from '@apollo/client';
 import moment from 'moment';
-import { useRouter } from 'next/router';
-import Modal from '@/components/Modal';
-import {
-    OrderStatus,
-    PaymentStatus,
-    addCommasToNumber,
-    downloadExlcel,
-    formatCurrency,
-    getCurrentDateTime,
-    handleExportByChange,
-    mintDateTime,
-    objIsEmpty,
-    showDeleteAlert,
-    useSetState,
-} from '@/utils/functions';
-import dayjs from 'dayjs';
-import IconLoader from '@/components/Icon/IconLoader';
-import Link from 'next/link';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import CommonLoader from '../elements/commonLoader';
+import { ABANDONT_CART_LIST, CREATE_DRAFT_ORDER, ORDER_LIST, PRODUCT_PREV_PAGINATION } from '@/query/product';
+import IconArrowBackward from '@/components/Icon/IconArrowBackward';
+import IconArrowForward from '@/components/Icon/IconArrowForward';
+import { useRouter } from 'next/router';
+import IconEdit from '@/components/Icon/IconEdit';
+import dayjs from 'dayjs';
+import { OrderStatus, PaymentStatus, addCommasToNumber, getCurrentDateTime, handleExportByChange, mintDateTime } from '@/utils/functions';
+import Tippy from '@tippyjs/react';
+import IconPencil from '@/components/Icon/IconPencil';
+import Link from 'next/link';
 import OrderQuickEdit from '@/components/orderQuickEdit';
+import Modal from '@/components/Modal';
+import IconLoader from '@/components/Icon/IconLoader';
 
-const Orders = () => {
-    const isRtl = useSelector((state: any) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
+const PAGE_SIZE = 20;
 
+const AbandonedCarts = () => {
     const router = useRouter();
 
-    const dispatch = useDispatch();
-
-    const tableRef = useRef(null);
-
-    const [state, setState] = useSetState({
-        isOpenChannel: false,
-        currency: [
-            {
-                value: 'INR',
-                label: 'INR',
-            },
-            {
-                value: 'USD',
-                label: 'USD',
-            },
-        ],
-        selectedCurrency: '',
-    });
-
-    const [draftOrder] = useMutation(CREATE_DRAFT_ORDER);
-
-    const [page, setPage] = useState(1);
-    const PAGE_SIZES = [10, 20, 30, 50, 100];
-    const [pageSize, setPageSize] = useState(PAGE_SIZES[0]);
-    const [initialRecords, setInitialRecords] = useState([]); // Initialize initialRecords with an empty array
     const [recordsData, setRecordsData] = useState([]);
-
-    const { data: finishData, refetch: orderRefetch, loading: getLoading } = useQuery(ORDER_LIST);
-
-    const [finishList, setFinishList] = useState([]);
-    const [allData, setAllData] = useState([]);
-
-    const [loading, setLoading] = useState(false);
-    const [currencyLoading, setCurrencyLoading] = useState(false);
-
-    const [exportBy, setExportBy] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const [startDate, setStartDate] = useState(getCurrentDateTime());
-    const [expandedRow, setExpandedRows] = useState(getCurrentDateTime());
-
-    // error message
+    const [startCursor, setStartCursor] = useState(null);
+    const [endCursor, setEndCursor] = useState(null);
+    const [hasNextPage, setHasNextPage] = useState(false);
+    const [hasPreviousPage, setHasPreviousPage] = useState(false);
+    const [isOpenChannel, setIsOpenChannel] = useState(false);
     const [currencyPopup, setCurrencyPopup] = useState('');
 
-    useEffect(() => {
-        getOrderList();
-    }, []);
-
-    const getOrderList = async () => {
-        setLoading(true);
-        let body = {};
-
-        if (router.query?.customer) {
-            body = {
-                first: 500,
-                direction: 'DESC',
-                field: 'CREATED_AT',
-                filter: { created: null, customer: router.query?.customer },
-            };
-        } else {
-            body = {
-                first: 500,
-                direction: 'DESC',
-                field: 'CREATED_AT',
-            };
-        }
-
-        const res = await orderRefetch(body);
-
-        if (res?.data?.orders?.edges?.length > 0) {
-            SetFinalDate(res?.data?.orders?.edges);
-        }
-        setLoading(false);
-    };
-
-    useEffect(() => {
-        setInitialRecords(finishList);
-    }, [finishList]);
-
-    // Log initialRecords when it changes
-    useEffect(() => {}, [initialRecords]);
-
-    const [selectedRecords, setSelectedRecords] = useState<any>([]);
-
+    const [currency, setCurrency] = useState([
+        {
+            value: 'INR',
+            label: 'INR',
+        },
+        {
+            value: 'USD',
+            label: 'USD',
+        },
+    ]);
+    const [selectedCurrency, setSelectedCurrency] = useState('');
     const [search, setSearch] = useState('');
-    const [status, setStatus] = useState('');
+    const [duration, setDuration] = useState(null);
+    const [interval, setInterval] = useState(null);
+    const [status, setStatus] = useState(null);
+    const [endDate, setEndDate] = useState('');
+    const [expandedRow, setExpandedRows] = useState(null);
+    const [startDate, setStartDate] = useState(getCurrentDateTime());
 
-    // const [sortStatus, setSortStatus] = useState({});
+    const [draftOrder, { loading: draftLoading }] = useMutation(CREATE_DRAFT_ORDER);
 
-    const [modal1, setModal1] = useState(false);
-    const [modalTitle, setModalTitle] = useState(null);
-    const [modalContant, setModalContant] = useState<any>(null);
-    const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
-        columnAccessor: 'id',
-        direction: 'asc',
-    });
-
-    // const [viewModal, setViewModal] = useState(false);
-
-    //Mutation
-    const [addOrder] = useMutation(CREATE_FINISH);
-    const [updateOrder] = useMutation(UPDATE_FINISH);
-    const [deleteDesign] = useMutation(DELETE_FINISH);
-    const [bulkDelete] = useMutation(DELETE_FINISH);
-
-    const { data: ExportList, refetch: exportListeRefetch } = useQuery(EXPORT_LIST);
-
-    useEffect(() => {
-        setPage(1);
-    }, [pageSize]);
-
-    useEffect(() => {
-        const from = (page - 1) * pageSize;
-        const to = from + pageSize;
-        setRecordsData([...initialRecords.slice(from, to)]);
-    }, [page, pageSize, initialRecords]);
-
-    useEffect(() => {
-        setInitialRecords(() => {
-            return finishList?.filter((item: any) => {
-                return (
-                    item?.id.toString()?.includes(search.toLowerCase()) ||
-                    // item.image.toLowerCase().includes(search.toLowerCase()) ||
-                    item?.order.toLowerCase()?.includes(search.toLowerCase())
-                );
-                // item.description.toLowerCase().includes(search.toLowerCase()) ||
-                // item.slug.toLowerCase().includes(search.toLowerCase()) ||
-                // item.count.toString().includes(search.toLowerCase())
-            });
-        });
-    }, [search]);
-
-    useEffect(() => {
-        const data = sortBy(initialRecords, sortStatus.columnAccessor);
-        setInitialRecords(sortStatus.direction === 'desc' ? data.reverse() : data);
-    }, [sortStatus]);
-
-    // FORM VALIDATION
-    const SubmittedForm = Yup.object().shape({
-        name: Yup.string().required('Please fill the Name'),
-        // description: Yup.string().required('Please fill the Description'),
-        // slug: Yup.string().required('Please fill the Slug'),
-        // count: Yup.string().required('Please fill the count'),
-        // image: Yup.string().required('Please fill the Image'),
-        // parentCategory: Yup.string().required('Please fill the Parent Category'),
-    });
-
-    // form submit
-    const onSubmit = async (record: any, { resetForm }: any) => {
-        try {
-            const variables = {
-                input: {
-                    name: record.name,
-                },
+    const filters = (search, status, duration, interval) => {
+        let filterStatus = [];
+        let durations = null;
+        if (status !== null && status !== '') {
+            filterStatus.push(status);
+        }
+        if (duration !== null && duration !== '') {
+            durations = {
+                gte: moment(interval?.gte).format('YYYY-MM-DD'),
+                lte: moment(interval?.lte).format('YYYY-MM-DD'),
             };
-
-            const { data } = await (modalTitle ? updateOrder({ variables: { ...variables, id: modalContant.id } }) : addOrder({ variables }));
-
-            const newData = modalTitle ? data?.productFinishUpdate?.productFinish : data?.productFinishCreate?.productFinish;
-
-            if (!newData) {
-                console.error('Error: New data is undefined.');
-                return;
-            }
-            const updatedId = newData.id;
-            const index = recordsData.findIndex((design: any) => design && design.id === updatedId);
-
-            const updatedDesignList: any = [...recordsData];
-            if (index !== -1) {
-                updatedDesignList[index] = newData;
-            } else {
-                updatedDesignList.push(newData);
-            }
-
-            // setFinishList(updatedDesignList);
-            setRecordsData(updatedDesignList);
-            const toast = Swal.mixin({
-                toast: true,
-                position: 'top',
-                showConfirmButton: false,
-                timer: 3000,
-            });
-            toast.fire({
-                icon: modalTitle ? 'success' : 'info',
-                title: modalTitle ? 'Data updated successfully' : 'New data added successfully',
-                padding: '10px 20px',
-            });
-
-            setModal1(false);
-            resetForm();
-        } catch (error) {
-            console.log('error: ', error);
         }
-    };
 
-    // category table edit
-    const EditOrder = (record: any) => {
-        router.push(`/orders/editorder?id=${record.id}`);
-    };
-
-    const BulkDeleteOrder = async () => {
-        showDeleteAlert(
-            () => {
-                if (selectedRecords.length === 0) {
-                    Swal.fire('Cancelled', 'Please select at least one record!', 'error');
-                    return;
-                }
-                selectedRecords?.map(async (item: any) => {
-                    await bulkDelete({ variables: { id: item.id } });
-                });
-                const updatedRecordsData = finishList.filter((record) => !selectedRecords.includes(record));
-                setFinishList(updatedRecordsData);
-                setSelectedRecords([]);
-                Swal.fire('Deleted!', 'Your files have been deleted.', 'success');
-            },
-            () => {
-                Swal.fire('Cancelled', 'Your List is safe :)', 'error');
-            }
-        );
-    };
-
-    const DeleteOrder = (record: any) => {
-        showDeleteAlert(
-            async () => {
-                const { data } = await deleteDesign({ variables: { id: record.id } });
-                const updatedRecordsData = finishList.filter((dataRecord: any) => dataRecord.id !== record.id);
-                setRecordsData(updatedRecordsData);
-                setFinishList(updatedRecordsData);
-                // getFinishList()
-                setSelectedRecords([]);
-                // setFinishList(finishList)
-                Swal.fire('Deleted!', 'Your file has been deleted.', 'success');
-            },
-            () => {
-                Swal.fire('Cancelled', 'Your Order List is safe :)', 'error');
-            }
-        );
-    };
-
-    // completed category delete option
-    const handleSetChannel = () => {
-        setCurrencyPopup('');
-        if (state.selectedCurrency == '') {
-            setCurrencyPopup('Required this field');
+        let body = null;
+        if (router.query?.customer) {
+            body = { created: durations, customer: router.query?.customer, search: search };
         } else {
-            createDraftOrder();
+            body = { created: durations, search: search, status: filterStatus };
         }
+        return body;
     };
 
-    const createDraftOrder = async () => {
-        try {
-            setCurrencyLoading(true);
-            const { data } = await draftOrder({
-                variables: {
-                    input: {
-                        channelId: state.selectedCurrency == 'USD' ? 'Q2hhbm5lbDox' : 'Q2hhbm5lbDoy',
-                    },
-                },
-            });
-            localStorage.setItem('channel', state.selectedCurrency);
-            setCurrencyLoading(false);
-            router.push({
-                pathname: '/orders/new-order',
-                query: { orderId: data?.draftOrderCreate?.order?.id },
-            });
-        } catch (error) {
-            setCurrencyLoading(false);
-
-            console.log('error: ', error);
-        }
-    };
-
-    const handleChangeDuration = async (e: any) => {
-        try {
-            if (e) {
-                if (e == 'custom') {
-                    setExportBy(e);
-                } else {
-                    setExportBy(e);
-                    filterByDateAndYear(e);
-                }
-            } else {
-                setExportBy(e);
-                getOrderList();
-            }
-        } catch (error) {
-            console.log('error: ', error);
-        }
-    };
-
-    const filterByDateAndYear = async (e: any) => {
-        const response = handleExportByChange(e);
-
-        const res = await exportListeRefetch({
-            first: 100,
-            filter: {
-                created: {
-                    gte: moment(response.gte).format('YYYY-MM-DD'),
-                    lte: moment(response.lte).format('YYYY-MM-DD'),
-                },
-                // customer: 'Durai',
-                // search: '730',
-            },
+    const { loading: getLoading, refetch: fetchLowStockList } = useQuery(ORDER_LIST, {
+        variables: {
+            first: PAGE_SIZE,
+            after: null,
             sort: {
                 direction: 'DESC',
                 field: 'NUMBER',
             },
-        });
+            filter: filters(search, status, duration, interval),
+        },
+        onCompleted: (data) => {
+            setData(data);
+        },
+    });
 
-        SetFinalDate(res?.data?.orders?.edges);
+    const [fetchNextPage] = useLazyQuery(ORDER_LIST, {
+        onCompleted: (data) => {
+            setData(data);
+        },
+    });
+
+    const [fetchPreviousPage] = useLazyQuery(ORDER_LIST, {
+        onCompleted: (data) => {
+            setData(data);
+        },
+    });
+
+    const handleNextPage = () => {
+        fetchNextPage({
+            variables: {
+                first: PAGE_SIZE,
+                after: endCursor,
+                sort: {
+                    direction: 'DESC',
+                    field: 'NUMBER',
+                },
+                filter: filters(search, status, duration, interval),
+            },
+        });
+    };
+
+    const handlePreviousPage = () => {
+        fetchPreviousPage({
+            variables: {
+                last: PAGE_SIZE,
+                before: startCursor,
+                sort: {
+                    direction: 'DESC',
+                    field: 'NUMBER',
+                },
+                filter: filters(search, status, duration, interval),
+            },
+        });
     };
 
     const orderNumber = (item: any) => {
@@ -371,8 +140,9 @@ const Orders = () => {
         return label;
     };
 
-    const SetFinalDate = (res: any) => {
-        const newData = res?.map((item: any) => ({
+    const tableFormat = (products: any) => {
+        console.log('products: ', products);
+        return products.map((item: any) => ({
             ...item.node,
             order: orderNumber(item),
             date: dayjs(item?.node?.created).format('MMM D, YYYY'),
@@ -382,110 +152,29 @@ const Orders = () => {
             invoice: item?.node?.invoices?.length > 0 ? item?.node?.invoices[0]?.number : '-',
             shipmentTracking: item?.node?.fulfillments?.length > 0 ? `${item?.node?.courierPartner?.name}\n${item?.node?.fulfillments[0]?.trackingNumber}` : '-',
             ...item,
-            // shipmentTracking:item?.node?.fulfillments?.length>0 ?{`${item?.node?.courierPartner?.name} ${"\n"} ${item?.node?.courierPartner?.trackingUrl}${item?.node?.fulfillments[0]?.trackingNumber}`}:"-"
         }));
-
-        setFinishList(newData);
-        setAllData(res);
     };
 
-    const excelDownload = () => {
-        const excelData = allData?.map((item: any) => {
-            const data = item?.node;
-            const res = {
-                OrderNumber: orderNumber(item),
-                CustomerName: ` ${data?.user?.firstName}${data?.user?.lastName}`,
-                EmailID: data?.userEmail,
-                PhoneNumber: data?.shippingAddress?.phone,
-                Address1: data?.shippingAddress?.streetAddress1,
-                Address2: data?.shippingAddress?.streetAddress2,
-                Country: data?.shippingAddress?.country?.country,
-                City: data?.shippingAddress?.city,
-                ProductsName: data?.lines?.map((data: any) => data?.productName).join(','),
-                ProductPrice: data?.lines?.map((data: any) => data?.totalPrice?.gross?.amount).join(','),
-                ProductSKU: data?.lines?.map((data: any) => data?.productSku).join(','),
-                DateOfPurchase: moment(data?.updatedAt).format('YYYY-MM-DD'),
-                PaymentStatus: data?.paymentStatus,
-                Currency: data?.total?.gross?.currency,
-                PurchaseTotal: data?.total?.gross?.amount,
-                Discount: 0,
-                Shipping: data?.shippingPrice?.gross?.amount,
-                GST: data?.total?.tax?.amount,
-            };
-            return res;
-        });
-
-        downloadExlcel(excelData, 'Orders');
+    const setData = (data: any) => {
+        const products = data?.orders?.edges;
+        const pageInfo = data?.orders?.pageInfo;
+        setRecordsData(tableFormat(products));
+        setStartCursor(pageInfo?.startCursor || null);
+        setEndCursor(pageInfo?.endCursor || null);
+        setHasNextPage(pageInfo?.hasNextPage || false);
+        setHasPreviousPage(pageInfo?.hasPreviousPage || false);
     };
 
-    const filterByDates = async (e: any) => {
+    const refresh = async () => {
         try {
-            const res = await exportListeRefetch({
-                first: 100,
-                filter: {
-                    created: {
-                        gte: moment(startDate).format('YYYY-MM-DD'),
-                        lte: moment(e).format('YYYY-MM-DD'),
-                    },
-                    // customer: 'Durai',
-                    // search: '730',
-                },
-                sort: {
-                    direction: 'DESC',
-                    field: 'NUMBER',
-                },
+            const { data } = await fetchLowStockList({
+                channel: 'india-channel',
+                first: PAGE_SIZE,
+                after: null,
             });
+            console.log('data: ', data);
 
-            SetFinalDate(res?.data?.orders?.edges);
-        } catch (error) {
-            console.log('error: ', error);
-        }
-    };
-
-    const handleChangeStaus = async (e: any) => {
-        try {
-            const status = e;
-            if (status == '') {
-                const res = await orderRefetch({
-                    first: 500,
-                    filter: {},
-                    sort: {
-                        direction: 'DESC',
-                        field: 'NUMBER',
-                    },
-                });
-                SetFinalDate(res?.data?.orders?.edges);
-            } else {
-                const res = await orderRefetch({
-                    first: 500,
-                    filter: {
-                        created: null,
-                        status: [status],
-                    },
-                    sort: {
-                        direction: 'DESC',
-                        field: 'NUMBER',
-                    },
-                });
-
-                const newData = res?.data?.orders?.edges?.map((item: any) => ({
-                    ...item.node,
-                    order: orderNumber(item),
-                    date: dayjs(item?.node?.updatedAt).format('MMM D, YYYY'),
-                    total: `${formatCurrency(item?.node?.total.gross.currency)}${addCommasToNumber(item?.node?.total.gross.amount)}`,
-                    status: OrderStatus(item?.node?.status),
-                    paymentStatus: PaymentStatus(item?.node?.paymentStatus),
-                    invoice: item?.node?.invoices?.length > 0 ? item?.node?.invoices[0]?.number : '-',
-                    shipmentTracking: item?.node?.fulfillments?.length > 0 ? `${item?.node?.courierPartner?.name}\n${item?.node?.fulfillments[0]?.trackingNumber}` : '-',
-
-                    // shipmentTracking:item?.node?.fulfillments?.length>0 ?{`${item?.node?.courierPartner?.name} ${"\n"} ${item?.node?.courierPartner?.trackingUrl}${item?.node?.fulfillments[0]?.trackingNumber}`}:"-"
-                }));
-
-                setFinishList(newData);
-                setAllData(res?.data?.orders?.edges);
-                SetFinalDate(res?.data?.orders?.edges);
-            }
-            setStatus(e);
+            setData(data);
         } catch (error) {
             console.log('error: ', error);
         }
@@ -495,75 +184,152 @@ const Orders = () => {
         setExpandedRows(row.id === expandedRow ? null : row.id);
     };
 
+    const handleSetChannel = () => {
+        setCurrencyPopup('');
+        if (selectedCurrency == '') {
+            setCurrencyPopup('Required this field');
+        } else {
+            createDraftOrder();
+        }
+    };
+
+    const createDraftOrder = async () => {
+        try {
+            const { data } = await draftOrder({
+                variables: {
+                    input: {
+                        channelId: selectedCurrency == 'USD' ? 'Q2hhbm5lbDox' : 'Q2hhbm5lbDoy',
+                    },
+                },
+            });
+            localStorage.setItem('channel', selectedCurrency);
+            router.push({
+                pathname: '/orders/new-order',
+                query: { orderId: data?.draftOrderCreate?.order?.id },
+            });
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
+    const handleSearchChange = (e) => {
+        setSearch(e);
+        fetchLowStockList({
+            variables: {
+                first: PAGE_SIZE,
+                after: null,
+                sort: {
+                    direction: 'DESC',
+                    field: 'NUMBER',
+                },
+                filter: filters(e, status, duration, interval),
+            },
+        });
+    };
+
+    const handleChangeStaus = (status) => {
+        setStatus(status);
+        fetchLowStockList({
+            variables: {
+                first: PAGE_SIZE,
+                after: null,
+                sort: {
+                    direction: 'DESC',
+                    field: 'NUMBER',
+                },
+                filter: filters(search, status, duration, interval),
+            },
+        });
+    };
+
+    const handleChangeDuration = (dates) => {
+        console.log('dates: ', dates);
+        setDuration(dates);
+        if (dates !== 'custom') {
+            const response = handleExportByChange(dates);
+            setInterval(response);
+            fetchLowStockList({
+                variables: {
+                    first: PAGE_SIZE,
+                    after: null,
+                    sort: {
+                        direction: 'DESC',
+                        field: 'NUMBER',
+                    },
+                    filter: filters(search, status, dates, response),
+                },
+            });
+        }
+    };
+
+    const filterByDates = async (e: any) => {
+        try {
+            setEndDate(e);
+
+            const response = {
+                gte: startDate,
+                lte: e,
+            };
+            setInterval(response);
+            console.log('response: ', response);
+
+            fetchLowStockList({
+                variables: {
+                    first: PAGE_SIZE,
+                    after: null,
+                    sort: {
+                        direction: 'DESC',
+                        field: 'NUMBER',
+                    },
+                    filter: filters(search, status, 'custom', response),
+                },
+            });
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
     return (
         <div>
-            <div className="panel mt-6">
-                <div className="mb-5 flex flex-col gap-5 md:flex-row md:items-center">
-                    <h5 className="text-lg font-semibold dark:text-white-light">Orders</h5>
+            <div className="panel mb-5 flex flex-col gap-5 md:flex-row md:items-center">
+                <h5 className="text-lg font-semibold dark:text-white-light">Orders</h5>
+                <div className="flex ltr:ml-auto rtl:mr-auto gap-3">
+                    <button type="button" className="btn btn-primary" onClick={() => setIsOpenChannel(true)}>
+                        + Create
+                    </button>
+                    <button type="button" className="btn btn-primary" onClick={() => router.push('/orders/export')}>
+                       Export 
+                    </button>
+                </div>
+            </div>
+            <div className=" flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                <div className="flex">
+                    <input type="text" className="form-input mr-2 w-[300px]" placeholder="Search..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
 
-                    <div className="flex ltr:ml-auto rtl:mr-auto">
-                        <button type="button" className="btn btn-primary" onClick={() => setState({ isOpenChannel: true })}>
-                            + Create
-                        </button>
+                    <div className="dropdown  mr-2  w-[200px]">
+                        <select id="priority" className="form-select" value={status} onChange={(e) => handleChangeStaus(e.target.value)}>
+                            <option value="">Status</option>
+                            <option value="UNCONFIRMED">Processing</option>
+                            <option value="UNFULFILLED">Fulfill</option>
+                            <option value="FULFILLED">Completed</option>
+                            <option value="CANCELED">Cancelled</option>
+                        </select>
                     </div>
                 </div>
-
-                <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-center">
-                    <div className="flex">
-                        <input type="text" className="form-input mr-2 w-[300px]" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} />
-
-                        <div className="dropdown  mr-2  w-[200px]">
-                            <select id="priority" className="form-select" value={status} onChange={(e) => handleChangeStaus(e.target.value)}>
-                                <option value="">Status</option>
-                                <option value="UNCONFIRMED">Processing</option>
-                                <option value="UNFULFILLED">Fulfill</option>
-                                <option value="FULFILLED">Completed</option>
-                                <option value="CANCELED">Cancelled</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div className="flex ">
-                        <div className="dropdown  mr-2  w-[200px]">
-                            <select id="priority" className="form-select " value={exportBy} onChange={(e) => handleChangeDuration(e.target.value)}>
-                                <option value="">Select duration</option>
-                                <option value="weekly">Weekly</option>
-                                <option value="monthly">Monthly</option>
-                                <option value="3Months">Last 3 Months</option>
-                                <option value="6Months">Last 6 Months</option>
-                                <option value="year">Last year</option>
-                                <option value="custom">Custom</option>
-                            </select>
-                        </div>
-                        <div>
-                            <button type="button" className="btn btn-primary w-[95px]" onClick={() => excelDownload()}>
-                                Export
-                            </button>
-                        </div>
-                        {/* <div className="dropdown  ml-2 ">
-                            <Dropdown
-                                placement={`${isRtl ? 'bottom-start' : 'bottom-end'}`}
-                                btnClassName="btn btn-outline-primary dropdown-toggle"
-                                button={
-                                    <>
-                                        Bulk Actions
-                                        <span>
-                                            <IconCaretDown className="inline-block ltr:ml-1 rtl:mr-1" />
-                                        </span>
-                                    </>
-                                }
-                            >
-                                <ul className="!min-w-[170px]">
-                                    <li>
-                                        <button type="button" onClick={() => BulkDeleteOrder()}>
-                                            Delete
-                                        </button>
-                                    </li>
-                                </ul>
-                            </Dropdown>
-                        </div> */}
+                <div className="flex ">
+                    <div className="dropdown  mr-2  w-[200px]">
+                        <select id="priority" className="form-select " value={duration} onChange={(e) => handleChangeDuration(e.target.value)}>
+                            <option value="">Select duration</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="3Months">Last 3 Months</option>
+                            <option value="6Months">Last 6 Months</option>
+                            <option value="year">Last year</option>
+                            <option value="custom">Custom</option>
+                        </select>
                     </div>
                 </div>
-                {exportBy == 'custom' && (
+                {duration == 'custom' && (
                     <div className="flex justify-end gap-4 pb-4">
                         <div className="col-span-4">
                             <label htmlFor="dateTimeCreated" className="block pr-2 text-sm font-medium text-gray-700">
@@ -574,6 +340,7 @@ const Orders = () => {
                                 value={startDate}
                                 onChange={(e) => {
                                     setStartDate(e.target.value);
+                                    setEndDate(getCurrentDateTime());
                                 }}
                                 id="dateTimeCreated"
                                 name="dateTimeCreated"
@@ -589,7 +356,6 @@ const Orders = () => {
                                 type="datetime-local"
                                 value={endDate}
                                 onChange={(e) => {
-                                    setEndDate(e.target.value);
                                     filterByDates(e.target.value);
                                 }}
                                 id="dateTimeCreated"
@@ -601,17 +367,16 @@ const Orders = () => {
                         </div>
                     </div>
                 )}
-
-                <div className="datatables">
-                    {getLoading ? (
-                        <CommonLoader />
-                    ) : (
+            </div>
+            <div className="panel mt-6">
+                {getLoading ? (
+                    <CommonLoader />
+                ) : (
+                    <div className="datatables">
                         <DataTable
                             className="table-hover whitespace-nowrap"
-                            records={initialRecords}
+                            records={recordsData}
                             columns={[
-                                // { accessor: 'id', sortable: true },
-                                // { accessor: 'image', sortable: true, render: (row) => <img src={row.image} alt="Product" className="h-10 w-10 object-cover ltr:mr-2 rtl:ml-2" /> },
                                 {
                                     accessor: 'order',
                                     sortable: true,
@@ -695,27 +460,18 @@ const Orders = () => {
 
                                 { accessor: 'total', sortable: true },
                                 {
-                                    // Custom column for actions
-                                    accessor: 'actions', // You can use any accessor name you want
+                                    accessor: 'actions',
                                     title: 'Actions',
-                                    // Render method for custom column
                                     render: (row: any) => (
                                         <>
-                                            {/* <Tippy content="View">
-                                                <button type="button" onClick={() => ViewOrder(row)}>
-                                                    <IconEye className="ltr:mr-2 rtl:ml-2" />
-                                                </button>
-                                            </Tippy> */}
                                             <Tippy content="Edit">
-                                                <button type="button" onClick={() => EditOrder(row)}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>  router.push(`/orders/editorder?id=${row.id}`)}
+                                                >
                                                     <IconPencil className="ltr:mr-2 rtl:ml-2" />
                                                 </button>
                                             </Tippy>
-                                            {/* <Tippy content="Delete">
-                                                <button type="button" onClick={() => DeleteOrder(row)}>
-                                                    <IconTrashLines />
-                                                </button>
-                                            </Tippy> */}
                                         </>
                                     ),
                                 },
@@ -730,109 +486,56 @@ const Orders = () => {
                                 content: ({ record }) =>
                                     expandedRow === record.id ? (
                                         <div>
-                                            <OrderQuickEdit id={record?.id} updateList={() => getOrderList()} closeExpand={() => setExpandedRows(null)} />
+                                            <OrderQuickEdit id={record?.id} updateList={() => refresh()} closeExpand={() => setExpandedRows(null)} />
                                         </div>
                                     ) : null,
                             }}
                             highlightOnHover
-                            totalRecords={initialRecords.length}
-                            recordsPerPage={pageSize}
-                            page={page}
-                            onPageChange={(p) => setPage(p)}
-                            recordsPerPageOptions={PAGE_SIZES}
-                            onRecordsPerPageChange={setPageSize}
-                            sortStatus={sortStatus}
-                            onSortStatusChange={setSortStatus}
-                            // selectedRecords={selectedRecords}
-                            // onSelectedRecordsChange={(selectedRecords) => {
-                            //     setSelectedRecords(selectedRecords);
-                            // }}
+                            totalRecords={recordsData.length}
+                            recordsPerPage={PAGE_SIZE}
+                            page={null} // Add this line to set the current page
+                            onPageChange={(p) => {}} // Dummy handler for onPageChange
+                            sortStatus={{
+                                columnAccessor: 'name',
+                                direction: 'asc',
+                            }}
+                            onSortStatusChange={() => {}}
+                            withBorder={true}
                             minHeight={200}
-                            paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
+                            paginationText={({ from, to, totalRecords }) => ''}
                         />
-                    )}
-                </div>
-            </div>
-
-            {/* CREATE AND EDIT CATEGORY FORM */}
-            <Transition appear show={modal1} as={Fragment}>
-                <Dialog as="div" open={modal1} onClose={() => setModal1(false)}>
-                    <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-                        <div className="fixed inset-0" />
-                    </Transition.Child>
-                    <div className="fixed inset-0 z-[999] overflow-y-auto bg-[black]/60">
-                        <div className="flex min-h-screen items-start justify-center px-4">
-                            <Transition.Child
-                                as={Fragment}
-                                enter="ease-out duration-300"
-                                enterFrom="opacity-0 scale-95"
-                                enterTo="opacity-100 scale-100"
-                                leave="ease-in duration-200"
-                                leaveFrom="opacity-100 scale-100"
-                                leaveTo="opacity-0 scale-95"
-                            >
-                                <Dialog.Panel as="div" className="panel my-8 w-full max-w-lg overflow-hidden rounded-lg border-0 p-0 text-black dark:text-white-dark">
-                                    <div className="flex items-center justify-between bg-[#fbfbfb] px-5 py-3 dark:bg-[#121c2c]">
-                                        <div className="text-lg font-bold">{modalTitle === null ? 'Create Order' : 'Edit Order'}</div>
-                                        <button type="button" className="text-white-dark hover:text-dark" onClick={() => setModal1(false)}>
-                                            <IconX />
-                                        </button>
-                                    </div>
-                                    <div className="mb-5 p-5">
-                                        <Formik
-                                            initialValues={
-                                                modalContant === null
-                                                    ? { name: '' }
-                                                    : {
-                                                          name: modalContant?.name,
-                                                      }
-                                            }
-                                            validationSchema={SubmittedForm}
-                                            onSubmit={(values, { resetForm }) => {
-                                                onSubmit(values, { resetForm }); // Call the onSubmit function with form values and resetForm method
-                                            }}
-                                        >
-                                            {({ errors, submitCount, touched, setFieldValue, values }: any) => (
-                                                <Form className="space-y-5">
-                                                    <div className={submitCount ? (errors.name ? 'has-error' : 'has-success') : ''}>
-                                                        <label htmlFor="fullName">Name </label>
-                                                        <Field name="name" type="text" id="fullName" placeholder="Enter Name" className="form-input" />
-
-                                                        {submitCount ? errors.name ? <div className="mt-1 text-danger">{errors.name}</div> : <div className="mt-1 text-success"></div> : ''}
-                                                    </div>
-
-                                                    <button type="submit" className="btn btn-primary !mt-6">
-                                                        {modalTitle === null ? 'Submit' : 'Update'}
-                                                    </button>
-                                                </Form>
-                                            )}
-                                        </Formik>
-                                    </div>
-                                </Dialog.Panel>
-                            </Transition.Child>
+                        <div className="mt-5 flex justify-end gap-3">
+                            <button disabled={!hasPreviousPage} onClick={handlePreviousPage} className={`btn ${!hasPreviousPage ? 'btn-disabled' : 'btn-primary'}`}>
+                                <IconArrowBackward />
+                            </button>
+                            <button disabled={!hasNextPage} onClick={handleNextPage} className={`btn ${!hasNextPage ? 'btn-disabled' : 'btn-primary'}`}>
+                                <IconArrowForward />
+                            </button>
                         </div>
                     </div>
-                </Dialog>
-            </Transition>
-
+                )}
+            </div>
             <Modal
                 addHeader={'Select a Currency'}
-                open={state.isOpenChannel}
-                close={() => setState({ isOpenChannel: false })}
+                open={isOpenChannel}
+                close={() => {
+                    setCurrencyPopup('');
+                    setIsOpenChannel(false);
+                }}
                 renderComponent={() => (
                     <div className="p-5">
                         <select
                             className="form-select"
-                            value={state.selectedCurrency}
+                            value={selectedCurrency}
                             onChange={(val) => {
                                 const selectedCurrency: any = val.target.value;
-                                setState({ selectedCurrency });
+                                setSelectedCurrency(selectedCurrency);
                             }}
                         >
                             <option value="" disabled selected>
                                 Select a currency
                             </option>
-                            {state.currency?.map((item: any) => (
+                            {currency?.map((item: any) => (
                                 <option key={item?.value} value={item?.value}>
                                     {item?.label}
                                 </option>
@@ -841,11 +544,18 @@ const Orders = () => {
                         {currencyPopup && <div className="mt-1 text-sm text-red-400">{currencyPopup}</div>}
 
                         <div className="mt-8 flex items-center justify-end">
-                            <button type="button" className="btn btn-outline-danger gap-2" onClick={() => setState({ isOpenChannel: false })}>
+                            <button
+                                type="button"
+                                className="btn btn-outline-danger gap-2"
+                                onClick={() => {
+                                    setCurrencyPopup('');
+                                    setIsOpenChannel(false);
+                                }}
+                            >
                                 Cancel
                             </button>
                             <button type="submit" className="btn btn-primary ltr:ml-4 rtl:mr-4" onClick={() => handleSetChannel()}>
-                                {currencyLoading ? <IconLoader /> : 'Confirm'}
+                                {draftLoading ? <IconLoader /> : 'Confirm'}
                             </button>
                         </div>
                     </div>
@@ -855,4 +565,4 @@ const Orders = () => {
     );
 };
 
-export default PrivateRouter(Orders);
+export default PrivateRouter(AbandonedCarts);

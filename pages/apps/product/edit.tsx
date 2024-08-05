@@ -2524,7 +2524,7 @@ const ProductEdit = (props: any) => {
                                                                     <p className="mb-2 text-lg font-semibold">ATTACHMENT DETAILS</p>
                                                                 </div>
 
-                                                                {selectedImg?.key?.endsWith('.mp4') ? (
+                                                                {selectedImg?.endsWith('.mp4') ? (
                                                                     <video controls src={selectedImg} className="h-full w-full object-cover">
                                                                         Your browser does not support the video tag.
                                                                     </video>

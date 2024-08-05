@@ -36,6 +36,7 @@ import {
     billingAddress,
     // checkChannel,
     formatCurrency,
+    getUniqueStates,
     isEmptyObject,
     objIsEmpty,
     profilePic,
@@ -236,14 +237,23 @@ const NewOrder = () => {
     // For get Billing State list
     useEffect(() => {
         if (state.billingAddress.country) {
-            setState({ stateList: stateData?.addressValidationRules?.countryAreaChoices });
+            const list = stateData?.addressValidationRules?.countryAreaChoices;
+            if (list?.length > 0) {
+                const uniqueStateList = getUniqueStates(list);
+                setState({ stateList: uniqueStateList });
+            }
         }
     }, [stateData]);
 
     // For get Shipping State list
     useEffect(() => {
         if (state.shippingAddress.country) {
-            setState({ shippingStateList: shippingStateData?.addressValidationRules?.countryAreaChoices });
+            const list = shippingStateData?.addressValidationRules?.countryAreaChoices;
+            if (list?.length > 0) {
+                const uniqueStateList = getUniqueStates(list);
+
+                setState({ shippingStateList: uniqueStateList });
+            }
         }
     }, [shippingStateData]);
 
@@ -552,6 +562,9 @@ const NewOrder = () => {
                         },
                     });
                     setState({ isOpenProductAdd: false, isEditProduct: false, editProduct: {}, productQuantity: '' });
+                    if (productDetails?.order?.discounts[0]?.id) {
+                        removeTotalDiscounts();
+                    }
                     getOrderData();
                     Swal.fire('Deleted!', 'Your product have been deleted.', 'success');
                 },
@@ -559,18 +572,26 @@ const NewOrder = () => {
                     Swal.fire('Cancelled', 'Your List is safe :)', 'error');
                 }
             );
-
-            // const res = await deleteLine({
-            //     variables: {
-            //         id: item.id,
-            //     },
-            // });
-            // setState({ isOpenProductAdd: false, isEditProduct: false, editProduct: {}, productQuantity: '' });
-            // getOrderData();
-            // Success('Product Deleted Successfully');
         } catch (error) {
             console.log('error: ', error);
         }
+    };
+
+    const removeTotalDiscounts = async () => {
+        showDeleteAlert(
+            async () => {
+                const removeRes = await removeDiscount({
+                    variables: {
+                        discountId: productDetails?.order?.discounts[0]?.id,
+                    },
+                });
+                getOrderData();
+                Swal.fire('Deleted!', 'Your product have been deleted.', 'success');
+            },
+            () => {
+                Swal.fire('Cancelled', 'Your List is safe :)', 'error');
+            }
+        );
     };
 
     //Add discount to this order
@@ -1450,7 +1471,7 @@ const NewOrder = () => {
                                         <tr className="align-top" key={index}>
                                             <td>{item?.productName}</td>
                                             <td>
-                                                <img src={profilePic(item?.thumbnail?.url)} height={80} width={80} />
+                                                <img src={profilePic(item?.variant?.product?.thumbnail?.url)} height={80} width={80} />
                                             </td>
                                             <td>{item?.productSku}</td>
                                             <td>{`${formatCurrency(item?.unitPrice?.gross?.currency)}${addCommasToNumber(item?.unitPrice?.gross?.amount)}`} </td>
@@ -1543,27 +1564,33 @@ const NewOrder = () => {
                                 {state.line?.length}
                                 {productDetails?.order?.discounts?.length > 0 && (
                                     <div className="mt-4 flex items-center justify-between">
-                                        <div>Discount</div>
-                                        {productDetails?.order?.discounts[0]?.calculationMode == 'PERCENTAGE' ? (
-                                            <div>
-                                                {`${`(${productDetails?.order?.discounts[0]?.value}%)`} ${formatCurrency(productDetails?.order?.discounts[0]?.amount?.currency)}${addCommasToNumber(
-                                                    productDetails?.order?.discounts[0]?.amount?.amount
-                                                )}`}
+                                        <div className="flex">
+                                            <div>Discount</div>
+                                            <div className=" cursor-pointer" onClick={() => removeTotalDiscounts()}>
+                                                <IconTrashLines className="text-red-500" />
                                             </div>
-                                        ) : (
-                                            <div>{`${formatCurrency(productDetails?.order?.discounts[0]?.amount?.currency)}${addCommasToNumber(
-                                                productDetails?.order?.discounts[0]?.amount?.amount
-                                            )}`}</div>
-                                            // <div>{`(${productDetails?.order?.discounts[0]?.value}%) ${productDetails?.order?.discounts[0]?.amount?.currency} ${productDetails?.order?.discounts[0]?.amount?.amount} `}</div>
-                                            // <div>{`${productDetails?.order?.discounts[0]?.amount?.currency} ${productDetails?.order?.discounts[0]?.amount?.amount}`}</div>
-                                        )}
+                                        </div>
+
+                                        <div className="">
+                                            {productDetails?.order?.discounts[0]?.calculationMode == 'PERCENTAGE' ? (
+                                                <div>
+                                                    {`${`(${productDetails?.order?.discounts[0]?.value}%)`} ${formatCurrency(productDetails?.order?.discounts[0]?.amount?.currency)}${addCommasToNumber(
+                                                        productDetails?.order?.discounts[0]?.amount?.amount
+                                                    )}`}
+                                                </div>
+                                            ) : (
+                                                <div>{`${formatCurrency(productDetails?.order?.discounts[0]?.amount?.currency)}${addCommasToNumber(
+                                                    productDetails?.order?.discounts[0]?.amount?.amount
+                                                )}`}</div>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                                 <div className="mt-4 flex items-center justify-between font-semibold">
                                     <div>Total</div>
 
                                     <div>
-                                        <div className="ml-[94px] justify-end">{`${formatCurrency(productDetails?.order?.total?.gross?.currency)}${addCommasToNumber(
+                                        <div className="ml-[124px] justify-end">{`${formatCurrency(productDetails?.order?.total?.gross?.currency)}${addCommasToNumber(
                                             productDetails?.order?.total?.gross?.amount
                                         )}`}</div>
 
@@ -1597,14 +1624,14 @@ const NewOrder = () => {
                 </div>
                 <div className=" col-span-3 mb-5  ">
                     <div className="panel mb-5 p-5">
-                        <div className="mb-5 border-b border-gray-200 pb-2 ">
+                        <div className="mb-5  ">
                             <h3 className="text-lg font-semibold">Order Actions</h3>
                         </div>
                         <div>
-                            <select className="form-select mr-3">
+                            {/* <select className="form-select mr-3">
                                 <option value="">Choose An Action</option>
                                 <option value="Email Invoice">Email Invoice</option>
-                            </select>
+                            </select> */}
                         </div>
                         <div className="mt-5 border-t border-gray-200 pb-2 ">
                             <div className="flex flex-row-reverse items-center justify-between pt-3">

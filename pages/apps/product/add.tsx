@@ -190,6 +190,8 @@ const ProductAdd = () => {
 
     const [quantityTrack, setQuantityTrack] = useState(true);
     const [parentLists, setParentLists] = useState([]);
+    const [newCatParentLists, setNewCatParentLists] = useState([]);
+
     const [searchUpsells, setSearchUpsells] = useState('');
     const [searchCrossell, setSearchCrossell] = useState('');
     const [active, setActive] = useState<string>('1');
@@ -253,9 +255,11 @@ const ProductAdd = () => {
     const [addCategory] = useMutation(CREATE_CATEGORY);
     const [addTag] = useMutation(CREATE_TAG);
 
-    const { data: parentList, error: parentListError } = useQuery(PARENT_CATEGORY_LIST, {
+    const { data: parentList, error: parentListError,refetch:catListRefetch } = useQuery(PARENT_CATEGORY_LIST, {
         variables: { channel: 'india-channel' },
     });
+    console.log("parentList: ", parentList);
+
 
     const { data: productSearch, refetch: productSearchRefetch } = useQuery(PRODUCT_BY_NAME);
 
@@ -286,6 +290,7 @@ const ProductAdd = () => {
     useEffect(() => {
         const getparentCategoryList = parentList?.categories?.edges;
         const options = formatOptions(getparentCategoryList);
+        setNewCatParentLists(getparentCategoryList);
         setParentLists(options);
     }, [parentList]);
 
@@ -299,10 +304,6 @@ const ProductAdd = () => {
 
     const { data: tagsList, refetch: tagListRefetch } = useQuery(PRODUCT_LIST_TAGS, {
         variables: { channel: 'india-channel' },
-    });
-
-    const { data: cat_list, refetch: categoryListRefetch } = useQuery(PRODUCT_CAT_LIST, {
-        variables: sampleParams,
     });
 
     const { data: collection_list } = useQuery(COLLECTION_LIST, {
@@ -322,7 +323,6 @@ const ProductAdd = () => {
     const [assignTagToProduct] = useMutation(ASSIGN_TAG_PRODUCT);
     const [createMedia] = useMutation(PRODUCT_MEDIA_CREATE_NEW);
 
-    const [categoryList, setCategoryList] = useState([]);
     const [collectionList, setCollectionList] = useState([]);
     const [label, setLabel] = useState<any>('');
 
@@ -337,6 +337,7 @@ const ProductAdd = () => {
     const [selectedCrosssell, setSelectedCrosssell] = useState([]);
     const [mediaImages, setMediaImages] = useState([]);
     const [selectedImg, setSelectedImg] = useState(null);
+    console.log('selectedImg: ', selectedImg);
     const [alt, setAlt] = useState('');
     const [caption, setCaption] = useState('');
     const [mediaData, setMediaData] = useState(null);
@@ -347,9 +348,7 @@ const ProductAdd = () => {
 
     const [createCategoryLoader, setCreateCategoryLoader] = useState(false);
 
-    useEffect(() => {
-        category_list();
-    }, [cat_list]);
+ 
 
     useEffect(() => {
         tags_list();
@@ -389,20 +388,7 @@ const ProductAdd = () => {
         }
     };
 
-    const category_list = async () => {
-        try {
-            if (cat_list) {
-                if (cat_list && cat_list?.search?.edges?.length > 0) {
-                    const list = cat_list?.search?.edges;
-                    const dropdownData = list?.map((item: any) => {
-                        return { value: item.node?.id, label: item.node?.name };
-                    });
-
-                    setCategoryList(dropdownData);
-                }
-            }
-        } catch (error) {}
-    };
+   
 
     const tags_list = async () => {
         try {
@@ -853,7 +839,6 @@ const ProductAdd = () => {
         return attributeErrors;
     };
 
-
     const productChannelListUpdate = async (productId: any) => {
         try {
             const { data } = await updateProductChannelList({
@@ -903,7 +888,7 @@ const ProductAdd = () => {
                 stocks: [
                     {
                         warehouse: 'V2FyZWhvdXNlOmRmODMzODUzLTQyMGYtNGRkZi04YzQzLTVkMzdjMzI4MDRlYQ==',
-                        quantity: item.stackMgmt ? item.quantity : 0,
+                        quantity: item.quantity,
                     },
                 ],
             }));
@@ -1041,8 +1026,11 @@ const ProductAdd = () => {
 
     // form submit
     const createNewCategory = async () => {
-        setCreateCategoryLoader(true);
         try {
+            if (formData.name == '') {
+                Failure('Category name is required');
+                return;
+            }
             setCreateCategoryLoader(true);
 
             const Description = JSON.stringify({ time: Date.now(), blocks: [{ id: 'some-id', data: { text: formData.description }, type: 'paragraph' }], version: '2.24.3' });
@@ -1056,7 +1044,7 @@ const ProductAdd = () => {
             };
 
             const { data } = await addCategory({ variables });
-            categoryListRefetch();
+            catListRefetch()
             setIsOpenCat(false);
             setCreateCategoryLoader(false);
             Success('Category created successfully');
@@ -1355,7 +1343,6 @@ const ProductAdd = () => {
         });
 
         const result = res.data?.fileByFileurl;
-        console.log('result: ', result);
         if (result) {
             setSelectedImg(result?.fileUrl);
             handleImageSelect(item);
@@ -1364,7 +1351,6 @@ const ProductAdd = () => {
             setDescription(result?.description);
             setCaption(result?.caption);
             setMediaData({ size: item.Size, lastModified: item.LastModified });
-
         }
     };
 
@@ -1559,28 +1545,28 @@ const ProductAdd = () => {
                                                                 {variantErrors[index]?.stackMgmt && <p className="error-message mt-1 text-red-500">{variantErrors[index].stackMgmt}</p>}
                                                             </div>
                                                         </div>
-                                                        {item.stackMgmt && (
-                                                            <div className="active flex items-center">
-                                                                <div className="mb-5 mr-4 " style={{ width: '20%' }}>
-                                                                    <label htmlFor={`quantity_${index}`} className="block  text-sm font-medium text-gray-700">
-                                                                        Quantity
-                                                                    </label>
-                                                                </div>
-                                                                <div className="mb-5" style={{ width: '80%' }}>
-                                                                    <input
-                                                                        type="number"
-                                                                        id={`quantity_${index}`}
-                                                                        name={`quantity_${index}`}
-                                                                        value={item.quantity}
-                                                                        onChange={(e) => handleChange(index, 'quantity', parseInt(e.target.value))}
-                                                                        style={{ width: '100%' }}
-                                                                        placeholder="Enter Quantity"
-                                                                        className="form-input"
-                                                                    />
-                                                                    {variantErrors[index]?.quantity && <p className="error-message mt-1 text-red-500">{variantErrors[index].quantity}</p>}
-                                                                </div>
+                                                        {/* {item.stackMgmt && ( */}
+                                                        <div className="active flex items-center">
+                                                            <div className="mb-5 mr-4 " style={{ width: '20%' }}>
+                                                                <label htmlFor={`quantity_${index}`} className="block  text-sm font-medium text-gray-700">
+                                                                    Quantity
+                                                                </label>
                                                             </div>
-                                                        )}
+                                                            <div className="mb-5" style={{ width: '80%' }}>
+                                                                <input
+                                                                    type="number"
+                                                                    id={`quantity_${index}`}
+                                                                    name={`quantity_${index}`}
+                                                                    value={item.quantity}
+                                                                    onChange={(e) => handleChange(index, 'quantity', parseInt(e.target.value))}
+                                                                    style={{ width: '100%' }}
+                                                                    placeholder="Enter Quantity"
+                                                                    className="form-input"
+                                                                />
+                                                                {variantErrors[index]?.quantity && <p className="error-message mt-1 text-red-500">{variantErrors[index].quantity}</p>}
+                                                            </div>
+                                                        </div>
+                                                        {/* )} */}
                                                         <div className="active flex items-center">
                                                             <div className="mb-5 mr-4" style={{ width: '20%' }}>
                                                                 <label htmlFor={`regularPrice_${index}`} className="block pr-5 text-sm font-medium text-gray-700">
@@ -2044,9 +2030,9 @@ const ProductAdd = () => {
                                                                     )}
                                                                 </div>
                                                                 <p className="mt-2 font-semibold">{selectedImg}</p>
-                                                                <p className="text-sm">{moment(mediaData?.lastModified).format("DD-MM-YYYY")}</p>
+                                                                <p className="text-sm">{moment(mediaData?.lastModified).format('DD-MM-YYYY')}</p>
                                                                 <p className="text-sm">{(mediaData?.size / 1024).toFixed(2)} KB</p>
-                                                                
+
                                                                 <a href="#" className="text-danger underline" onClick={() => multiImageDelete()}>
                                                                     Delete permanently
                                                                 </a>
@@ -2098,10 +2084,8 @@ const ProductAdd = () => {
                                                                 <div className="flex justify-end">
                                                                     <button type="submit" className="btn btn-primary " onClick={() => updateMediaMetaData()}>
                                                                         {mediaUpdateLoading ? <IconLoader /> : 'Update'}
-
                                                                     </button>
                                                                 </div>
-                                                               
                                                             </div>
                                                         </div>
                                                     )}
@@ -2274,7 +2258,7 @@ const ProductAdd = () => {
                                     <label htmlFor="parentCategory">Parent Category</label>
                                     <select name="parentCategory" className="form-select" value={formData.parentCategory} onChange={handleCatChange}>
                                         <option value="">Open this select</option>
-                                        {parentLists?.map((item) => (
+                                        {newCatParentLists?.map((item) => (
                                             <React.Fragment key={item?.node?.id}>
                                                 <option value={item?.node?.id}>{item.node?.name}</option>
                                                 {item?.node?.children?.edges?.map((child) => (

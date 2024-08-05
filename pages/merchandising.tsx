@@ -5,7 +5,9 @@ import CommonLoader from './elements/commonLoader';
 import IconArrowBackward from '@/components/Icon/IconArrowBackward';
 import IconArrowForward from '@/components/Icon/IconArrowForward';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
+import placeholders from '../public/assets/images/placeholder.png';
 import { UPDATED_PRODUCT_PAGINATION, PRODUCT_PREV_PAGINATION, REARANGE_ORDER, MERCHANDISING_PAGINATION, PARENT_CATEGORY_LIST } from '@/query/product';
+import { isValidImageUrl } from '@/utils/functions';
 
 const Index = () => {
     const PAGE_SIZE = 20;
@@ -18,6 +20,7 @@ const Index = () => {
     });
 
     const [recordsData, setRecordsData] = useState([]);
+    console.log("recordsData: ", recordsData);
     const [startCursor, setStartCursor] = useState(null);
     const [endCursor, setEndCursor] = useState(null);
     const [hasNextPage, setHasNextPage] = useState(false);
@@ -32,7 +35,7 @@ const Index = () => {
     const [draggedIndex, setDraggedIndex] = useState(null);
 
     const buildFilter = (category, availability) => {
-        const filter:any = {};
+        const filter: any = {};
         if (router?.query?.category) {
             filter.categories = [router?.query?.category];
         } else if (category && category !== '') {
@@ -46,10 +49,11 @@ const Index = () => {
         return parentCategories.map(({ node }) => ({
             id: node.id,
             name: node.name,
-            children: node.children?.edges.map(({ node }) => ({
-                id: node.id,
-                name: node.name,
-            })) || [],
+            children:
+                node.children?.edges.map(({ node }) => ({
+                    id: node.id,
+                    name: node.name,
+                })) || [],
         }));
     };
 
@@ -211,7 +215,7 @@ const Index = () => {
 
     const handleCategoryChange = (e) => {
         setSelectedCategory(e.target.value);
-        if (e.target.value == "") {
+        if (e.target.value == '') {
             fetchLowStockList({
                 variables: {
                     channel: 'india-channel',
@@ -237,7 +241,7 @@ const Index = () => {
 
     const handlePageChange = (e) => {
         setSelectPage(e.target.value);
-        if (e.target.value == "") {
+        if (e.target.value == '') {
             fetchLowStockList({
                 variables: {
                     channel: 'india-channel',
@@ -268,7 +272,7 @@ const Index = () => {
                 </div>
             </div>
             <div className="mb-5 mt-5 flex justify-between md:mb-0 md:mt-0 md:flex md:ltr:ml-auto md:rtl:mr-auto">
-                <div className='flex gap-5'>
+                <div className="flex gap-5">
                     <input type="text" className="form-input mb-3 mr-2 h-[40px] md:mb-0 md:w-auto" placeholder="Search..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
 
                     <select className="form-select flex-1" value={selectPage} onChange={(e) => handlePageChange(e)}>
@@ -299,7 +303,7 @@ const Index = () => {
             ) : (
                 <div className="grid grid-cols-5 gap-5 pt-5">
                     {recordsData?.length > 0 ? (
-                        recordsData.map((record, index) => (
+                        recordsData?.map((record, index) => (
                             <div
                                 key={record.id}
                                 className={`card ${draggedIndex === index ? 'dragging' : ''} ${dropIndex === index && draggedIndex !== null ? 'drag-over' : ''}`}
@@ -309,8 +313,8 @@ const Index = () => {
                                 onDragEnter={(e) => handleDragEnter(e, index)}
                                 onDrop={(e) => handleDrop(e, index)}
                             >
-                                <img src={record.image} alt={record.name} className="h-48 w-full object-cover" />
-                                <div className="mt-2 text-center">{record.name}</div>
+                                <img src={isValidImageUrl(record?.image) ? record?.image : placeholders} alt={record?.name} className="h-48 w-full object-cover" />
+                                <div className="mt-2 text-center">{record?.name}</div>
                             </div>
                         ))
                     ) : (

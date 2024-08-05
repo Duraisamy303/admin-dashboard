@@ -41,7 +41,7 @@ export const AddressValidation = (state: any) => {
     const phoneRegex = /^[0-9]{10,15}$/;
     const pincodeRegex = /^[0-9]{5,10}$/;
 
-    const requiredFields = ['firstName', 'lastName', 'company', 'address_1', 'address_2', 'city', 'state', 'country'];
+    const requiredFields = ['firstName', 'lastName',  'address_1', 'address_2', 'city', 'state', 'country'];
 
     requiredFields.forEach((field) => {
         if (!state?.billingAddress?.[field]) {
@@ -55,13 +55,13 @@ export const AddressValidation = (state: any) => {
     if (!state?.billingAddress?.pincode) {
         newBillingErrMsg.pincode = 'Required this field';
     } else if (!pincodeRegex.test(state.billingAddress.pincode)) {
-        newBillingErrMsg.pincode = 'invalid pincode';
+        newBillingErrMsg.pincode = 'Invalid pincode';
     }
 
     if (!state?.billingAddress?.phone) {
         newBillingErrMsg.phone = 'Required this field';
     } else if (!phoneRegex.test(state.billingAddress.phone)) {
-        newBillingErrMsg.phone = 'invalid phone number';
+        newBillingErrMsg.phone = 'Invalid phone number';
     }
 
     // if (!state?.billingAddress?.email) {
@@ -79,7 +79,7 @@ export const AddressValidation = (state: any) => {
     if (!state?.shippingAddress?.phone) {
         newShippingErrMsg.phone = 'Required this field';
     } else if (!phoneRegex.test(state.shippingAddress.phone)) {
-        newShippingErrMsg.phone = 'invalid phone number';
+        newShippingErrMsg.phone = 'Invalid phone number';
     }
 
     // if (!state?.shippingAddress?.email) {

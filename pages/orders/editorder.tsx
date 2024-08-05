@@ -193,7 +193,6 @@ const Editorder = () => {
     const [applyAllProduct, setApplyAllProduct] = useState(false);
 
     const [paymentStatus, setPaymentStatus] = useState('');
-    console.log('paymentStatus: ', paymentStatus);
     const [refundStatus, setRefundStatus] = useState('');
 
     const [selectedCurrency, setSelectedCurrency] = useState('');
@@ -318,14 +317,14 @@ const Editorder = () => {
 
                 //Status
                 const filteredArray = orderDetails?.order?.events?.filter(
-                    (item: any) => item.type === 'CONFIRMED' || item.type === 'FULFILLMENT_FULFILLED_ITEMS' || item.type === 'NOTE_ADDED' || item.type === 'ORDER_MARKED_AS_PAID'
+                    (item: any) => item.type === 'CONFIRMED' || item.type === 'FULFILLMENT_FULFILLED_ITEMS' || item.type === 'NOTE_ADDED' || item.type === 'ORDER_MARKED_AS_PAID' || item.type === 'PAYMENT_REFUNDED' || item.type === 'FULFILLMENT_REFUNDED'
                 );
 
                 const result = filteredArray?.map((item: any) => {
                     const secondItem: any = NotesMsg.find((i) => i.type === item.type);
                     return {
                         type: item.type,
-                        message: item.type === 'NOTE_ADDED' ? item.message : secondItem.message,
+                        message: item.type === 'NOTE_ADDED' ? item.message : secondItem?.message,
                         id: item.id,
                         date: item.date,
                     };
@@ -340,6 +339,7 @@ const Editorder = () => {
 
                 setNotesList(result);
                 setLines(orderDetails?.order?.lines);
+                console.log("orderDetails?.order?.lines: ", orderDetails?.order?.lines);
                 setIsGiftWrap(orderDetails?.order?.isGiftWrap);
                 setLoading(false);
                 setOrderStatus(orderDetails?.order?.status);
@@ -723,8 +723,12 @@ const Editorder = () => {
         try {
             setUpdateLoading(true);
             if (shippingPatner == '') {
+                Success('Order updated successfully');
+                router.push('/orders/orders');
                 setShippingError(true);
             } else if (trackingNumber == '') {
+                Success('Order updated successfully');
+                router.push('/orders/orders');
                 setTrackingError(true);
             } else {
                 updateShippingProvider();
@@ -1054,16 +1058,18 @@ const Editorder = () => {
                     acc[item.id] = 0;
                     return acc;
                 }, {});
+
                 setQuantities(initialQuantities);
                 setApplyAllProduct(item);
                 // setSelectedItem(selectedItem);
             }
         } else {
-            const filterByRefundData = res?.data?.order?.fulfillments?.find((item) => item.status != 'REFUNDED');
-            const transformedData = filterByRefundData?.lines?.reduce((acc, item) => {
-                acc[item.id] = item.quantity;
+            const filterByRefundData = res?.data?.order?.fulfillments?.find((items) => items.status != 'REFUNDED');
+            const transformedData = filterByRefundData?.lines?.reduce((acc, items) => {
+                acc[items.id] = items.quantity;
                 return acc;
             }, {});
+
 
             setQuantities(transformedData);
             setApplyAllProduct(item);
@@ -1855,7 +1861,7 @@ const Editorder = () => {
                                             lines?.map((item: any, index: any) => (
                                                 <tr className="panel align-top" key={index}>
                                                     <td className="flex ">
-                                                        <img src={item?.thumbnail?.url} height={50} width={50} alt="Selected" className="object-cover" />
+                                                        <img src={item?.variant?.product?.thumbnail?.url} height={50} width={50} alt="Selected" className="object-cover" />
                                                         <div>
                                                             <div className="pl-5">{item?.productName}</div>
                                                             <div className="pl-5">{item?.productSku}</div>
@@ -2154,10 +2160,10 @@ const Editorder = () => {
                                         </div>
                                     )}
                                     <div>
-                                        <select className="form-select mr-3">
+                                        {/* <select className="form-select mr-3">
                                             <option value="">Choose An Action</option>
                                             <option value="Email Invoice">Email Invoice</option>
-                                        </select>
+                                        </select> */}
                                     </div>
                                     <div className="mt-5 flex justify-between border-t border-gray-200 pb-2 ">
                                         <div className=" pt-3">
@@ -2713,7 +2719,9 @@ const Editorder = () => {
                                                 checked={applyAllProduct}
                                                 disabled={setTotalAmountCalc()}
                                                 onChange={(e) => {
+                                                    if (!setTotalAmountCalc()) {
                                                     handleQtyChange(e.target.checked);
+                                                    }
                                                 }}
                                                 className="form-checkbox border-white-light dark:border-white-dark ltr:mr-0 rtl:ml-0"
                                             />

@@ -258,8 +258,6 @@ const ProductAdd = () => {
     const { data: parentList, error: parentListError,refetch:catListRefetch } = useQuery(PARENT_CATEGORY_LIST, {
         variables: { channel: 'india-channel' },
     });
-    console.log("parentList: ", parentList);
-
 
     const { data: productSearch, refetch: productSearchRefetch } = useQuery(PRODUCT_BY_NAME);
 

@@ -312,15 +312,16 @@ const Orders = () => {
                     Country: data?.shippingAddress?.country?.country,
                     City: data?.shippingAddress?.city,
                     ProductsName: data?.lines?.map((data: any) => data?.productName).join(','),
-                    ProductPrice: data?.lines?.map((data: any) => data?.totalPrice?.gross?.amount).join(','),
                     ProductSKU: data?.lines?.map((data: any) => data?.productSku).join(','),
+                    ProductPrice: data?.lines?.map((data: any) => `${data?.totalPrice?.gross?.currency} ${addCommasToNumber(data?.totalPrice?.gross?.amount)}`).join(','),
                     DateOfPurchase: moment(data?.updatedAt).format('YYYY-MM-DD'),
                     PaymentStatus: data?.paymentStatus,
                     Currency: data?.total?.gross?.currency,
-                    PurchaseTotal: data?.total?.gross?.amount,
-                    Discount: data?.discounts?.length > 0 ? data?.discounts[0]?.value : 0,
-                    Shipping: data?.shippingPrice?.gross?.amount,
-                    GST: data?.total?.tax?.amount,
+                    Shipping: `${data?.shippingPrice?.gross?.currency} ${addCommasToNumber(data?.shippingPrice?.gross?.amount)}`,
+                    Discount: data?.discounts?.length > 0 ? `${data?.discounts[0]?.amount?.currency} ${addCommasToNumber(data?.discounts[0]?.amount?.amount)}` : 0,
+                    PurchaseTotal: `${data?.total?.gross?.currency} ${addCommasToNumber(data?.total?.gross?.amount)}`,
+                    Refund: `${data?.totalRefunded?.currency} ${addCommasToNumber(data?.totalRefunded?.amount)}`,
+                    GST: `${data?.total?.tax?.currency} ${addCommasToNumber(data?.total?.tax?.amount)}`,
                 };
 
                 return res;
@@ -340,7 +341,6 @@ const Orders = () => {
 
     return (
         <div>
-            <div className="panel mt-6"></div>
             <div>
                 <div className="panel mb-5 flex items-center justify-between gap-3 p-5 ">
                     <h3 className="text-lg font-semibold dark:text-white-light">Export Orders</h3>

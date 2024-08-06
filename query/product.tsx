@@ -16333,6 +16333,14 @@ export const EXPORT_LIST = gql`
                         reason
                         type
                         value
+                        amount {
+                            amount
+                            currency
+                        }
+                    }
+                    totalRefunded {
+                        amount
+                        currency
                     }
                 }
                 __typename

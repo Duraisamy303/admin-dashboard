@@ -339,7 +339,7 @@ const Reports = () => {
                 { accessor: 'shippingAmount', title: 'Shipping Amount' },
                 { accessor: 'productsTotalAmount', title: 'Total Amount' },
                 { accessor: 'codAmountList', title: 'COD Amount' },
-                { accessor: 'giftwrapAmountList', title: 'Gif Wrap Amount' },
+                { accessor: 'giftwrapAmountList', title: 'Gift Wrap Amount' },
             ];
             const tableData = salesBydateTable(response);
 

@@ -255,7 +255,11 @@ const ProductAdd = () => {
     const [addCategory] = useMutation(CREATE_CATEGORY);
     const [addTag] = useMutation(CREATE_TAG);
 
-    const { data: parentList, error: parentListError,refetch:catListRefetch } = useQuery(PARENT_CATEGORY_LIST, {
+    const {
+        data: parentList,
+        error: parentListError,
+        refetch: catListRefetch,
+    } = useQuery(PARENT_CATEGORY_LIST, {
         variables: { channel: 'india-channel' },
     });
 
@@ -346,8 +350,6 @@ const ProductAdd = () => {
 
     const [createCategoryLoader, setCreateCategoryLoader] = useState(false);
 
- 
-
     useEffect(() => {
         tags_list();
     }, [tagsList]);
@@ -385,8 +387,6 @@ const ProductAdd = () => {
             console.log('error: ', error);
         }
     };
-
-   
 
     const tags_list = async () => {
         try {
@@ -1042,7 +1042,7 @@ const ProductAdd = () => {
             };
 
             const { data } = await addCategory({ variables });
-            catListRefetch()
+            catListRefetch();
             setIsOpenCat(false);
             setCreateCategoryLoader(false);
             Success('Category created successfully');
@@ -2092,8 +2092,9 @@ const ProductAdd = () => {
                                                     <button
                                                         className="btn btn-primary"
                                                         onClick={() => {
-                                                            const urls = selectedImages?.map((item) => item.url);
-                                                            setImageUrl([...urls, ...imageUrl]);
+                                                            const urls = selectedImages?.map((item) => item?.url);
+                                                            const updatedUrls = urls.map((url) => url?.replace('.cdn', ''));
+                                                            setImageUrl([...updatedUrls, ...imageUrl]);
                                                             setModal2(false);
                                                             setSelectedImages([]);
                                                             setSelectedImg(null);

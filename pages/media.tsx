@@ -267,6 +267,28 @@ export default function Media() {
         }
     };
 
+    // const handleClickImage = async (item) => {
+    //     let url = `https://prade.blr1.digitaloceanspaces.com/${item.key}`;
+
+    //     const fileType = await getFileType(url);
+    //     const body = {
+    //         fileUrl: url,
+    //         title: '',
+    //         alt: '',
+    //         description: '',
+    //         caption: '',
+    //         fileType: fileType,
+    //     };
+    //     console.log('body: ', body);
+
+    //     const response = await addNewImages({
+    //         variables: {
+    //             input: body,
+    //         },
+    //     });
+    //     getMediaImage();
+    // };
+
     const handleClickImage = async (item) => {
         let url = `https://prade.blr1.digitaloceanspaces.com/${item.key}`;
 
@@ -595,7 +617,6 @@ export default function Media() {
                                             <div className="flex justify-end">
                                                 <button type="submit" className="btn btn-primary " onClick={() => updateMetaData()}>
                                                     {mediaUpdateLoading ? <IconLoader /> : 'Update'}
-
                                                 </button>
                                             </div>
                                         </div>

@@ -1346,7 +1346,8 @@ const ProductEdit = (props: any) => {
         {
             let arr = [...images];
             const urls = selectedImages?.map((item) => item.url);
-            urls.map(async (items) => {
+            const updatedUrls = urls.map(url => url?.replace(".cdn", ""));
+            updatedUrls.map(async (items) => {
                 const { data } = await createMedia({
                     variables: {
                         productId: id,

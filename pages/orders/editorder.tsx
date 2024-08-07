@@ -287,6 +287,7 @@ const Editorder = () => {
             if (orderDetails && orderDetails?.order) {
                 //Invoice
                 getRefundData();
+                console.log('orderDetails?.order: ', orderDetails?.order);
 
                 if (orderDetails?.order?.invoices?.length > 0) {
                     setInvoiceNumber(orderDetails?.order?.invoices[0]?.number?.slice(-4));
@@ -317,7 +318,13 @@ const Editorder = () => {
 
                 //Status
                 const filteredArray = orderDetails?.order?.events?.filter(
-                    (item: any) => item.type === 'CONFIRMED' || item.type === 'FULFILLMENT_FULFILLED_ITEMS' || item.type === 'NOTE_ADDED' || item.type === 'ORDER_MARKED_AS_PAID' || item.type === 'PAYMENT_REFUNDED' || item.type === 'FULFILLMENT_REFUNDED'
+                    (item: any) =>
+                        item.type === 'CONFIRMED' ||
+                        item.type === 'FULFILLMENT_FULFILLED_ITEMS' ||
+                        item.type === 'NOTE_ADDED' ||
+                        item.type === 'ORDER_MARKED_AS_PAID' ||
+                        item.type === 'PAYMENT_REFUNDED' ||
+                        item.type === 'FULFILLMENT_REFUNDED'
                 );
 
                 const result = filteredArray?.map((item: any) => {
@@ -339,7 +346,6 @@ const Editorder = () => {
 
                 setNotesList(result);
                 setLines(orderDetails?.order?.lines);
-                console.log("orderDetails?.order?.lines: ", orderDetails?.order?.lines);
                 setIsGiftWrap(orderDetails?.order?.isGiftWrap);
                 setLoading(false);
                 setOrderStatus(orderDetails?.order?.status);
@@ -1070,7 +1076,6 @@ const Editorder = () => {
                 return acc;
             }, {});
 
-
             setQuantities(transformedData);
             setApplyAllProduct(item);
             // setSelectedItem('Automatic Amount');
@@ -1121,7 +1126,7 @@ const Editorder = () => {
                 orderLines: [],
             };
             if (selectedItem == 'Manual Amount') {
-                if (manualAmount == null && manualAmount == "") {
+                if (manualAmount == null && manualAmount == '') {
                     Failure('Please enter valid amount');
                 } else {
                     input.amountToRefund = Number(manualAmount);
@@ -1150,7 +1155,7 @@ const Editorder = () => {
                 }
             } else {
                 if (maxRefundAmt < totalAmount) {
-                    Failure(`Not allwed to Refund Amount.${"\n"}Max Refund Amount is ${addCommasToNumber(maxRefundAmt)}`);
+                    Failure(`Not allwed to Refund Amount.${'\n'}Max Refund Amount is ${addCommasToNumber(maxRefundAmt)}`);
                 } else {
                     const filteredData = Object.entries(quantities)
                         .filter(([key, value]) => value !== 0) // Keep entries with value different from 0
@@ -1165,7 +1170,6 @@ const Editorder = () => {
                             fulfillmentLineId: key,
                             quantity: value,
                         }));
-
 
                         const response = await orderFullfilmentRefund({
                             variables: {
@@ -1840,18 +1844,12 @@ const Editorder = () => {
                                     <thead>
                                         <tr>
                                             <th>Item</th>
-
-                                            <th className="w-1">Cost</th>
                                             <th className="w-1">Qty</th>
+                                            <th className="w-1">Cost</th>
+                                            <th className="w-1">GST</th>
+
                                             <th>Total</th>
-                                            {formData?.billing?.state !== '' && formData?.shipping?.state == 'Tamil Nadu' ? (
-                                                <>
-                                                    <th>SGST</th>
-                                                    <th>CSGT</th>
-                                                </>
-                                            ) : (
-                                                <th>IGST</th>
-                                            )}
+
                                             {/* <th>Action</th> */}
                                             <th className="w-1"></th>
                                         </tr>
@@ -1867,34 +1865,26 @@ const Editorder = () => {
                                                             <div className="pl-5">{item?.productSku}</div>
                                                         </div>
                                                     </td>
-
-                                                    <td>{`${formatCurrency(item?.unitPrice?.gross?.currency)}${addCommasToNumber(item?.unitPrice?.gross?.amount)}`} </td>
-
-                                                    {/* <td>
-                                                            {formatCurrency(item?.unitPrice?.gross?.currency)}
-                                                            {item?.unitPrice?.gross?.amount}
-                                                        </td> */}
                                                     <td>
                                                         <div>{item?.quantity}</div>
                                                     </td>
-                                                    <td>
-                                                        <div> {`${formatCurrency(item?.totalPrice?.gross?.currency)}${addCommasToNumber(item?.totalPrice?.gross?.amount)}`}</div>{' '}
-                                                        {/* <div>{`${formatCurrency(item?.totalPrice?.gross?.currency)}${item?.totalPrice?.gross?.amount}`}</div> */}
-                                                    </td>
+                                                    {/* <td>{`${formatCurrency(item?.unitPrice?.gross?.currency)}${addCommasToNumber(item?.unitPrice?.gross?.amount)}`} </td> */}
+                                                    <td>{`${formatCurrency(item?.unitPrice?.net?.currency)}${addCommasToNumber(item?.unitPrice?.net?.amount)}`} </td>
+
                                                     {formData?.billing?.state !== '' && formData?.shipping?.state == 'Tamil Nadu' ? (
-                                                        <>
-                                                            <td>
-                                                                <div>{`${formatCurrency(orderData?.subtotal?.gross?.currency)}${addCommasToNumber(orderData?.subtotal?.tax?.amount / 2)}`}</div>
-                                                            </td>
-                                                            <td>
-                                                                <div>{`${formatCurrency(orderData?.subtotal?.gross?.currency)}${addCommasToNumber(orderData?.subtotal?.tax?.amount / 2)}`}</div>
-                                                            </td>
-                                                        </>
+                                                        <td style={{ width: '250px' }}>
+                                                            <div>{`SGST: ${formatCurrency(item?.unitPrice?.tax?.currency)}${addCommasToNumber(item?.unitPrice?.tax?.amount / 2)}`}</div>
+
+                                                            <div>{`CSGT: ${formatCurrency(item?.unitPrice?.tax?.currency)}${addCommasToNumber(item?.unitPrice?.tax?.amount / 2)}`}</div>
+                                                        </td>
                                                     ) : (
                                                         <td>
-                                                            <div>{`${formatCurrency(orderData?.subtotal?.gross?.currency)}${addCommasToNumber(orderData?.subtotal?.tax?.amount)}`}</div>
+                                                            <div>{`IGST: ${formatCurrency(item?.unitPrice?.tax?.currency)}${addCommasToNumber(item?.unitPrice?.tax?.amount)}`}</div>
                                                         </td>
                                                     )}
+                                                    <td>
+                                                        <div> {`${formatCurrency(item?.totalPrice?.gross?.currency)}${addCommasToNumber(item?.totalPrice?.gross?.amount)}`}</div>{' '}
+                                                    </td>
                                                     {/* <td>
                                                             <button
                                                                 type="button"
@@ -1921,9 +1911,50 @@ const Editorder = () => {
                                 <div className="mb-6 sm:mb-0"></div>
                                 <div className="sm:w-2/5">
                                     <div className="flex items-center justify-between">
-                                        <div>Subtotal</div>
+                                        <div>Items Subtotal</div>
                                         <div>{`${formatCurrency(orderData?.subtotal?.gross?.currency)}${addCommasToNumber(orderData?.subtotal?.gross?.amount)}`}</div>
                                     </div>
+                                    {orderDetails?.order?.giftCards?.length > 0 && (
+                                        <div className="mt-4 flex  justify-between">
+                                            <div>Coupon Amount</div>
+                                            <div>
+                                                <div className="ml-[94px] items-end">{`${formatCurrency(coupenAmt?.currency)}${addCommasToNumber(coupenAmt?.amount)}`}</div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {orderData?.discounts?.length > 0 && (
+                                        <div className="mt-4 flex items-center justify-between">
+                                            <div>Discount</div>
+                                            <div>
+                                                {orderData?.discounts[0]?.amount?.currency == 'USD' ? '$' : '₹'}
+                                                {addCommasToNumber(orderData?.discounts[0]?.amount?.amount)}
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="mt-4 flex  justify-between">
+                                        <div>{orderData?.paymentMethod?.name == 'Cash On delivery' ? 'COD Fee' : 'Shipping Rate'}</div>
+                                        <div>
+                                            {orderData?.paymentMethod?.name == 'Cash On delivery' ? (
+                                                <div className="ml-[94px] items-end">{`${formatCurrency(orderData?.shippingPrice?.gross?.currency)}350.00`}</div>
+                                            ) : (
+                                                <div className="ml-[94px] items-end">
+                                                    {`${formatCurrency(orderData?.shippingPrice?.gross?.currency)}${
+                                                        isGiftWrap
+                                                            ? `${addCommasToNumber(orderData?.shippingPrice?.gross?.amount) - 50}.00`
+                                                            : addCommasToNumber(orderData?.shippingPrice?.gross?.amount)
+                                                    }`}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {isGiftWrap && (
+                                        <div className="mt-4 flex  justify-between">
+                                            <div>Gift Wrap</div>
+                                            <div>
+                                                <div className="ml-[94px] items-end">{`₹50.00`}</div>
+                                            </div>
+                                        </div>
+                                    )}
                                     {formData?.billing?.state !== '' &&
                                         (formData?.shipping?.state == 'Tamil Nadu' ? (
                                             <>
@@ -1958,49 +1989,9 @@ const Editorder = () => {
                                             <div>Tax(%)</div>
                                             <div>{orderData?.total?.tax?.amount}</div>
                                         </div> */}
-                                    <div className="mt-4 flex  justify-between">
-                                        <div>{orderData?.paymentMethod?.name == 'Cash On delivery' ? 'COD Fee' : 'Shipping Rate'}</div>
-                                        <div>
-                                            {orderData?.paymentMethod?.name == 'Cash On delivery' ? (
-                                                <div className="ml-[94px] items-end">{`${formatCurrency(orderData?.shippingPrice?.gross?.currency)}350.00`}</div>
-                                            ) : (
-                                                <div className="ml-[94px] items-end">
-                                                    {`${formatCurrency(orderData?.shippingPrice?.gross?.currency)}${
-                                                        isGiftWrap
-                                                            ? `${addCommasToNumber(orderData?.shippingPrice?.gross?.amount) - 50}.00`
-                                                            : addCommasToNumber(orderData?.shippingPrice?.gross?.amount)
-                                                    }`}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {isGiftWrap && (
-                                        <div className="mt-4 flex  justify-between">
-                                            <div>Gift Wrap</div>
-                                            <div>
-                                                <div className="ml-[94px] items-end">{`₹50.00`}</div>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {orderDetails?.order?.giftCards?.length > 0 && (
-                                        <div className="mt-4 flex  justify-between">
-                                            <div>Coupon Amount</div>
-                                            <div>
-                                                <div className="ml-[94px] items-end">{`${formatCurrency(coupenAmt?.currency)}${addCommasToNumber(coupenAmt?.amount)}`}</div>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {orderData?.discounts?.length > 0 && (
-                                        <div className="mt-4 flex items-center justify-between">
-                                            <div>Discount</div>
-                                            <div>
-                                                {orderData?.discounts[0]?.amount?.currency == 'USD' ? '$' : '₹'}
-                                                {addCommasToNumber(orderData?.discounts[0]?.amount?.amount)}
-                                            </div>
-                                        </div>
-                                    )}
+
                                     <div className="mt-4 flex items-center justify-between font-semibold">
-                                        <div>Total</div>
+                                        <div>Order Total</div>
                                         <div>
                                             <div className="ml-[98px] justify-end">{`${formatCurrency(orderData?.total?.gross?.currency)}${addCommasToNumber(orderData?.total?.gross?.amount)}`}</div>
 
@@ -2011,20 +2002,22 @@ const Editorder = () => {
                                         </div>
                                     </div>
 
-                                    {orderData?.paymentStatus == 'FULLY_CHARGED' && (
-                                        <div className="mt-4 flex items-center justify-between font-semibold">
-                                            <div>Paid Amount</div>
-                                            <div>
-                                                <div className="ml-[90px] justify-end">{`${formatCurrency(orderData?.total?.gross?.currency)}${addCommasToNumber(
-                                                    orderData?.total?.gross?.amount
-                                                )}`}</div>
+                                    {orderData?.paymentStatus == 'PARTIALLY_REFUNDED' ||
+                                        orderData?.paymentStatus == 'FULLY_CHARGED' ||
+                                        (orderData?.paymentStatus == 'FULLY_REFUNDED' && (
+                                            <div className="border-1 mt-4 flex items-center justify-between border-t-black font-semibold">
+                                                <div>Paid Amount</div>
+                                                <div>
+                                                    <div className="ml-[90px] justify-end">{`${formatCurrency(orderData?.total?.gross?.currency)}${addCommasToNumber(
+                                                        orderData?.total?.gross?.amount
+                                                    )}`}</div>
 
-                                                {/* <div className=" text-sm">
+                                                    {/* <div className=" text-sm">
                                                {`${orderData?.total?.tax?.currency == 'USD' ? '$' : '₹'} ${roundOff(orderData?.total?.tax?.amount)} `}
                                             </div> */}
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        ))}
                                     {showRefundText() && (
                                         <>
                                             <div className="mt-4 flex items-center justify-between font-semibold">
@@ -2720,7 +2713,7 @@ const Editorder = () => {
                                                 disabled={setTotalAmountCalc()}
                                                 onChange={(e) => {
                                                     if (!setTotalAmountCalc()) {
-                                                    handleQtyChange(e.target.checked);
+                                                        handleQtyChange(e.target.checked);
                                                     }
                                                 }}
                                                 className="form-checkbox border-white-light dark:border-white-dark ltr:mr-0 rtl:ml-0"

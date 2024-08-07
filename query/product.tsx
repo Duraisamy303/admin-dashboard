@@ -8979,6 +8979,11 @@ export const GET_ORDER_DETAILS = gql`
                 currency
                 __typename
             }
+            tax {
+                amount
+                currency
+                __typename
+            }
             __typename
         }
         thumbnail {

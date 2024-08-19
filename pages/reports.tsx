@@ -1,7 +1,20 @@
 import React, { Fragment, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { Tab } from '@headlessui/react';
 import Link from 'next/link';
-import { Failure, downloadExlcel, filterByDates, formatCurrency, formatOptions, getCurrentDateTime, getDateRange, mintDateTime, useSetState } from '@/utils/functions';
+import {
+    Failure,
+    downloadExlcel,
+    filterByDates,
+    formatCurrency,
+    formatOptions,
+    generateColors,
+    generateLineChartLoopData,
+    getCurrentDateTime,
+    getDateRange,
+    mintDateTime,
+    useSetState,
+} from '@/utils/functions';
 import IconDownload from '@/components/Icon/IconDownload';
 import Tippy from '@tippyjs/react';
 import IconPencil from '@/components/Icon/IconPencil';
@@ -28,6 +41,9 @@ import Select from 'react-select';
 import moment from 'moment';
 import CommonLoader from './elements/commonLoader';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
+const ReactApexChart = dynamic(() => import('react-apexcharts'), {
+    ssr: false,
+});
 
 const tabClassNames = (selected: boolean) =>
     `${selected ? ' text-lg !border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''}
@@ -96,7 +112,6 @@ const Reports = () => {
     const { data: country } = useQuery(COUNTRY_LIST);
 
     const { data: parentList, error: parentListError, refetch: parentListRefetch } = useQuery(PARENT_CATEGORY_LIST);
-    console.log('parentList: ', parentList);
 
     const [state, setState] = useSetState({
         orderSubMenu: 'Sales by date',
@@ -133,6 +148,9 @@ const Reports = () => {
         customerEndDate: new Date(),
         customerTable: [],
         customerColumn: [],
+        orderChartData: {},
+        customerChartData: {},
+        analysisChartData: {},
     });
 
     const getBorderColor = (index) => {
@@ -342,8 +360,48 @@ const Reports = () => {
                 { accessor: 'giftwrapAmountList', title: 'Gift Wrap Amount' },
             ];
             const tableData = salesBydateTable(response);
-
-            setState({ tableData, salesByDate, tableColumn });
+            const orderChartData = {
+                series: [
+                    { name: 'Total Items Sold', type: 'line', data: tableData.map((item) => item?.totalItemsSold) },
+                    { name: 'Shipping Amount', type: 'line', data: tableData.map((item) => item?.shippingAmount) },
+                    { name: 'Refund Amount', type: 'line', data: tableData.map((item) => item?.refundAmount) },
+                    { name: 'No Of Orders', type: 'line', data: tableData.map((item) => item?.noOfOrders) },
+                    { name: 'Coupon Amount', type: 'line', data: tableData.map((item) => item?.couponAmount) },
+                    { name: 'Products Total Amount', type: 'line', data: tableData.map((item) => item?.productsTotalAmount) },
+                    { name: 'COD Amount List', type: 'line', data: tableData.map((item) => item?.codAmountList) },
+                    { name: 'Giftwrap Amount List', type: 'line', data: tableData.map((item) => item?.giftwrapAmountList) },
+                ],
+                options: {
+                    chart: {
+                        height: 350,
+                        type: 'line',
+                        zoom: { enabled: true },
+                    },
+                    colors: ['#FF0000', '#0000FF', '#FF00FF', '#00FFFF', '#FFFF00', '#FF8000', '#00FF00', '#8000FF'],
+                    stroke: { width: [2, 2, 2, 2, 2, 2, 2, 2] },
+                    markers: {
+                        size: 5,
+                        colors: ['white'],
+                        strokeColors: '#000000',
+                        strokeWidth: 2,
+                        hover: { size: 7 },
+                    },
+                    // title: { text: 'Metrics Over Time' },
+                    dataLabels: { enabled: false },
+                    xaxis: {
+                        categories: tableData.map((item) => item.date),
+                        tickPlacement: 'on',
+                        title: { text: 'Date' },
+                        labels: { rotate: -45, trim: true },
+                    },
+                    yaxis: {
+                        title: { text: 'Values' },
+                        min: 0,
+                    },
+                    tooltip: { shared: true },
+                },
+            };
+            setState({ orderChartData, tableData, salesByDate, tableColumn });
         } catch (error) {
             console.log('error: ', error);
         }
@@ -399,7 +457,42 @@ const Reports = () => {
             if (type == 'search' && state.productSearch == '') {
                 Failure('Please select product ');
             } else if (productId == '') {
-                setState({ tableData: [], tableColumn: [] });
+                const orderChartData = {
+                    series: [
+                        { name: 'Total Items Sold', type: 'line', data: [] },
+                        { name: 'Product Total Amount', type: 'line', data: [] },
+                    ],
+                    options: {
+                        chart: {
+                            height: 350,
+                            type: 'line',
+                            zoom: { enabled: true },
+                        },
+                        colors: ['#FF0000', '#0000FF'],
+                        stroke: { width: [2, 2] },
+                        markers: {
+                            size: 5,
+                            colors: ['white'],
+                            strokeColors: '#000000',
+                            strokeWidth: 2,
+                            hover: { size: 7 },
+                        },
+                        // title: { text: 'Metrics Over Time' },
+                        dataLabels: { enabled: false },
+                        xaxis: {
+                            categories: [],
+                            tickPlacement: 'on',
+                            title: { text: 'Date' },
+                            labels: { rotate: -45, trim: true },
+                        },
+                        yaxis: {
+                            title: { text: 'Amount' },
+                            min: 0,
+                        },
+                        tooltip: { shared: true },
+                    },
+                };
+                setState({ orderChartData, tableData: [], tableColumn: [] });
             } else {
                 let startDate: any, endDate: any;
 
@@ -448,7 +541,44 @@ const Reports = () => {
                     productsTotalAmount: response?.productsTotalAmount[index],
                     totalItemsSoldList: response?.totalItemsSoldList[index],
                 }));
-                setState({ tableData: table, tableColumn });
+
+                const orderChartData = {
+                    series: [
+                        { name: 'Total Items Sold', type: 'line', data: table.map((item) => item?.totalItemsSoldList) },
+                        { name: 'Product Total Amount', type: 'line', data: table.map((item) => item?.productsTotalAmount) },
+                    ],
+                    options: {
+                        chart: {
+                            height: 350,
+                            type: 'line',
+                            zoom: { enabled: true },
+                        },
+                        colors: ['#FF0000', '#0000FF'],
+                        stroke: { width: [2, 2, 2, 2, 2, 2, 2, 2] },
+                        markers: {
+                            size: 5,
+                            colors: ['white'],
+                            strokeColors: '#000000',
+                            strokeWidth: 2,
+                            hover: { size: 7 },
+                        },
+                        // title: { text: 'Metrics Over Time' },
+                        dataLabels: { enabled: false },
+                        xaxis: {
+                            categories: table.map((item) => item.dates),
+                            tickPlacement: 'on',
+                            title: { text: 'Date' },
+                            labels: { rotate: -45, trim: true },
+                        },
+                        yaxis: {
+                            title: { text: 'Values' },
+                            min: 0,
+                        },
+                        tooltip: { shared: true },
+                    },
+                };
+
+                setState({ orderChartData, tableData: table, tableColumn });
             }
         } catch (error) {
             console.log('error: ', error);
@@ -505,6 +635,58 @@ const Reports = () => {
                 };
 
                 const tableData = transformDataForTable(response);
+                const numSeries = tableData[0] ? Object.keys(tableData[0])?.filter((key) => key.startsWith('value'))?.length : 0;
+                const orderChartData = {
+                    series: generateLineChartLoopData(tableData),
+                    options: {
+                        chart: {
+                            height: 300,
+                            type: 'bar',
+                            zoom: {
+                                enabled: false,
+                            },
+                            toolbar: {
+                                show: false,
+                            },
+                        },
+                        colors: generateColors(numSeries),
+                        markers: {
+                            size: 5,
+                            colors: ['white'],
+                            strokeColors: '#000000',
+                            strokeWidth: 2,
+                            hover: { size: 7 },
+                        },
+                        dataLabels: {
+                            enabled: false,
+                        },
+                        stroke: {
+                            show: true,
+                            width: 1,
+                        },
+                        xaxis: {
+                            categories: tableData?.map((item) => item.date),
+                            axisBorder: {
+                                color: '#e0e6ed',
+                            },
+                        },
+                        yaxis: {
+                            opposite: false,
+                            reversed: false,
+                        },
+                        grid: {
+                            borderColor: '#e0e6ed',
+                        },
+                        plotOptions: {
+                            bar: {
+                                horizontal: false, // Set this to false for vertical bars
+                            },
+                        },
+                        fill: {
+                            opacity: 0.8,
+                        },
+                    },
+                };
 
                 const generateColumns = (outputDataLength, categoryid) => {
                     const columns = [{ accessor: 'date', title: 'Date' }];
@@ -516,9 +698,9 @@ const Reports = () => {
                 };
                 const columns = generateColumns(response.outputData.length, categoryid);
 
-                setState({ tableData: tableData?.reverse(), tableColumn: columns });
+                setState({ orderChartData, tableData: tableData?.reverse(), tableColumn: columns });
             } else {
-                setState({ tableData: [], tableColumn: [] });
+                setState({ orderChartData: {}, tableData: [], tableColumn: [] });
             }
         } catch (error) {
             console.log('error: ', error);
@@ -574,7 +756,43 @@ const Reports = () => {
                 { accessor: 'noOfCouponsUsed', title: 'Number of coupon used' },
             ];
 
-            setState({ tableData: table, tableColumn });
+            const orderChartData = {
+                series: [
+                    { name: 'Discount Amount', type: 'line', data: table.map((item) => item?.discountAmount) },
+                    { name: 'Number of coupon used', type: 'line', data: table.map((item) => item?.noOfCouponsUsed) },
+                ],
+                options: {
+                    chart: {
+                        height: 350,
+                        type: 'line',
+                        zoom: { enabled: true },
+                    },
+                    colors: ['#FF0000', '#0000FF'],
+                    stroke: { width: [2, 2, 2, 2, 2, 2, 2, 2] },
+                    markers: {
+                        size: 5,
+                        colors: ['white'],
+                        strokeColors: '#000000',
+                        strokeWidth: 2,
+                        hover: { size: 7 },
+                    },
+                    // title: { text: 'Metrics Over Time' },
+                    dataLabels: { enabled: false },
+                    xaxis: {
+                        categories: table.map((item) => item.date),
+                        tickPlacement: 'on',
+                        title: { text: 'Date' },
+                        labels: { rotate: -45, trim: true },
+                    },
+                    yaxis: {
+                        title: { text: 'Values' },
+                        min: 0,
+                    },
+                    tooltip: { shared: true },
+                },
+            };
+
+            setState({ orderChartData, tableData: table, tableColumn });
             // } else {
             //     setState({ tableData: [], tableColumn: [] });
             // }
@@ -654,10 +872,17 @@ const Reports = () => {
                 });
                 return row;
             });
+
             if (rows.length > 0) {
+                const categories = columns.filter((col) => col.accessor !== 'country').map((col) => col.title);
+                const seriesData = rows.map((row) => ({
+                    name: row.country,
+                    data: categories.map((_, index) => parseFloat(row[`value${index + 1}`]) || 0),
+                }));
+                setAnalysisChartData(categories, seriesData);
                 setState({ analysisTable: rows, analysisColumn: columns });
             } else {
-                setState({ analysisTable: [], analysisColumn: [] });
+                setState({ analysisTable: [], analysisChartData: {}, analysisColumn: [] });
             }
         } catch (error) {
             console.log('error: ', error);
@@ -738,9 +963,16 @@ const Reports = () => {
             });
 
             if (rows.length > 0) {
+                const categories = columns.filter((col) => col.accessor !== 'country').map((col) => col.title);
+
+                const seriesData = rows.map((row) => ({
+                    name: row.country,
+                    data: categories.map((_, index) => parseFloat(row[`value${index + 1}`]) || 0),
+                }));
+                setAnalysisChartData(categories, seriesData);
                 setState({ analysisTable: rows, analysisColumn: columns });
             } else {
-                setState({ analysisTable: [], analysisColumn: [] });
+                setState({ analysisTable: [], analysisChartData: {}, analysisColumn: [] });
             }
         } catch (error) {
             console.log('error: ', error);
@@ -830,9 +1062,17 @@ const Reports = () => {
             const rows = generateRows(response);
 
             if (rows.length > 0) {
+                const categories = rows.map((row) => row.countries);
+                const seriesData = columns
+                    .filter((col) => col.accessor !== 'countries')
+                    .map((col) => ({
+                        name: col.title,
+                        data: rows.map((row) => parseFloat(row[col.accessor]) || 0),
+                    }));
+                setAnalysisChartData(categories, seriesData);
                 setState({ analysisTable: rows, analysisColumn: columns });
             } else {
-                setState({ analysisTable: [], analysisColumn: [] });
+                setState({ analysisTable: [], analysisChartData: {}, analysisColumn: [] });
             }
         } catch (error) {
             console.log('error: ', error);
@@ -925,9 +1165,18 @@ const Reports = () => {
             const columns = generateColumns(response);
             const rows = generateRows(response);
             if (rows.length > 0) {
+                const categories = rows.map((row) => row.countries);
+                const seriesData = columns
+                    .filter((col) => col.accessor !== 'countries')
+                    .map((col) => ({
+                        name: col.title,
+                        data: rows.map((row) => parseFloat(row[col.accessor]) || 0),
+                    }));
+                setAnalysisChartData(categories, seriesData);
+
                 setState({ analysisTable: rows, analysisColumn: columns });
             } else {
-                setState({ analysisTable: [], analysisColumn: [] });
+                setState({ analysisTable: [], analysisChartData: {}, analysisColumn: [] });
             }
         } catch (error) {
             console.log('error: ', error);
@@ -1017,15 +1266,76 @@ const Reports = () => {
 
             // Generate columns and rows
             const columns = generateColumns(orderData);
+            console.log('columns: ', columns);
             const rows = generateRows(orderData);
+            console.log('rows: ', rows);
             if (rows.length > 0) {
+                const categories = rows.map((row) => row.productName);
+
+                // Generate series data for each country
+                const seriesData = columns
+                    .filter((col) => col.accessor !== 'productName') // Exclude the product name column
+                    .map((col) => ({
+                        name: col.title,
+                        data: rows.map((row) => parseFloat(row[col.accessor]) || 0),
+                    }));
+
+                setAnalysisChartData(categories, seriesData);
+
                 setState({ analysisTable: rows, analysisColumn: columns });
             } else {
-                setState({ analysisTable: [], analysisColumn: [] });
+                setState({ analysisTable: [], analysisChartData: {}, analysisColumn: [] });
             }
         } catch (error) {
             console.log('error: ', error);
         }
+    };
+
+    const setAnalysisChartData = (categories, seriesData) => {
+        const analysisChartData = {
+            series: seriesData,
+            options: {
+                colors: generateColors(seriesData?.length), // You can generate colors dynamically if you have more countries or series
+                plotOptions: {
+                    bar: {
+                        horizontal: false,
+                        endingShape: 'rounded',
+                    },
+                },
+                dataLabels: {
+                    enabled: false,
+                },
+                stroke: {
+                    show: true,
+                    width: 2,
+                    colors: ['transparent'],
+                },
+                xaxis: {
+                    categories: categories,
+                    title: {
+                        text: 'Dates',
+                    },
+                    labels: {
+                        rotate: -45,
+                        trim: true,
+                    },
+                },
+                yaxis: {
+                    title: {
+                        text: 'Values',
+                    },
+                    min: 0,
+                },
+                title: {
+                    text: '',
+                },
+                tooltip: {
+                    shared: true,
+                    intersect: false,
+                },
+            },
+        };
+        setState({ analysisChartData });
     };
 
     const getGuestList = async () => {
@@ -1402,6 +1712,7 @@ const Reports = () => {
                                     </div>
                                 </div>
                             )}
+
                             <div className="mt-5 grid w-full grid-cols-12 gap-3">
                                 <div className="col-span-3">
                                     {/* Sale by date data */}
@@ -1535,25 +1846,41 @@ const Reports = () => {
                                         {salesBydateLoading || salesByProductLoading || salesBySingleProductLoading || salesByCategoryLoading || salesByCouponLoading ? (
                                             <CommonLoader />
                                         ) : (
-                                            <DataTable
-                                                withBorder={true}
-                                                className="table-hover whitespace-nowrap"
-                                                records={state.tableData}
-                                                columns={state.tableColumn}
-                                                highlightOnHover
-                                                totalRecords={state.tableData?.length}
-                                                recordsPerPage={10}
-                                                page={null}
-                                                onPageChange={(p) => {}}
-                                                recordsPerPageOptions={[10, 20, 30]}
-                                                onRecordsPerPageChange={() => {}}
-                                                // sortStatus={}
-                                                // onSortStatusChange={setSortStatus}
-                                                // selectedRecords={[]}
-                                                // onSelectedRecordsChange={(selectedRecords) => {}}
-                                                minHeight={200}
-                                                paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
-                                            />
+                                            <>
+                                                {state.orderChartData?.series?.length > 0 && (
+                                                    <div className="panel mb-5">
+                                                        <div className="mb-5 flex items-center justify-between">
+                                                            <h5 className="text-lg font-semibold dark:text-white-light">{state.orderSubMenu}</h5>
+                                                        </div>
+                                                        <div className="mb-5">
+                                                            <ReactApexChart
+                                                                series={state.orderChartData.series}
+                                                                options={state.orderChartData.options}
+                                                                className="rounded-lg bg-white dark:bg-black"
+                                                                type={'line'}
+                                                                height={500}
+                                                                width={'100%'}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <DataTable
+                                                    withBorder={true}
+                                                    className="table-hover whitespace-nowrap"
+                                                    records={state.tableData}
+                                                    columns={state.tableColumn}
+                                                    highlightOnHover
+                                                    totalRecords={state.tableData?.length}
+                                                    recordsPerPage={10}
+                                                    page={null}
+                                                    onPageChange={(p) => {}}
+                                                    recordsPerPageOptions={[10, 20, 30]}
+                                                    onRecordsPerPageChange={() => {}}
+                                                    minHeight={200}
+                                                    paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
+                                                />
+                                            </>
                                         )}
                                     </div>
                                 </div>
@@ -1771,6 +2098,23 @@ const Reports = () => {
                                     </div>
                                 </div>
                                 <div className="col-span-9">
+                                    {state.analysisChartData.series?.length > 0 && (
+                                        <div className="panel mb-5">
+                                            <div className="mb-5 flex items-center justify-between">
+                                                <h5 className="text-lg font-semibold dark:text-white-light">{state.analysisTab}</h5>
+                                            </div>
+                                            <div className="mb-5 ">
+                                                <ReactApexChart
+                                                    series={state.analysisChartData.series}
+                                                    options={state.analysisChartData.options}
+                                                    className="rounded-lg bg-white dark:bg-black overflow-scroll"
+                                                    type="bar"
+                                                    height={500}
+                                                    width={'100%'}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="datatables">
                                         <DataTable
                                             className="table-hover whitespace-nowrap"

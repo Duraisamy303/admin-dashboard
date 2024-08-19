@@ -972,7 +972,7 @@ export const isValidImageUrl = (url) => {
     return imageExtensions.some((ext) => url?.toLowerCase().endsWith(ext));
 };
 
-export const getUniqueStates = (states:any) => {
+export const getUniqueStates = (states: any) => {
     const uniqueStates = [];
     const seen = new Set();
     states.forEach((state) => {
@@ -983,4 +983,27 @@ export const getUniqueStates = (states:any) => {
     });
 
     return uniqueStates;
+};
+
+export const generateLineChartLoopData = (data: any[]) => {
+    // Extract value keys
+    const valueKeys = Object.keys(data[0]).filter((key) => key.startsWith('value'));
+
+    return valueKeys.map((key, index) => ({
+        name: `Value ${index + 1}`,
+        type: 'line',
+        data: data.map((item) => item[key]),
+    }));
+};
+
+export const generateColors = (numColors: number): string[] => {
+    const colors = [];
+    const hueStep = 360 / numColors;
+
+    for (let i = 0; i < numColors; i++) {
+        const hue = Math.round(i * hueStep);
+        colors.push(`hsl(${hue}, 100%, 50%)`);
+    }
+
+    return colors;
 };

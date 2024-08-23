@@ -106,7 +106,6 @@ const Category = () => {
         try {
             setLoading(true);
             const res = await fetchImagesFromS3();
-            console.log('res: ', res);
             const filter = filterImages(res);
             setMediaImages(filter);
             setLoading(false);
@@ -202,7 +201,6 @@ const Category = () => {
                 caption: '',
                 fileType: fileType,
             };
-            console.log('body: ', body);
 
             const response = await addNewImages({
                 variables: {
@@ -242,7 +240,6 @@ const Category = () => {
         });
 
         const result = res.data?.fileByFileurl;
-        console.log('result: ', result);
         if (result) {
             setSelectedImg(result?.fileUrl);
             setAlt(result?.alt);

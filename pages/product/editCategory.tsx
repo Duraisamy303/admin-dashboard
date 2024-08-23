@@ -79,7 +79,6 @@ const EditCategory = () => {
     const [alt, setAlt] = useState('');
     const [caption, setCaption] = useState('');
     const [mediaData, setMediaData] = useState(null);
-    console.log('mediaData: ', mediaData);
     const [title, setTitle] = useState('');
     const [mediaDescription, setMediaDescription] = useState('');
 
@@ -282,7 +281,6 @@ const EditCategory = () => {
             });
             Success('File updated successfully');
 
-            console.log('res: ', res);
         } catch (error) {
             console.log('error: ', error);
         }

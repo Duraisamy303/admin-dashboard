@@ -387,6 +387,15 @@ const Sidebar = () => {
                                         </Link>
                                     </li>
 
+                                    <li className="nav-item">
+                                        <Link href="/dropShippingImport" className="group ">
+                                            <div className="flex items-center ">
+                                                <IconMenuChat className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Drop Shipping Import')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+
                                     {/* <li className="nav-item">
                                         <Link href="/shipping/shipping" className="group">
                                             <div className="flex items-center">

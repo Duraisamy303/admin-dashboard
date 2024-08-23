@@ -1266,9 +1266,7 @@ const Reports = () => {
 
             // Generate columns and rows
             const columns = generateColumns(orderData);
-            console.log('columns: ', columns);
             const rows = generateRows(orderData);
-            console.log('rows: ', rows);
             if (rows.length > 0) {
                 const categories = rows.map((row) => row.productName);
 

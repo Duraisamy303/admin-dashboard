@@ -191,7 +191,6 @@ export default function LowStock() {
 
     const handleCategoryChange = (e) => {
         setSelectedCategory(e.target.value);
-        console.log('e.target.value: ', e.target.value);
         fetchLowStockList({
             variables: {
                 channel: 'india-channel',
@@ -330,7 +329,6 @@ export default function LowStock() {
     };
 
     const duplicate = async (row: any) => {
-        console.log("row: ", row);
         try {
             setLoadingRows((prev) => ({ ...prev, [row.id]: true }));
             // productDetailsRefetch()
@@ -422,7 +420,6 @@ export default function LowStock() {
 
             if (data?.productCreate?.errors?.length > 0) {
                 Failure(data?.productCreate?.errors[0]?.message);
-                console.log('error: ', data?.productCreate?.errors[0]?.message);
                 
                 setLoadingRows((prev) => ({ ...prev, [row.id]: false }));
             } else {
@@ -467,7 +464,6 @@ export default function LowStock() {
                 
                 setLoadingRows((prev) => ({ ...prev, [row.id]: false }));
             } else {
-                console.log('productChannelListUpdate: ', data);
 
                 variantListUpdate(productId, row);
             }
@@ -516,7 +512,6 @@ export default function LowStock() {
                 setLoadingRows((prev) => ({ ...prev, [row.id]: false }));
             } else {
                 const resVariants = data?.productVariantBulkCreate?.productVariants;
-                console.log('resVariants: ', resVariants);
 
                 // const varArr = row?.variants.forEach((variant) => {
                 //     variant.channelListings.forEach((channelListing) => {
@@ -530,11 +525,9 @@ export default function LowStock() {
                         ...variant,
                         variantId: resVariants[index]?.id || null,
                     }));
-                    console.log('mergedVariants: ', mergedVariants);
                     const varArr = mergedVariants.forEach((variant) => {
                         variant.channelListings.forEach((channelListing) => {
                             if (channelListing.channel.name === 'India Channel') {
-                                console.log('channelListing: ', channelListing);
                                 variantChannelListUpdate(channelListing?.price?.amount, productId, variant.variantId, row);
                             }
                         });
@@ -593,7 +586,6 @@ export default function LowStock() {
             if (data?.updateMetadata?.errors?.length > 0) {
                 Failure(data?.updateMetadata?.errors[0]?.message);
                 deleteDuplicateProduct(productId,row);
-                console.log('error: ', data?.updateMetadata?.errors[0]?.message);
                 
                 setLoadingRows((prev) => ({ ...prev, [row.id]: false }));
             } else {

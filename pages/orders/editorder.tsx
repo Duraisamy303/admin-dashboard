@@ -287,7 +287,6 @@ const Editorder = () => {
             if (orderDetails && orderDetails?.order) {
                 //Invoice
                 getRefundData();
-                console.log('orderDetails?.order: ', orderDetails?.order);
 
                 if (orderDetails?.order?.invoices?.length > 0) {
                     setInvoiceNumber(orderDetails?.order?.invoices[0]?.number?.slice(-4));
@@ -1892,7 +1891,6 @@ const Editorder = () => {
                                                                     setProductQuantity(item?.quantity);
                                                                     setIsUpdateQty(true);
                                                                     setIsEdited(item);
-                                                                    console.log('item: ', item);
                                                                     // setState({ editProduct: item, isEditProduct: true, isOpenProductAdd: true, productQuantity: item?.quantity });
                                                                 }}
                                                             >

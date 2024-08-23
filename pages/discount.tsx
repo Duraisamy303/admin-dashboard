@@ -43,7 +43,6 @@ const Discount = () => {
             },
         },
         onCompleted: (data) => {
-            console.log('data: ', data);
             const products = data?.sales?.edges;
             const pageInfo = data?.sales?.pageInfo;
             setRecordsData(tableFormat(products));

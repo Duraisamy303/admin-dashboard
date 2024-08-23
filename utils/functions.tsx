@@ -912,7 +912,6 @@ export const addNewFile = async (e: any) => {
             },
         });
         await fetchImagesFromS3();
-        console.log('presignedPostData.url: ', presignedPostData.url);
         const urls = `https://prade.blr1.digitaloceanspaces.com/${presignedPostData?.fields?.key}`;
 
         return urls;
@@ -1006,4 +1005,22 @@ export const generateColors = (numColors: number): string[] => {
     }
 
     return colors;
+};
+
+export const generateTimeOptions = () => {
+    const options = [];
+    for (let hour = 0; hour < 24; hour++) {
+        for (let minute = 0; minute < 60; minute += 15) {
+            const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+            options.push(timeString);
+        }
+    }
+    options.push('24:00'); // Add the final option
+    return dropdown(options);
+};
+
+export const formatTime = (time) => {
+    const formattedTime = `${time.slice(0, 5)}`;
+    const dropdownFormat={value:formattedTime,label:formattedTime}
+    return dropdownFormat;
 };

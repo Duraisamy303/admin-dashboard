@@ -89,7 +89,6 @@ const EditCoupon = () => {
                 includeVariants: false,
             });
             const data = res?.data?.sale;
-            console.log('data: ', data);
             const endDate = data?.endDate;
             if (endDate) {
                 setState({ isEndDate: true, endDate: formatDateTimeLocal(endDate) });

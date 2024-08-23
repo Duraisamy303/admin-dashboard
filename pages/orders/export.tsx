@@ -163,7 +163,6 @@ const Orders = () => {
                 field: 'NUMBER',
             },
         });
-        console.log('res: ', res);
 
         SetFinalDate(res?.data?.orders?.edges);
     };
@@ -301,7 +300,6 @@ const Orders = () => {
 
             const excelData = allData?.map((item: any) => {
                 const data = item?.node;
-                console.log('data: ', data);
                 const res = {
                     OrderNumber: orderNumber(item),
                     CustomerName: ` ${data?.user?.firstName}${data?.user?.lastName}`,

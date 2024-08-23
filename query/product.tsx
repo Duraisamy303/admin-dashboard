@@ -18519,3 +18519,57 @@ export const GET_MEDIA_IMAGE = gql`
         }
     }
 `;
+
+export const GET_DROP_SHIPPING = gql`
+    query GetSheetSyncDetails {
+        googlesheet(first: 10) {
+            edges {
+                node {
+                    id
+                    firstRunTime
+                    secondRunTime
+                    sheetUrl
+                    thirdRunTime
+                }
+            }
+        }
+    }
+`;
+
+export const UPDATE_DROP_SHIPPING = gql`
+    mutation GoogleSheetScheduleUpdate($id: ID!, $input: GoogleSheetScheduleInput!) {
+        googleSheetScheduleUpdate(input: $input, id: $id) {
+            googleSheetSchedule {
+                id
+                sheetUrl
+                firstRunTime
+                secondRunTime
+                thirdRunTime
+            }
+            errors {
+                field
+                message
+                code
+            }
+        }
+    }
+`;
+
+export const IMPORT_DROP_SHIPPING = gql`
+    mutation GSheetImport($id: ID!) {
+        googlesheetimportnow(id: $id) {
+            googleSheetSchedule {
+                id
+                sheetUrl
+                firstRunTime
+                secondRunTime
+                thirdRunTime
+            }
+            errors {
+                field
+                message
+                code
+            }
+        }
+    }
+`;

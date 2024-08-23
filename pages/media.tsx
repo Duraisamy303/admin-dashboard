@@ -91,11 +91,8 @@ export default function Media() {
 
     const assignToserver = async (data) => {
         try {
-            console.log('data: ', data);
             // Filter out the 26th item (index 25)
             const filteredData = data.filter((_, index) => index !== 26);
-            console.log('filteredData: ', filteredData);
-
             // Loop through the filtered data
             const loop = filteredData.map(async (item) => {
                 const fileType = await getFileType(item.url);
@@ -109,8 +106,6 @@ export default function Media() {
                     caption: '',
                     fileType: fileType,
                 };
-                console.log('body: ', body);
-
                 const response = await addNewImages({
                     variables: {
                         input: body,
@@ -129,7 +124,6 @@ export default function Media() {
         try {
             setState({ loading: true });
             const res = await addNewFile(e);
-            console.log('res: ', res);
             const fileType = await getFileType(res);
             const body = {
                 fileUrl: res,
@@ -139,7 +133,6 @@ export default function Media() {
                 caption: '',
                 fileType: fileType,
             };
-            console.log('body: ', body);
 
             const response = await addNewImages({
                 variables: {
@@ -297,7 +290,6 @@ export default function Media() {
         });
 
         const result = res.data?.fileByFileurl;
-        console.log('result: ', result);
         if (result) {
             setState({
                 selectImg: result?.fileUrl,
@@ -313,8 +305,6 @@ export default function Media() {
     const updateMetaData = async () => {
         try {
             const fileType = await getFileType(state.selectImg);
-            console.log('fileType: ', fileType);
-
             const res = await updateImages({
                 variables: {
                     file_url: state.selectImg,
@@ -330,7 +320,6 @@ export default function Media() {
             });
             Success('File updated successfully');
 
-            console.log('res: ', res);
         } catch (error) {
             console.log('error: ', error);
         }

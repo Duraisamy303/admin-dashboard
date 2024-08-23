@@ -339,7 +339,6 @@ const ProductAdd = () => {
     const [selectedCrosssell, setSelectedCrosssell] = useState([]);
     const [mediaImages, setMediaImages] = useState([]);
     const [selectedImg, setSelectedImg] = useState(null);
-    console.log('selectedImg: ', selectedImg);
     const [alt, setAlt] = useState('');
     const [caption, setCaption] = useState('');
     const [mediaData, setMediaData] = useState(null);
@@ -700,11 +699,8 @@ const ProductAdd = () => {
 
             // Validation
             const errors = validateMainFields(JSON.parse(descr));
-            console.log('errors: ', errors);
             const variantErrors = validateVariants();
-            console.log('variantErrors: ', variantErrors);
             const attributeErrors: any = validateAttributes();
-            console.log('attributeErrors: ', attributeErrors);
 
             // Set errors
             setProductNameErrMsg(errors.productName);
@@ -984,7 +980,6 @@ const ProductAdd = () => {
                 setCreateLoading(false);
                 Failure(data?.updateMetadata?.errors[0]?.message);
                 deleteProduct(productId);
-                console.log('error: ', data?.updateMetadata?.errors[0]?.message);
             } else {
                 // if (selectedTag?.length > 0) {
                 //     assignsTagToProduct(productId);
@@ -1231,7 +1226,6 @@ const ProductAdd = () => {
                 caption: '',
                 fileType: fileType,
             };
-            console.log('body: ', body);
 
             const response = await addNewImages({
                 variables: {
@@ -1254,7 +1248,6 @@ const ProductAdd = () => {
     const updateMediaMetaData = async () => {
         try {
             const fileType = await getFileType(selectedImg);
-            console.log('fileType: ', fileType);
 
             const res = await updateImages({
                 variables: {
@@ -1271,7 +1264,6 @@ const ProductAdd = () => {
             });
             Success('File updated successfully');
 
-            console.log('res: ', res);
         } catch (error) {
             console.log('error: ', error);
         }

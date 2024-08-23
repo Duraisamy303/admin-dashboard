@@ -20,7 +20,6 @@ const Index = () => {
     });
 
     const [recordsData, setRecordsData] = useState([]);
-    console.log("recordsData: ", recordsData);
     const [startCursor, setStartCursor] = useState(null);
     const [endCursor, setEndCursor] = useState(null);
     const [hasNextPage, setHasNextPage] = useState(false);

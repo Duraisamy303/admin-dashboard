@@ -565,8 +565,6 @@ const Index = () => {
 
             if (data?.productCreate?.errors?.length > 0) {
                 Failure(data?.productCreate?.errors[0]?.message);
-                console.log('error: ', data?.productCreate?.errors[0]?.message);
-
                 setLoadingRows((prev) => ({ ...prev, [row.id]: false }));
             } else {
                 const productId = data?.productCreate?.product?.id;

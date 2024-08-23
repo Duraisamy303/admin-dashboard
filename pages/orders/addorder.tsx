@@ -868,7 +868,6 @@ const AddOrder = () => {
                                                 value={selectedCustomer}
                                                 onChange={(val) => {
                                                     const selectedCustomerId: any = val.target.value;
-                                                    console.log('selectedCustomerId: ', selectedCustomerId);
                                                     setSelectedCustomer(selectedCustomerId);
                                                     addressRefetch();
                                                     setShowBillingInputs(true);
@@ -1101,7 +1100,6 @@ const AddOrder = () => {
                                                             name="billing.state"
                                                             value={formData.billing.state}
                                                             onChange={(e) => {
-                                                                console.log('e: ', e.target.value);
                                                                 handleChange(e);
                                                             }}
                                                         >
@@ -1512,7 +1510,6 @@ const AddOrder = () => {
                                                             type="button"
                                                             onClick={() => {
                                                                 setSelectedProductId(item.id);
-                                                                console.log('item: ', item);
                                                                 setQuantity(item.quantity);
                                                                 setAddProductOpen(true);
                                                                 setProductIsEdit(true);

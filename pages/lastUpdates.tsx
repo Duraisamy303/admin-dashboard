@@ -60,7 +60,6 @@ const LastUpdates = () => {
             const res = await lastUpdateData();
 
             const update = res?.data?.stockUpdate;
-            console.log('update: ', update);
             const table = update?.dates?.map((date, index) => ({
                 date,
                 'product Name': update.productNameList[index],

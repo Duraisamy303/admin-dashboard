@@ -185,7 +185,6 @@ const OrderQuickEdit = (props: any) => {
     };
 
     const setFinalData = (data: any) => {
-        console.log('data: ', data);
         setOrderData(data?.order);
         setOrderStatus(data?.order?.status);
         setPaymentStatus(data?.order?.paymentStatus);
@@ -284,7 +283,6 @@ const OrderQuickEdit = (props: any) => {
                 if (res?.data?.orderFulfill?.errors?.length > 0) {
                     setIsOrderOpen(false);
                 } else {
-                    console.log('else: ');
                     setOrderStatus('FULFILLED');
                     setIsOrderOpen(false);
                     // setOrderStatus(orderS);
@@ -898,7 +896,6 @@ const OrderQuickEdit = (props: any) => {
                     setPaySlipDateError('');
                     setIsOpenPayslip(false);
                     getOrderData();
-                    console.log('slipNumber: ', slipNumber);
                 }}
                 renderComponent={() => (
                     <div className="p-5 pb-7">

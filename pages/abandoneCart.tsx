@@ -33,7 +33,6 @@ const AbandonedCarts = () => {
         },
         onCompleted: (data) => {
             const products = data?.abandonedCarts?.edges;
-            console.log('products: ', products);
             const pageInfo = data?.abandonedCarts?.pageInfo;
             setRecordsData(tableFormat(products));
             setStartCursor(pageInfo?.startCursor || null);

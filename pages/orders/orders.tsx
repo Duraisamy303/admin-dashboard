@@ -141,7 +141,6 @@ const AbandonedCarts = () => {
     };
 
     const tableFormat = (products: any) => {
-        console.log('products: ', products);
         return products.map((item: any) => ({
             ...item.node,
             order: orderNumber(item),
@@ -243,7 +242,6 @@ const AbandonedCarts = () => {
     };
 
     const handleChangeDuration = (dates) => {
-        console.log('dates: ', dates);
         setDuration(dates);
         if (dates !== 'custom') {
             const response = handleExportByChange(dates);
@@ -271,7 +269,6 @@ const AbandonedCarts = () => {
                 lte: e,
             };
             setInterval(response);
-            console.log('response: ', response);
 
             fetchLowStockList({
                 variables: {

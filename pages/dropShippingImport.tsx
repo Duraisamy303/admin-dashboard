@@ -158,6 +158,7 @@ const AbandonedCarts = () => {
                             columns={[
                                 {
                                     accessor: 'ID',
+                                    title:"ID",
                                     sortable: true,
                                     width: 300,
                                     render: (row) => (

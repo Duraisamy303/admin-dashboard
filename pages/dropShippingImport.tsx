@@ -5,16 +5,21 @@ import 'tippy.js/dist/tippy.css';
 import moment from 'moment';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import CommonLoader from './elements/commonLoader';
-import { ABANDONT_CART_LIST, GET_DROP_SHIPPING, IMPORT_DROP_SHIPPING, UPDATE_DROP_SHIPPING } from '@/query/product';
+import { ABANDONT_CART_LIST, CREATE_DROP_SHIPPING, DELETE_DROP_SHIPPING, GET_DROP_SHIPPING, IMPORT_DROP_SHIPPING, UPDATE_DROP_SHIPPING } from '@/query/product';
 import IconArrowBackward from '@/components/Icon/IconArrowBackward';
 import IconArrowForward from '@/components/Icon/IconArrowForward';
 import { useRouter } from 'next/router';
 import Modal from '@/components/Modal';
 import Select from 'react-select';
-import { Failure, Success, formatTime, generateTimeOptions } from '@/utils/functions';
+import { Failure, Success, formatTime, generateTimeOptions, isValidUrl, showDeleteAlert } from '@/utils/functions';
 import IconLoader from '@/components/Icon/IconLoader';
+import { IconImport } from '@/components/Icon/IconImport';
+import IconEdit from '@/components/Icon/IconEdit';
+import IconTrash from '@/components/Icon/IconTrash';
+import Swal from 'sweetalert2';
+import IconRefresh from '@/components/Icon/IconRefresh';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 const AbandonedCarts = () => {
     const router = useRouter();
@@ -31,22 +36,26 @@ const AbandonedCarts = () => {
     const [secondRunTime, setSecondRunTime] = useState(null);
     const [thirdRunTime, setThirdRunTime] = useState(null);
     const [editId, setEditId] = useState(null);
+    const [loadingRowId, setLoadingRowId] = useState(null);
 
+    const [creates, { loading: createLoading }] = useMutation(CREATE_DROP_SHIPPING);
     const [updates, { loading: updateLoading }] = useMutation(UPDATE_DROP_SHIPPING);
+    const [deletes, { loading: deleteLoading }] = useMutation(DELETE_DROP_SHIPPING);
+
     const [imports, { loading: importLoading }] = useMutation(IMPORT_DROP_SHIPPING);
 
     const { loading: getLoading, refetch: fetchLowStockList } = useQuery(GET_DROP_SHIPPING, {
+        variables: {
+            channel: 'india-channel',
+            first: PAGE_SIZE,
+            after: null,
+        },
         onCompleted: (data) => {
+            console.log('data: ', data);
+
             const products = data?.googlesheet?.edges;
             setRecordsData(tableFormat(products));
-            const res = generateTimeOptions();
-        },
-    });
-
-    const [fetchNextPage] = useLazyQuery(ABANDONT_CART_LIST, {
-        onCompleted: (data) => {
-            const products = data?.abandonedCarts?.edges;
-            const pageInfo = data?.abandonedCarts?.pageInfo;
+            const pageInfo = data?.googlesheet?.pageInfo;
             setRecordsData(tableFormat(products));
             setStartCursor(pageInfo?.startCursor || null);
             setEndCursor(pageInfo?.endCursor || null);
@@ -55,10 +64,22 @@ const AbandonedCarts = () => {
         },
     });
 
-    const [fetchPreviousPage] = useLazyQuery(ABANDONT_CART_LIST, {
+    const [fetchNextPage] = useLazyQuery(GET_DROP_SHIPPING, {
         onCompleted: (data) => {
-            const products = data?.abandonedCarts?.edges || [];
-            const pageInfo = data?.abandonedCarts?.pageInfo;
+            const products = data?.googlesheet?.edges;
+            const pageInfo = data?.googlesheet?.pageInfo;
+            setRecordsData(tableFormat(products));
+            setStartCursor(pageInfo?.startCursor || null);
+            setEndCursor(pageInfo?.endCursor || null);
+            setHasNextPage(pageInfo?.hasNextPage || false);
+            setHasPreviousPage(pageInfo?.hasPreviousPage || false);
+        },
+    });
+
+    const [fetchPreviousPage] = useLazyQuery(GET_DROP_SHIPPING, {
+        onCompleted: (data) => {
+            const products = data?.googlesheet?.edges || [];
+            const pageInfo = data?.googlesheet?.pageInfo;
             setRecordsData(tableFormat(products));
             setStartCursor(pageInfo?.startCursor || null);
             setEndCursor(pageInfo?.endCursor || null);
@@ -68,6 +89,7 @@ const AbandonedCarts = () => {
     });
 
     const handleNextPage = () => {
+        console.log('handleNextPage: ');
         fetchNextPage({
             variables: {
                 channel: 'india-channel',
@@ -88,16 +110,32 @@ const AbandonedCarts = () => {
     };
 
     const updateData = (row) => {
-        setFirstRunTime(formatTime(row.firstRunTime));
-        setSecondRunTime(formatTime(row.secondRunTime));
-        setThirdRunTime(formatTime(row.thirdRunTime));
+        if (row.firstRunTime) {
+            setFirstRunTime(formatTime(row.firstRunTime));
+        }
+        if (row.secondRunTime) {
+            setSecondRunTime(formatTime(row.secondRunTime));
+        }
+        if (row.thirdRunTime) {
+            setThirdRunTime(formatTime(row.thirdRunTime));
+        }
         setSheetUrl(row.ID);
         setEditId(row.id);
         setIsEditOpen(true);
     };
 
+    const createData = (isOpen: boolean) => {
+        setFirstRunTime(null);
+        setSecondRunTime(null);
+        setThirdRunTime(null);
+        setSheetUrl(null);
+        setEditId(null);
+        setIsEditOpen(isOpen);
+    };
+
     const importData = async (row) => {
         try {
+            setLoadingRowId(row.id);
             const data = await imports({
                 variables: { id: row.id },
             });
@@ -111,6 +149,8 @@ const AbandonedCarts = () => {
         try {
             if (sheetUrl == null || sheetUrl == '') {
                 Failure('URL is required');
+            } else if (!isValidUrl(sheetUrl)) {
+                Failure('Enter valid URL');
             } else {
                 const data = await updates({
                     variables: {
@@ -132,9 +172,41 @@ const AbandonedCarts = () => {
         }
     };
 
+    const createShipping = async () => {
+        try {
+            if (sheetUrl == null || sheetUrl == '') {
+                Failure('URL is required');
+            } else if (!isValidUrl(sheetUrl)) {
+                Failure('Enter valid URL');
+            } else {
+                const data = await creates({
+                    variables: {
+                        input: {
+                            sheetUrl,
+                            firstRunTime: firstRunTime ? firstRunTime?.value : null,
+                            secondRunTime: secondRunTime ? secondRunTime?.value : null,
+                            thirdRunTime: thirdRunTime ? thirdRunTime?.value : null,
+                        },
+                    },
+                });
+                setIsEditOpen(false);
+                await refresh();
+                Success('Created Successfully');
+            }
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
     const refresh = async () => {
         try {
-            const { data } = await fetchLowStockList();
+            const { data } = await fetchLowStockList({
+                variables: {
+                    channel: 'india-channel',
+                    first: PAGE_SIZE,
+                    after: endCursor,
+                },
+            });
             const products = data?.googlesheet?.edges;
             setRecordsData(tableFormat(products));
         } catch (error) {
@@ -142,10 +214,30 @@ const AbandonedCarts = () => {
         }
     };
 
+    const deleteShipping = (record: any) => {
+        showDeleteAlert(
+            async () => {
+                const { data }: any = deletes({
+                    variables: {
+                        id: record.id,
+                    },
+                });
+                Swal.fire('Deleted!', 'Your Product has been deleted.', 'success');
+                await refresh();
+            },
+            () => {
+                Swal.fire('Cancelled', 'Your Product List is safe :)', 'error');
+            }
+        );
+    };
+
     return (
         <div>
-            <div className="panel mb-5 flex flex-col gap-5 md:flex-row md:items-center">
+            <div className="panel mb-5 flex flex-col justify-between gap-5 md:flex-row md:items-center">
                 <h5 className="text-lg font-semibold dark:text-white-light">Drop Shipping Import</h5>
+                <button type="button" className="btn btn-primary" onClick={() => createData(true)}>
+                    Create
+                </button>
             </div>
             <div className="panel mt-6">
                 {getLoading ? (
@@ -158,7 +250,7 @@ const AbandonedCarts = () => {
                             columns={[
                                 {
                                     accessor: 'ID',
-                                    title:"ID",
+                                    title: 'ID',
                                     sortable: true,
                                     width: 300,
                                     render: (row) => (
@@ -184,11 +276,19 @@ const AbandonedCarts = () => {
                                     render: (row: any) => (
                                         <>
                                             <div className=" flex w-max  gap-4">
-                                                <button type="button" className="btn btn-primary" onClick={() => importData(row)}>
-                                                    {importLoading ? <IconLoader className="me-3 h-4 w-4 shrink-0 animate-spin" /> : 'Import'}
+                                                <button className="flex hover:text-info" onClick={() => importData(row)}>
+                                                    {loadingRowId === row.id && importLoading ? (
+                                                        <IconLoader className="me-2 h-6 w-6 shrink-0 animate-spin" />
+                                                    ) : (
+                                                        <IconRefresh className="me-1 h-6 w-6" />
+                                                    )}
                                                 </button>
-                                                <button type="button" className="btn btn-primary" onClick={() => updateData(row)}>
-                                                    Edit
+
+                                                <button type="button" className="flex hover:text-info" onClick={() => updateData(row)}>
+                                                    <IconEdit />
+                                                </button>
+                                                <button type="button" className="flex hover:text-info" onClick={() => deleteShipping(row)}>
+                                                    <IconTrash />
                                                 </button>
                                             </div>
                                         </>
@@ -221,10 +321,10 @@ const AbandonedCarts = () => {
                 )}
             </div>
             <Modal
-                addHeader={'Update Shipping Import'}
+                addHeader={editId ? 'Update Shipping Import' : 'Add Shipping Import'}
                 open={isEditOpen}
                 isFullWidth
-                close={() => setIsEditOpen(false)}
+                close={() => createData(false)}
                 renderComponent={() => (
                     <div className="scroll-auto p-10 pb-7">
                         <div className=" flex justify-between">
@@ -271,11 +371,11 @@ const AbandonedCarts = () => {
                         />
 
                         <div className="mt-8 flex items-center justify-end">
-                            <button type="button" className="btn btn-outline-danger gap-2" onClick={() => setIsEditOpen(false)}>
+                            <button type="button" className="btn btn-outline-danger gap-2" onClick={() => createData(false)}>
                                 Cancel
                             </button>
-                            <button type="button" className="btn btn-primary ltr:ml-4 rtl:mr-4" onClick={() => updateRow()}>
-                                {updateLoading ? <IconLoader className="me-3 h-4 w-4 shrink-0 animate-spin" /> : 'Submit'}
+                            <button type="button" className="btn btn-primary ltr:ml-4 rtl:mr-4" onClick={() => (editId ? updateRow() : createShipping())}>
+                                {createLoading || updateLoading ? <IconLoader className="me-3 h-4 w-4 shrink-0 animate-spin" /> : 'Submit'}
                             </button>
                         </div>
                     </div>

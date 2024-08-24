@@ -1024,3 +1024,9 @@ export const formatTime = (time) => {
     const dropdownFormat={value:formattedTime,label:formattedTime}
     return dropdownFormat;
 };
+
+
+export const isValidUrl = (url) => {
+    const regex = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(\/[^\s]*)?$/i;
+    return regex.test(url);
+  };

@@ -18521,8 +18521,8 @@ export const GET_MEDIA_IMAGE = gql`
 `;
 
 export const GET_DROP_SHIPPING = gql`
-    query GetSheetSyncDetails {
-        googlesheet(first: 10) {
+    query GetSheetSyncDetails($first: Int, $last: Int, $after: String, $before: String) {
+        googlesheet(first: $first, last: $last, after: $after, before: $before) {
             edges {
                 node {
                     id
@@ -18531,6 +18531,43 @@ export const GET_DROP_SHIPPING = gql`
                     sheetUrl
                     thirdRunTime
                 }
+            }
+            pageInfo {
+                endCursor
+                hasNextPage
+                hasPreviousPage
+                startCursor
+            }
+            totalCount
+        }
+    }
+`;
+
+export const CREATE_DROP_SHIPPING = gql`
+    mutation GoogleSheetScheduleCreate($input: GoogleSheetScheduleInput!) {
+        googleSheetScheduleCreate(input: $input) {
+            googleSheetSchedule {
+                id
+                sheetUrl
+                firstRunTime
+                secondRunTime
+                thirdRunTime
+            }
+            errors {
+                field
+                message
+                code
+            }
+        }
+    }
+`;
+
+export const DELETE_DROP_SHIPPING = gql`
+    mutation GsheetDelete($id: ID!) {
+        googleSheetScheduleDelete(id: $id) {
+            errors {
+                field
+                message
             }
         }
     }

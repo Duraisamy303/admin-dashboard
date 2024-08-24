@@ -367,7 +367,7 @@ const Sidebar = () => {
                                                             <span className="flex items-center">{t('Out Of Stocks')}</span>
                                                         </div>
                                                         <div className=" h-8 w-8 ">
-                                                            <span className="flex items-center justify-center rounded-full bg-red-500 p-2 text-xs font-bold text-white">{lowStockCount}</span>
+                                                            <span className="flex items-center w-full justify-center rounded-full bg-red-500 p-2 text-xs font-bold text-white">{lowStockCount}</span>
                                                         </div>
                                                     </Link>
                                                 </li>
@@ -377,7 +377,7 @@ const Sidebar = () => {
                                                             <span className="flex items-center">{t('Last updated details')}</span>
                                                         </div>
                                                         <div className=" h-8 w-8">
-                                                            <span className="flex items-center justify-center p-2 rounded-full bg-red-500 text-xs font-bold text-white">{lastUpdateCount}</span>
+                                                            <span className="flex items-center justify-center p-2 w-full rounded-full bg-red-500 text-xs font-bold text-white">{lastUpdateCount}</span>
                                                         </div>
                                                     </Link>
                                                 </li>

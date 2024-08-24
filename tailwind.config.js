@@ -17,8 +17,8 @@ module.exports = {
         extend: {
             colors: {
                 primary: {
-                    DEFAULT: '#4361ee',
-                    light: '#eaf1ff',
+                    DEFAULT: '#c2882b',
+                    light: '#c2882b30',
                     'dark-light': 'rgba(67,97,238,.15)',
                 },
                 secondary: {
@@ -60,6 +60,11 @@ module.exports = {
                     DEFAULT: '#ffffff',
                     light: '#e0e6ed',
                     dark: '#888ea8',
+                },
+                customGold: {
+                    DEFAULT: '#c2882b',
+                    light: '#c2882b30',
+                   
                 },
             },
             fontFamily: {

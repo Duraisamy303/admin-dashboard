@@ -491,11 +491,11 @@ const Index = () => {
 
     const CreateDuplicateProduct = async (row: any) => {
         try {
-            let collectionId: any = [];
+            // let collectionId: any = [];
 
-            if (row?.collections?.length > 0) {
-                collectionId = row?.collections.map((item: any) => item.id);
-            }
+            // if (row?.collections?.length > 0) {
+            //     collectionId = row?.collections.map((item: any) => item.id);
+            // }
             let tagId: any[] = [];
             if (row?.tags?.length > 0) {
                 tagId = row?.tags?.map((item: any) => item.id);
@@ -540,7 +540,7 @@ const Index = () => {
                     input: {
                         attributes: [],
                         category: row?.category?.map((item) => item.id),
-                        collections: collectionId,
+                        collections: [],
                         description: row.description,
                         tags: tagId,
                         upsells,
@@ -592,7 +592,7 @@ const Index = () => {
                                 availableForPurchaseDate: null,
                                 channelId: 'Q2hhbm5lbDoy',
                                 isAvailableForPurchase: true,
-                                isPublished: row?.channelListings[0]?.isPublished,
+                                isPublished: false,
                                 publicationDate: null,
                                 visibleInListings: true,
                             },
@@ -734,7 +734,9 @@ const Index = () => {
                 //     assignsTagToProduct(productId);
                 //     console.log('success: ', data);
                 // }
-                router.push(`/apps/product/edit?id=${productId}`);
+
+                // router.push(`/apps/product/edit?id=${productId}`);
+                window.open(`/apps/product/edit?id=${productId}`, '_blank');
                 Success('Product created successfully');
             }
         } catch (error) {

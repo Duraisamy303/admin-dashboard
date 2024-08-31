@@ -861,7 +861,7 @@ const ProductEdit = (props: any) => {
                     input: {
                         attributes: [],
                         category: selectedCat?.map((item) => item?.value),
-                        collections: selectedCollection.map((item) => item.value),
+                        collections: [],
                         tags: tagId,
                         name: productName,
                         description: descr,
@@ -2085,14 +2085,14 @@ const ProductEdit = (props: any) => {
                                 )}
                             </div>
                         </div>
-                        <div className="panel mt-5">
+                        {/* <div className="panel mt-5">
                             <div className="mb-5 border-b border-gray-200 pb-2">
                                 <h5 className=" block text-lg font-medium text-gray-700">Collections</h5>
                             </div>
                             <div className="mb-5">
                                 <Select placeholder="Select an collection" options={collectionList} value={selectedCollection} onChange={selectedCollections} isMulti isSearchable={true} />
                             </div>
-                        </div>
+                        </div> */}
                         <div className="panel mt-5">
                             <div className="mb-5 border-b border-gray-200 pb-2">
                                 <h5 className=" block text-lg font-medium text-gray-700">Label</h5>

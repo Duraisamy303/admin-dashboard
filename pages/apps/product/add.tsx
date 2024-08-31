@@ -724,7 +724,7 @@ const ProductAdd = () => {
             }
 
             // Prepare data for submission
-            const collectionId = selectedCollection?.map((item) => item.value) || [];
+            // const collectionId = selectedCollection?.map((item) => item.value) || [];
             const tagId = selectedTag?.map((item) => item.value) || [];
 
             let upsells = [];
@@ -744,7 +744,7 @@ const ProductAdd = () => {
                         description: descr,
                         attributes: [],
                         category: selectedCat?.map((item) => item?.value),
-                        collections: collectionId,
+                        collections: [],
                         tags: tagId,
                         name: productName,
                         productType: 'UHJvZHVjdFR5cGU6Mg==',
@@ -1726,14 +1726,14 @@ const ProductAdd = () => {
                                 )}
                             </div>
                         </div>
-                        <div className="panel mt-5">
+                        {/* <div className="panel mt-5">
                             <div className="mb-5 border-b border-gray-200 pb-2">
                                 <h5 className=" block text-lg font-medium text-gray-700">Collections</h5>
                             </div>
                             <div className="mb-5">
                                 <Select placeholder="Select an collection" options={collectionList} value={selectedCollection} onChange={selectedCollections} isMulti isSearchable={true} />
                             </div>
-                        </div>
+                        </div> */}
                         <div className="panel mt-5">
                             <div className="mb-5 border-b border-gray-200 pb-2">
                                 <h5 className=" block text-lg font-medium text-gray-700">Label</h5>

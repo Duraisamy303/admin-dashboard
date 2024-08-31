@@ -7,7 +7,7 @@ import IconArrowForward from '@/components/Icon/IconArrowForward';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import placeholders from '../public/assets/images/placeholder.png';
 import { UPDATED_PRODUCT_PAGINATION, PRODUCT_PREV_PAGINATION, REARANGE_ORDER, MERCHANDISING_PAGINATION, PARENT_CATEGORY_LIST } from '@/query/product';
-import { isValidImageUrl } from '@/utils/functions';
+import { Success, isValidImageUrl } from '@/utils/functions';
 
 const Index = () => {
     const PAGE_SIZE = 20;
@@ -166,29 +166,31 @@ const Index = () => {
             const [draggedItem] = newRecordsData.splice(draggedIndex, 1);
             newRecordsData.splice(targetIndex, 0, draggedItem);
 
-            const startIndex = Math.min(draggedIndex, targetIndex);
-            const endIndex = Math.max(draggedIndex, targetIndex) + 1;
-
-            const updatedRange = newRecordsData.slice(startIndex, endIndex);
-
-            const formattedUpdatedRange = updatedRange.map((item, index) => ({
-                productId: item.id,
-                orderNo: startIndex + index + 1,
-            }));
-
-            await reorder({
-                variables: {
-                    input: {
-                        updates: formattedUpdatedRange,
-                    },
-                },
-            });
-
             setRecordsData(newRecordsData);
         }
 
         setDraggedIndex(null); // Reset draggedIndex
         setDropIndex(null); // Reset dropIndex
+    };
+
+    const handleSave = async () => {
+        const rearrangedProducts = recordsData.map((product, index) => ({
+            productId: product.id,
+            orderNo: index + 1,
+        }));
+
+        try {
+            await reorder({
+                variables: {
+                    input: {
+                        updates: rearrangedProducts,
+                    },
+                },
+            });
+            Success("Product list updated successfully")
+        } catch (error) {
+            console.error('Error reordering products:', error);
+        }
     };
 
     const tableFormat = (products) => {
@@ -212,74 +214,54 @@ const Index = () => {
         return img;
     };
 
-    const handleCategoryChange = (e) => {
-        setSelectedCategory(e.target.value);
-        if (e.target.value == '') {
-            fetchLowStockList({
-                variables: {
-                    channel: 'india-channel',
-                    first: selectPage,
-                    after: null,
-                    search: search,
-                },
-            });
-        } else {
-            fetchLowStockList({
-                variables: {
-                    channel: 'india-channel',
-                    first: selectPage,
-                    after: null,
-                    search: search,
-                    filter: buildFilter(e.target.value, status),
-                },
-            });
-        }
+    const handleCategoryChange = (event) => {
+        setSelectedCategory(event.target.value);
+        fetchLowStockList({
+            variables: {
+                channel: 'india-channel',
+                first: selectPage,
+                after: null,
+                search: search,
+                sortBy: { direction: 'ASC', field: 'ORDER_NO' },
+                filter: buildFilter(event.target.value, status),
+            },
+        });
     };
 
-    const filter = [10, 20, 50, 100, 200];
-
-    const handlePageChange = (e) => {
+    const handleSelectPage = (e) => {
         setSelectPage(e.target.value);
-        if (e.target.value == '') {
-            fetchLowStockList({
-                variables: {
-                    channel: 'india-channel',
-                    first: 20,
-                    after: null,
-                    search: search,
-                    filter: buildFilter(e.target.value, status),
-                },
-            });
-        } else {
-            fetchLowStockList({
-                variables: {
-                    channel: 'india-channel',
-                    first: e.target.value,
-                    after: null,
-                    search: search,
-                    filter: buildFilter(e.target.value, status),
-                },
-            });
-        }
+        fetchLowStockList({
+            variables: {
+                channel: 'india-channel',
+                first: e.target.value,
+                after: null,
+                search: search,
+                sortBy: { direction: 'ASC', field: 'ORDER_NO' },
+                filter: buildFilter(selectedCategory, status),
+            },
+        });
     };
 
     return (
         <div>
             <div className="panel mb-5 flex items-center justify-between gap-5">
-                <div className="flex items-center gap-5">
+                <div className="flex items-center gap-5 justify-between w-full">
                     <h5 className="text-lg font-semibold dark:text-white-light">Merchandising</h5>
+                    <button type="button" className="btn btn-outline-primary" onClick={() => handleSave()}>
+                        Save Product
+                    </button>
                 </div>
             </div>
             <div className="mb-5 mt-5 flex justify-between md:mb-0 md:mt-0 md:flex md:ltr:ml-auto md:rtl:mr-auto">
                 <div className="flex gap-5">
                     <input type="text" className="form-input mb-3 mr-2 h-[40px] md:mb-0 md:w-auto" placeholder="Search..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
 
-                    <select className="form-select flex-1" value={selectPage} onChange={(e) => handlePageChange(e)}>
+                    {/* <select className="form-select flex-1" value={selectPage} onChange={(e) => handlePageChange(e)}>
                         <option value="">Select a Page</option>
                         {filter.map((parent) => (
                             <option value={parent}>{parent}</option>
                         ))}
-                    </select>
+                    </select> */}
                 </div>
                 <div>
                     <select className="form-select flex-1" value={selectedCategory} onChange={handleCategoryChange}>

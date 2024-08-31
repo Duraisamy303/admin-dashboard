@@ -219,6 +219,26 @@ const Index = () => {
         }
     };
 
+    const duplicate_refresh = async () => {
+        try {
+            const { data } = await refreshfetch({
+                channel: 'india-channel',
+                first: PAGE_SIZE,
+                after: null,
+                search: '',
+            });
+            const products = data?.products?.edges || [];
+            setRecordsData(tableFormat(products));
+            setStartCursor(data?.products?.pageInfo?.startCursor || null);
+            setEndCursor(data?.products?.pageInfo?.endCursor || null);
+            setHasNextPage(data?.products?.pageInfo?.hasNextPage || false);
+            setHasPreviousPage(data?.products?.pageInfo?.hasPreviousPage || false);
+            Success('Product created successfully');
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
     const [fetchNextPage] = useLazyQuery(UPDATED_PRODUCT_PAGINATION, {
         onCompleted: (data) => {
             const products = data?.products?.edges || [];
@@ -546,7 +566,7 @@ const Index = () => {
                         upsells,
                         crosssells,
                         // description: formattedDescription,
-                        name: row.name,
+                        name: `${row.name} - Copy`,
                         productType: row.productType?.id,
                         seo: {
                             description: row.seoDescription,
@@ -736,8 +756,8 @@ const Index = () => {
                 // }
 
                 // router.push(`/apps/product/edit?id=${productId}`);
-                window.open(`/apps/product/edit?id=${productId}`, '_blank');
-                Success('Product created successfully');
+                // window.open(`/apps/product/edit?id=${productId}`, '_blank');
+                duplicate_refresh()
             }
         } catch (error) {
             console.log('error: ', error);

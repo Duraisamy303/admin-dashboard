@@ -32,6 +32,7 @@
     "apexcharts": "^3.37.1",
     "aws-sdk": "^2.1654.0",
     "axios": "^1.7.1",
+    "compressorjs": "^1.2.1",
     "dayjs": "^1.11.11",
     "easymde": "^2.18.0",
     "eslint": "8.32.0",

@@ -6,6 +6,7 @@ import XLSX from 'sheetjs-style';
 import moment from 'moment';
 import AWS from 'aws-sdk';
 import axios from 'axios';
+import Compressor from 'compressorjs';
 
 export const accessKeyId = 'DO00MUC2HWP9YVLPXKXT';
 export const secretAccessKey = 'W9N9b51nxVBvpS59Er9aB6Ht7xx2ZXMrbf3vjBBR8OA';
@@ -706,6 +707,7 @@ export const generatePresignedPost = async (file) => {
     });
 
     const uniqueFilename = await generateUniqueFilename(file.name);
+
     const params = {
         Bucket: 'prade', // Your Space name
         Fields: {
@@ -890,6 +892,18 @@ export const addNewFile = async (e: any) => {
     try {
         let file = e.target.files[0];
         let uniqueFilename = await generateUniqueFilename(file.name);
+        const isImage = file.type.startsWith('image/');
+        if (isImage) {
+            if (file.size > 500 * 1024) {
+                file = await compressImage(file);
+                console.log("file: ", file.size);
+            }
+
+            // Resize image to 1160x1340
+            file = await resizeImage(file, 1160, 1340);
+        }
+       const  { width, height } = await getImageDimensions(file);
+       console.log(" width, height : ",  width, height );
         file = new File([file], uniqueFilename, {
             type: file.type,
             lastModified: file.lastModified,
@@ -918,6 +932,97 @@ export const addNewFile = async (e: any) => {
     } catch (error) {
         console.error('Error uploading file:', error);
     }
+};
+
+export const getImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
+    return new Promise((resolve, reject) => {
+        const img = document.createElement('img');
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            if (e.target?.result) {
+                img.src = e.target.result as string;
+            } else {
+                reject(new Error('Failed to read file'));
+            }
+        };
+
+        reader.onerror = (error) => {
+            reject(error);
+        };
+
+        img.onload = () => {
+            resolve({ width: img.width, height: img.height });
+        };
+
+        img.onerror = (error) => {
+            reject(error);
+        };
+
+        reader.readAsDataURL(file);
+    });
+};
+
+export const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+        const targetSize = 500 * 1024; // 200KB in bytes
+        const initialQuality = 0.8; // Start with a higher quality for better results
+
+        const compress = (file: File, quality: number) => {
+            new Compressor(file, {
+                quality: quality,
+                success(result) {
+                    if (result.size <= targetSize) {
+                        resolve(result as File);
+                    } else if (quality > 0.1) {
+                        // If the file size is still greater than 200KB, reduce the quality and try again
+                        compress(result as File, quality - 0.1);
+                    } else {
+                        // Accept the best effort at the lowest acceptable quality (0.1)
+                        resolve(result as File);
+                    }
+                },
+                error(err) {
+                    console.error('Error compressing file:', err);
+                    reject(err);
+                },
+            });
+        };
+
+        // Start compression with an initial quality
+        compress(file, initialQuality);
+    });
+};
+
+export const resizeImage = (file: File, width: number, height: number): Promise<File> => {
+    return new Promise((resolve, reject) => {
+        const img = document.createElement('img');
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        img.onload = () => {
+            canvas.width = width;
+            canvas.height = height;
+            if (ctx) {
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        resolve(new File([blob], file.name, { type: file.type }));
+                    } else {
+                        reject(new Error('Failed to resize image'));
+                    }
+                }, file.type);
+            } else {
+                reject(new Error('Failed to get canvas context'));
+            }
+        };
+
+        img.onerror = (error) => {
+            reject(error);
+        };
+
+        img.src = URL.createObjectURL(file);
+    });
 };
 
 export const validateDateTime = (dateTimeString) => {
@@ -1021,12 +1126,11 @@ export const generateTimeOptions = () => {
 
 export const formatTime = (time) => {
     const formattedTime = `${time.slice(0, 5)}`;
-    const dropdownFormat={value:formattedTime,label:formattedTime}
+    const dropdownFormat = { value: formattedTime, label: formattedTime };
     return dropdownFormat;
 };
-
 
 export const isValidUrl = (url) => {
     const regex = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(\/[^\s]*)?$/i;
     return regex.test(url);
-  };
+};

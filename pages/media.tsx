@@ -75,6 +75,7 @@ export default function Media() {
                 setState({ imageList: res });
             } else if (state.mediaType == 'image') {
                 const response = imageFilter(res);
+                console.log("response: ", response);
                 setState({ imageList: response });
             } else if (state.mediaType == 'video') {
                 const response = videoFilter(res);
@@ -89,41 +90,11 @@ export default function Media() {
         }
     };
 
-    const assignToserver = async (data) => {
-        try {
-            // Filter out the 26th item (index 25)
-            const filteredData = data.filter((_, index) => index !== 26);
-            // Loop through the filtered data
-            const loop = filteredData.map(async (item) => {
-                const fileType = await getFileType(item.url);
-                const key = getFileNameFromUrl(item.url);
-                let url = `https://prade.blr1.digitaloceanspaces.com/${key}`;
-                const body = {
-                    fileUrl: url,
-                    title: '',
-                    alt: '',
-                    description: '',
-                    caption: '',
-                    fileType: fileType,
-                };
-                const response = await addNewImages({
-                    variables: {
-                        input: body,
-                    },
-                });
-            });
-
-            // Await all promises
-            await Promise.all(loop);
-        } catch (error) {
-            console.log('error: ', error);
-        }
-    };
-
     const handleFileChange = async (e: any) => {
         try {
             setState({ loading: true });
             const res = await addNewFile(e);
+            console.log("res: ", res);
             const fileType = await getFileType(res);
             const body = {
                 fileUrl: res,
@@ -134,11 +105,15 @@ export default function Media() {
                 fileType: fileType,
             };
 
+            console.log("body: ", body);
+
             const response = await addNewImages({
                 variables: {
                     input: body,
                 },
             });
+            console.log("response: ", response);
+
             getMediaImage();
 
             setState({ tab: 1 });
@@ -155,6 +130,7 @@ export default function Media() {
             setState({ imageList: res });
         } else if (state.mediaType == 'image') {
             const response = imageFilter(res);
+            console.log("response: ", response);
             setState({ imageList: response });
         } else if (state.mediaType == 'video') {
             const response = videoFilter(res);
@@ -301,6 +277,20 @@ export default function Media() {
             });
         }
     };
+
+    // const deletesImg = async (item) => {
+    //     console.log("item: ", item);
+    //     try {
+    //         // const key = getFileNameFromUrl(state.selectImg);
+    //         await deleteImagesFromS3(item.key);
+    //         await deleteImages({ variables: { file_url: item.url } });
+    //         getMediaImage();
+    //         setState({ selectImg: null });
+    //         Swal.fire('Deleted!', 'Your files have been deleted.', 'success');
+    //     } catch (error) {
+    //         console.error('Error deleting file:', error);
+    //     }
+    // };
 
     const updateMetaData = async () => {
         try {
@@ -514,6 +504,7 @@ export default function Media() {
                                                     onMouseLeave={handleMouseLeave}
                                                     onClick={() => {
                                                         handleClickImage(item);
+                                                        // deletesImg(item)
                                                     }}
                                                 >
                                                     {item?.key?.endsWith('.mp4') ? (

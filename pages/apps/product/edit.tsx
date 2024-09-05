@@ -752,13 +752,13 @@ const ProductEdit = (props: any) => {
 
     const validateMainFields = (savedContent) => {
         const errors = {
-            productName: productName.trim() === '' ? 'Product name cannot be empty' : '',
-            slug: slug.trim() === '' ? 'Slug cannot be empty' : '',
-            seoTittle: seoTittle.trim() === '' ? 'Seo title cannot be empty' : '',
-            seoDesc: seoDesc.trim() === '' ? 'Seo description cannot be empty' : '',
-            description: savedContent?.blocks?.length === 0 ? 'Description cannot be empty' : '',
-            shortDescription: shortDescription?.trim() === '' ? 'Short description cannot be empty' : '',
-            category: selectedCat?.length === 0 ? 'Category cannot be empty' : '',
+            productName: productName == '' ? 'Product name cannot be empty' : '',
+            slug: slug == '' ? 'Slug cannot be empty' : '',
+            seoTittle: seoTittle == '' ? 'Seo title cannot be empty' : '',
+            seoDesc: seoDesc == '' ? 'Seo description cannot be empty' : '',
+            description: savedContent?.blocks?.length == 0 ? 'Description cannot be empty' : '',
+            shortDescription: shortDescription == '' ? 'Short description cannot be empty' : '',
+            category: selectedCat?.length == 0 ? 'Category cannot be empty' : '',
         };
 
         return errors;
@@ -813,6 +813,7 @@ const ProductEdit = (props: any) => {
             setDescriptionErrMsg('');
             setAttributeError('');
             setVariantErrors([]);
+            console.log('errors: ');
 
             // Validation
             const errors = validateMainFields(JSON.parse(descr));

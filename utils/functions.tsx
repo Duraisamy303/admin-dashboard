@@ -894,9 +894,8 @@ export const addNewFile = async (e: any) => {
         let uniqueFilename = await generateUniqueFilename(file.name);
         const isImage = file.type.startsWith('image/');
         if (isImage) {
-            if (file.size > 500 * 1024) {
+            if (file.size > 300 * 1024) {
                 file = await compressImage(file);
-                console.log("file: ", file.size);
             }
 
             // Resize image to 1160x1340
@@ -965,7 +964,7 @@ export const getImageDimensions = (file: File): Promise<{ width: number; height:
 
 export const compressImage = (file: File): Promise<File> => {
     return new Promise((resolve, reject) => {
-        const targetSize = 500 * 1024; // 200KB in bytes
+        const targetSize = 300 * 1024; // 300KB in bytes
         const initialQuality = 0.8; // Start with a higher quality for better results
 
         const compress = (file: File, quality: number) => {

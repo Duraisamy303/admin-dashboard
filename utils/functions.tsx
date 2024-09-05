@@ -895,18 +895,21 @@ export const addNewFile = async (e: any) => {
         const isImage = file.type.startsWith('image/');
         if (isImage) {
             if (file.size > 300 * 1024) {
-                file = await compressImage(file);
+                // First resize image to 1160x1340 to reduce dimensions before compressing
+                file = await resizeImage(file, 1160, 1340);
+                file = await compressImage(file, 300 * 1024); // Compress to target size
             }
+            console.log("Compressed file size: ", file.size);
 
-            // Resize image to 1160x1340
-            file = await resizeImage(file, 1160, 1340);
+            const { width, height } = await getImageDimensions(file);
+            console.log("Image width, height: ", width, height);
         }
-       const  { width, height } = await getImageDimensions(file);
-       console.log(" width, height : ",  width, height );
+
         file = new File([file], uniqueFilename, {
             type: file.type,
             lastModified: file.lastModified,
         });
+
         let presignedPostData = null;
         if (file?.name?.endsWith('.mp4')) {
             presignedPostData = await generatePresignedVideoPost(file);
@@ -919,15 +922,17 @@ export const addNewFile = async (e: any) => {
             formData.append(key, presignedPostData.fields[key]);
         });
         formData.append('file', file);
+
         await axios.post(presignedPostData.url, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
         });
+
         await fetchImagesFromS3();
         const urls = `https://prade.blr1.digitaloceanspaces.com/${presignedPostData?.fields?.key}`;
-
         return urls;
+
     } catch (error) {
         console.error('Error uploading file:', error);
     }
@@ -962,22 +967,20 @@ export const getImageDimensions = (file: File): Promise<{ width: number; height:
     });
 };
 
-export const compressImage = (file: File): Promise<File> => {
+export const compressImage = (file: File, targetSize: number): Promise<File> => {
     return new Promise((resolve, reject) => {
-        const targetSize = 300 * 1024; // 300KB in bytes
-        const initialQuality = 0.8; // Start with a higher quality for better results
+        const initialQuality = 0.8; 
 
         const compress = (file: File, quality: number) => {
             new Compressor(file, {
                 quality: quality,
                 success(result) {
+                    console.log(`Compressed with quality: ${quality}, size: ${result.size}`);
                     if (result.size <= targetSize) {
                         resolve(result as File);
                     } else if (quality > 0.1) {
-                        // If the file size is still greater than 200KB, reduce the quality and try again
                         compress(result as File, quality - 0.1);
                     } else {
-                        // Accept the best effort at the lowest acceptable quality (0.1)
                         resolve(result as File);
                     }
                 },
@@ -988,7 +991,6 @@ export const compressImage = (file: File): Promise<File> => {
             });
         };
 
-        // Start compression with an initial quality
         compress(file, initialQuality);
     });
 };

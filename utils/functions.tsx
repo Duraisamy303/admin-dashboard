@@ -898,11 +898,11 @@ export const addNewFile = async (e: any) => {
                 // First resize image to 1160x1340 to reduce dimensions before compressing
                 file = await resizeImage(file, 1160, 1340);
                 file = await compressImage(file, 300 * 1024); // Compress to target size
+            } else {
+                file = await resizeImage(file, 1160, 1340);
             }
-            console.log("Compressed file size: ", file.size);
-
             const { width, height } = await getImageDimensions(file);
-            console.log("Image width, height: ", width, height);
+            console.log('Image width, height: ', width, height);
         }
 
         file = new File([file], uniqueFilename, {
@@ -932,7 +932,6 @@ export const addNewFile = async (e: any) => {
         await fetchImagesFromS3();
         const urls = `https://prade.blr1.digitaloceanspaces.com/${presignedPostData?.fields?.key}`;
         return urls;
-
     } catch (error) {
         console.error('Error uploading file:', error);
     }
@@ -969,7 +968,7 @@ export const getImageDimensions = (file: File): Promise<{ width: number; height:
 
 export const compressImage = (file: File, targetSize: number): Promise<File> => {
     return new Promise((resolve, reject) => {
-        const initialQuality = 0.8; 
+        const initialQuality = 0.8;
 
         const compress = (file: File, quality: number) => {
             new Compressor(file, {

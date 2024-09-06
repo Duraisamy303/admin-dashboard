@@ -6,7 +6,7 @@ import XLSX from 'sheetjs-style';
 import moment from 'moment';
 import AWS from 'aws-sdk';
 import axios from 'axios';
-import Compressor from 'compressorjs';
+import Resizer from 'react-image-file-resizer';
 
 export const accessKeyId = 'DO00MUC2HWP9YVLPXKXT';
 export const secretAccessKey = 'W9N9b51nxVBvpS59Er9aB6Ht7xx2ZXMrbf3vjBBR8OA';
@@ -895,9 +895,8 @@ export const addNewFile = async (e: any) => {
         const isImage = file.type.startsWith('image/');
         if (isImage) {
             if (file.size > 300 * 1024) {
-                // First resize image to 1160x1340 to reduce dimensions before compressing
+                file = await resizingImage(file);
                 file = await resizeImage(file, 1160, 1340);
-                file = await compressImage(file, 300 * 1024); // Compress to target size
             } else {
                 file = await resizeImage(file, 1160, 1340);
             }
@@ -937,6 +936,26 @@ export const addNewFile = async (e: any) => {
     }
 };
 
+export const resizingImage = (file) => {
+    return new Promise((resolve, reject) => {
+        Resizer.imageFileResizer(
+            file,
+            1160, // Max width
+            1340, // Max height
+            'JPEG', // Format
+            70, // Quality (adjust to get file size below 300KB)
+            0, // Rotation
+            (uri:any) => {
+                // Convert resized image blob to File
+                const resizedFile = new File([uri], file.name, { type: uri.type });
+                console.log('resizedFile: ', resizedFile);
+                resolve(resizedFile);
+            },
+            'blob' // Output type
+        );
+    });
+};
+
 export const getImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
     return new Promise((resolve, reject) => {
         const img = document.createElement('img');
@@ -966,33 +985,6 @@ export const getImageDimensions = (file: File): Promise<{ width: number; height:
     });
 };
 
-export const compressImage = (file: File, targetSize: number): Promise<File> => {
-    return new Promise((resolve, reject) => {
-        const initialQuality = 0.8;
-
-        const compress = (file: File, quality: number) => {
-            new Compressor(file, {
-                quality: quality,
-                success(result) {
-                    console.log(`Compressed with quality: ${quality}, size: ${result.size}`);
-                    if (result.size <= targetSize) {
-                        resolve(result as File);
-                    } else if (quality > 0.1) {
-                        compress(result as File, quality - 0.1);
-                    } else {
-                        resolve(result as File);
-                    }
-                },
-                error(err) {
-                    console.error('Error compressing file:', err);
-                    reject(err);
-                },
-            });
-        };
-
-        compress(file, initialQuality);
-    });
-};
 
 export const resizeImage = (file: File, width: number, height: number): Promise<File> => {
     return new Promise((resolve, reject) => {

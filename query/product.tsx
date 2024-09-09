@@ -18516,6 +18516,9 @@ export const GET_MEDIA_IMAGE = gql`
             description
             fileUrl
             title
+            size
+            createdAt
+            updatedAt
         }
     }
 `;
@@ -18606,6 +18609,31 @@ export const IMPORT_DROP_SHIPPING = gql`
                 field
                 message
                 code
+            }
+        }
+    }
+`;
+
+export const MEDIA_PAGINATION = gql`
+    query PaginatedFiles($first: Int, $last: Int, $after: String, $before: String, $fileType: String!, $month: Int, $year: Int, $name: String!) {
+        files(first: $first, last: $last, after: $after, before: $before, year: $year, name: $name, month: $month, fileType: $fileType) {
+            edges {
+                node {
+                    alt
+                    caption
+                    description
+                    fileUrl
+                    id
+                    title
+                    createdAt
+                    updatedAt
+                }
+            }
+            pageInfo {
+                hasNextPage
+                hasPreviousPage
+                endCursor
+                startCursor
             }
         }
     }

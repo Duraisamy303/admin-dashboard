@@ -13,7 +13,7 @@ import pdf from '../../../public/assets/images/pdf.png';
 import docs from '../../../public/assets/images/docs.jpg';
 import { Tab } from '@headlessui/react';
 import AnimateHeight from 'react-animate-height';
-import { useMutation, useQuery } from '@apollo/client';
+import { useLazyQuery, useMutation, useQuery } from '@apollo/client';
 import {
     ASSIGN_TAG_PRODUCT,
     CATEGORY_LIST,
@@ -51,12 +51,14 @@ import {
     UPDATE_MEDIA_IMAGE,
     DELETE_MEDIA_IMAGE,
     GET_MEDIA_IMAGE,
+    MEDIA_PAGINATION,
 } from '@/query/product';
 import {
     Failure,
     Success,
     addCommasToNumber,
     addNewFile,
+    addNewMediaFile,
     deleteImagesFromS3,
     docFilter,
     fetchImagesFromS3,
@@ -64,11 +66,16 @@ import {
     generatePresignedPost,
     getFileNameFromUrl,
     getFileType,
+    getImageDimensions,
+    getKey,
+    getMonthNumber,
     getValueByKey,
     imageFilter,
     isEmptyObject,
     months,
     objIsEmpty,
+    resizeImage,
+    resizingImage,
     sampleParams,
     showDeleteAlert,
     uploadImage,
@@ -83,10 +90,15 @@ import { channel } from 'diagnostics_channel';
 import { endsWith } from 'lodash';
 import CommonLoader from '@/pages/elements/commonLoader';
 import Image from 'next/image';
+import IconArrowBackward from '@/components/Icon/IconArrowBackward';
+import IconArrowForward from '@/components/Icon/IconArrowForward';
+
 const ProductEdit = (props: any) => {
     const router = useRouter();
 
     const { id } = router.query;
+
+    const PAGE_SIZE = 30;
 
     const isRtl = useSelector((state: any) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
 
@@ -145,6 +157,10 @@ const ProductEdit = (props: any) => {
     const [categoryErrMsg, setCategoryErrMsg] = useState('');
     const [attributeError, setAttributeError] = useState('');
     const [variantErrors, setVariantErrors] = useState<any>([]);
+    const [mediaStartCussor, setMediaStartCussor] = useState('');
+    const [mediaEndCursor, setMediaEndCursor] = useState('');
+    const [mediaHasNextPage, setMediaHasNextPage] = useState(false);
+    const [mediaPreviousPage, setMediaPreviousPage] = useState(false);
 
     // error message end
 
@@ -156,6 +172,8 @@ const ProductEdit = (props: any) => {
         { value: 'New', label: 'New' },
         { value: 'Hot', label: 'Hot' },
     ];
+    const { refetch: mediaRefetch } = useQuery(MEDIA_PAGINATION);
+
 
     // -------------------------------------New Added-------------------------------------------------------
     const { data: productDetails } = useQuery(PRODUCT_FULL_DETAILS, {
@@ -265,6 +283,8 @@ const ProductEdit = (props: any) => {
     const [updateLoading, setUpdateLoading] = useState(false);
     const [mediaMonth, setMediaMonth] = useState('all');
     const [mediaType, setMediaType] = useState('all');
+    const [selectedCat, setselectedCat] = useState<any>([]);
+    const [monthNumber, setMonthNumber] = useState(null);
 
     const [variants, setVariants] = useState([
         {
@@ -278,7 +298,54 @@ const ProductEdit = (props: any) => {
         },
     ]);
 
-    const [selectedCat, setselectedCat] = useState<any>([]);
+    const { data: customerData, refetch: customerListRefetch } = useQuery(MEDIA_PAGINATION, {
+        variables: {
+            first: PAGE_SIZE,
+            after: null,
+            fileType: mediaType == 'all' ? '' : mediaType,
+            month: 9,
+            year: 2024,
+            name: '',
+        },
+        onCompleted: (data) => {
+            commonPagination(data);
+        },
+    });
+
+    const handleNextPage = () => {
+        fetchNextPage({
+            variables: {
+                first: PAGE_SIZE,
+                after: mediaEndCursor,
+                before: null,
+                fileType: 'Image',
+                month: monthNumber,
+                year: 2024,
+                name: mediaSearch,
+            },
+        });
+    };
+
+    const handlePreviousPage = () => {
+        fetchPreviousPage({
+            variables: {
+                last: PAGE_SIZE,
+                before: mediaStartCussor,
+                fileType: 'Image',
+                month: monthNumber,
+                year: 2024,
+                name: mediaSearch,
+            },
+        });
+    };
+
+    const commonPagination = (data) => {
+        setMediaImages(data.files.edges);
+        setMediaStartCussor(data.files.pageInfo.startCursor);
+        setMediaEndCursor(data.files.pageInfo.endCursor);
+        setMediaHasNextPage(data.files.pageInfo.hasNextPage);
+        setMediaPreviousPage(data.files.pageInfo.hasPreviousPage);
+    };
 
     useEffect(() => {
         productsDetails();
@@ -287,52 +354,6 @@ const ProductEdit = (props: any) => {
     useEffect(() => {
         tags_list();
     }, [tagsList]);
-
-    useEffect(() => {
-        getMediaImage();
-    }, []);
-
-    useEffect(() => {
-        filterByType();
-    }, [mediaType]);
-
-    const getMediaImage = async () => {
-        try {
-            setLoading(true);
-            const res = await fetchImagesFromS3();
-            if (mediaType == 'all') {
-                setMediaImages(res);
-            } else if (mediaType == 'image') {
-                const response = imageFilter(res);
-                setMediaImages(response);
-            } else if (mediaType == 'video') {
-                const response = videoFilter(res);
-                setMediaImages(response);
-            } else {
-                const response = docFilter(res);
-                setMediaImages(response);
-            }
-            setLoading(false);
-        } catch (error) {
-            console.log('error: ', error);
-        }
-    };
-
-    const filterByType = async () => {
-        const res = await fetchImagesFromS3(mediaSearch);
-        if (mediaType == 'all') {
-            setMediaImages(res);
-        } else if (mediaType == 'image') {
-            const response = imageFilter(res);
-            setMediaImages(response);
-        } else if (mediaType == 'video') {
-            const response = videoFilter(res);
-            setMediaImages(response);
-        } else {
-            const response = docFilter(res);
-            setMediaImages(response);
-        }
-    };
 
     useEffect(() => {
         collections_list();
@@ -360,36 +381,6 @@ const ProductEdit = (props: any) => {
         const options = formatOptions(getparentCategoryList);
         setCategoryList(options);
     }, [parentList]);
-
-    useEffect(() => {
-        filterByMonth();
-    }, [mediaMonth]);
-
-    const filterByMonth = async () => {
-        const res = await fetchImagesFromS3(mediaSearch);
-        if (mediaMonth == 'all') {
-            getMediaImage();
-        } else {
-            const [month, year] = mediaMonth.split('/');
-            const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
-            const filteredImages = res?.filter((item) => {
-                const itemDate = new Date(item.LastModified);
-                return itemDate.getFullYear() === parseInt(year) && itemDate.getMonth() === monthIndex;
-            });
-            if (mediaType == 'all') {
-                setMediaImages(filteredImages);
-            } else if (mediaType == 'image') {
-                const response = imageFilter(filteredImages);
-                setMediaImages(response);
-            } else if (mediaType == 'video') {
-                const response = videoFilter(filteredImages);
-                setMediaImages(response);
-            } else {
-                const response = docFilter(filteredImages);
-                setMediaImages(response);
-            }
-        }
-    };
 
     const productsDetails = async () => {
         try {
@@ -697,32 +688,83 @@ const ProductEdit = (props: any) => {
 
     const handleFileChange = async (e: any) => {
         try {
-            setLoading(true);
-            const res = await addNewFile(e);
-            getMediaImage();
-            setMediaTab(1);
-            setLoading(false);
-            setSelectedImages([]);
-            const fileType = await getFileType(res);
-            const body = {
-                fileUrl: res,
-                title: '',
-                alt: '',
-                description: '',
-                caption: '',
-                fileType: fileType,
-            };
-            console.log('body: ', body);
-
-            const response = await addNewImages({
-                variables: {
-                    input: body,
-                },
-            });
-            Success('File added successfully');
+            await addNewImage(e);
         } catch (error) {
             console.error('Error uploading file:', error);
         }
+    };
+
+    const generateUniqueFilenames = async (filename) => {
+        let uniqueFilename = filename;
+        let counter = 0;
+        let fileExists = true;
+
+        while (fileExists) {
+            const res = await mediaRefetch({
+                first: PAGE_SIZE,
+                after: null,
+                fileType: '',
+                month: null,
+                year: null,
+                name: uniqueFilename,
+            });
+
+            if (res?.data?.files?.edges?.length > 0) {
+                counter += 1;
+                const fileParts = filename.split('.');
+                const extension = fileParts.pop();
+                uniqueFilename = `${fileParts.join('.')}-${counter}.${extension}`;
+            } else {
+                fileExists = false;
+            }
+        }
+
+        return uniqueFilename;
+    };
+
+    const addNewImage = async (e) => {
+        let files = e.target.files[0];
+        const isImage = files.type.startsWith('image/');
+        if (isImage) {
+            if (files.size > 300 * 1024) {
+                files = await resizingImage(files);
+                files = await resizeImage(files, 1160, 1340);
+            } else {
+                files = await resizeImage(files, 1160, 1340);
+            }
+            const { width, height } = await getImageDimensions(files);
+        }
+
+        const unique = await generateUniqueFilenames(files.name);
+
+        const result = await addNewMediaFile(files, unique);
+        const fileType = await getFileType(result);
+        const body = {
+            fileUrl: result,
+            title: '',
+            alt: '',
+            description: '',
+            caption: '',
+            fileType: fileType,
+        };
+        const response = await addNewImages({
+            variables: {
+                input: body,
+            },
+        });
+
+        const res = await mediaRefetch({
+            first: PAGE_SIZE,
+            after: null,
+            fileType: '',
+            month: null,
+            year: null,
+            name: '',
+        });
+
+        commonPagination(res.data);
+        setMediaTab(1);
+        Success('File added successfully');
     };
 
     const multiImgUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1311,7 +1353,7 @@ const ProductEdit = (props: any) => {
         longPressTimeout.current = setTimeout(() => {
             setIsLongPress(true);
             handleImageSelect(item);
-        }, 500); // 500ms for long press
+        }, 100); // 100ms for long press
     };
 
     const handleMouseUp = () => {
@@ -1346,9 +1388,11 @@ const ProductEdit = (props: any) => {
     const newImageAdded = async () => {
         {
             let arr = [...images];
-            const urls = selectedImages?.map((item) => item.url);
-            const updatedUrls = urls.map(url => url?.replace(".cdn", ""));
-            updatedUrls.map(async (items) => {
+            // const urls = selectedImages?.map((item) => item.url);
+            const urls = selectedImages?.map((item) => item?.node?.fileUrl);
+
+            // const updatedUrls = urls.map((url) => url?.replace('.cdn', ''));
+            urls.map(async (items) => {
                 const { data } = await createMedia({
                     variables: {
                         productId: id,
@@ -1383,39 +1427,22 @@ const ProductEdit = (props: any) => {
     const deleteImage = async () => {
         try {
             const key = getFileNameFromUrl(selectedImg);
-            await deleteImagesFromS3(key);
             await deleteImages({ variables: { file_url: selectedImg } });
-            getMediaImage();
+            const res = await mediaRefetch({
+                first: PAGE_SIZE,
+                after: null,
+                fileType: '',
+                month: null,
+                year: null,
+                name: '',
+            });
+
+            commonPagination(res.data);
             setSelectedImg(null);
             Swal.fire('Deleted!', 'Your files have been deleted.', 'success');
         } catch (error) {
             console.error('Error deleting file:', error);
         }
-    };
-
-    const searchMediaByName = async (e) => {
-        setMediaSearch(e);
-        try {
-            const res = await fetchImagesFromS3(e);
-            if (mediaType == 'all') {
-                setMediaImages(res);
-            } else if (mediaType == 'image') {
-                const response = imageFilter(res);
-                setMediaImages(response);
-            } else if (mediaType == 'video') {
-                const response = videoFilter(res);
-                setMediaImages(response);
-            } else {
-                const response = docFilter(res);
-                setMediaImages(response);
-            }
-        } catch (error) {
-            console.log('error: ', error);
-        }
-    };
-
-    const filterMediaByMonth = (value: any) => {
-        setMediaMonth(value);
     };
 
     const getFullDetails = (selectedValues, arr) => {
@@ -1544,22 +1571,18 @@ const ProductEdit = (props: any) => {
     };
 
     const handleClickImage = async (item) => {
-        let url = `https://prade.blr1.digitaloceanspaces.com/${item.key}`;
-
         const res = await getListRefetch({
-            fileurl: url,
+            fileurl: item.node.fileUrl,
         });
 
         const result = res.data?.fileByFileurl;
-        console.log('result: ', result);
         if (result) {
             setSelectedImg(result?.fileUrl);
-            handleImageSelect(item);
             setAlt(result?.alt);
             setTitle(result?.title);
-            setMediaDescription(result?.description);
+            setDescription(result?.description);
             setCaption(result?.caption);
-            setMediaData({ size: item.Size, lastModified: item.LastModified });
+            setMediaData({ size: `${parseFloat(result.size)?.toFixed(2)}`, lastModified: item.LastModified });
         }
     };
 
@@ -1588,6 +1611,60 @@ const ProductEdit = (props: any) => {
             console.log('error: ', error);
         }
     };
+
+    const searchMediaByName = async (e) => {
+        setMediaSearch(e);
+        try {
+            if (e !== null && e !== '' && e !== undefined) {
+                fetchNextPage(commonInput(null, monthNumber, e));
+            } else {
+                fetchNextPage(commonInput(null, monthNumber, ''));
+            }
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
+    useEffect(() => {
+        filterByType();
+    }, [monthNumber]);
+
+    const filterByType = async () => {
+        fetchNextPage(commonInput(null, monthNumber, mediaSearch));
+    };
+
+    const [fetchNextPage] = useLazyQuery(MEDIA_PAGINATION, {
+        onCompleted: (data) => {
+            commonPagination(data);
+        },
+    });
+
+    const [fetchPreviousPage] = useLazyQuery(MEDIA_PAGINATION, {
+        onCompleted: (data) => {
+            commonPagination(data);
+        },
+    });
+
+    const commonInput = (after, month, name) => {
+        const input = {
+            variables: {
+                first: PAGE_SIZE,
+                after,
+                fileType: 'Image',
+                month: month,
+                year: 2024,
+                name,
+            },
+        };
+        return input;
+    };
+
+    const filterMediaByMonth = async (value: any) => {
+        setMediaMonth(value);
+        const res = getMonthNumber(value);
+        setMonthNumber(res);
+    };
+
     return (
         <div>
             <div className="  mt-6">
@@ -2390,7 +2467,6 @@ const ProductEdit = (props: any) => {
                                             <button
                                                 onClick={() => {
                                                     setMediaTab(0);
-                                                    getMediaImage();
                                                     setMediaType('all');
                                                     setMediaMonth('all'), setMediaSearch('');
                                                 }}
@@ -2402,7 +2478,6 @@ const ProductEdit = (props: any) => {
                                             <button
                                                 onClick={() => {
                                                     setMediaTab(1);
-                                                    getMediaImage();
                                                     setMediaType('all');
                                                     setMediaMonth('all'), setMediaSearch('');
                                                 }}
@@ -2483,40 +2558,41 @@ const ProductEdit = (props: any) => {
                                                             {mediaImages?.length > 0 ? (
                                                                 mediaImages?.map((item) => (
                                                                     <div
-                                                                        key={item.url}
-                                                                        className={`flex h-[160px] w-[180px] overflow-hidden p-2 ${selectedImages.includes(item) ? 'border-4 border-blue-500' : ''}`}
-                                                                        // className={`flex h-[200px] w-[200px] overflow-hidden   ${selectedImages.includes(item) ? 'border-4 border-blue-500' : ''}`}
+                                                                        key={item.node?.fileUrl}
+                                                                        className={`flex h-[150px] w-[150px] overflow-hidden p-2 ${selectedImages.includes(item) ? 'border-4 border-blue-500' : ''}`}
                                                                         onMouseDown={() => handleMouseDown(item)}
                                                                         onMouseUp={handleMouseUp}
                                                                         onMouseLeave={handleMouseLeave}
-                                                                        onClick={() => handleClickImage(item)}
+                                                                        onClick={() => {
+                                                                            handleClickImage(item);
+                                                                            // deletesImg(item)
+                                                                        }}
                                                                     >
-                                                                        {item?.key?.endsWith('.mp4') ? (
-                                                                            <video controls src={item.url} className="h-full w-full object-cover">
+                                                                        {item.node?.fileUrl?.endsWith('.mp4') ? (
+                                                                            <video controls src={item.node?.fileUrl} className="h-full w-full object-cover">
                                                                                 Your browser does not support the video tag.
                                                                             </video>
-                                                                        ) : item?.key?.endsWith('.pdf') ? (
+                                                                        ) : item.node?.fileUrl?.endsWith('.pdf') ? (
                                                                             <Image src={pdf} alt="Loading..." />
-                                                                        ) : item?.key?.endsWith('.doc') ? (
+                                                                        ) : item.node?.fileUrl?.endsWith('.doc') ? (
                                                                             <Image src={docs} alt="Loading..." />
                                                                         ) : (
-                                                                            <img src={item.url} alt="" className="h-full w-full" />
+                                                                            <img src={item.node?.fileUrl} alt="" className="h-full w-full" />
                                                                         )}
-                                                                        {/* <img src={item.url} alt="" className="h-full w-full object-cover" /> */}
                                                                     </div>
                                                                 ))
                                                             ) : (
                                                                 <div className="col-span-6 flex h-64 items-center justify-center">No Data Found</div>
                                                             )}
                                                         </div>
-                                                        {/* <div className="flex justify-center pt-5">
-                                                                    <div className=" text-center">
-                                                                        <p>Showing 80 of 2484 media items</p>
-                                                                        <div className="flex justify-center">
-                                                                            <button className="btn btn-primary mt-2">Load more</button>
-                                                                        </div>
-                                                                    </div>
-                                                                </div> */}
+                                                        <div className="mt-5 flex justify-end gap-3">
+                                                            <button disabled={!mediaPreviousPage} onClick={handlePreviousPage} className={`btn ${!mediaPreviousPage ? 'btn-disabled' : 'btn-primary'}`}>
+                                                                <IconArrowBackward />
+                                                            </button>
+                                                            <button disabled={!mediaHasNextPage} onClick={handleNextPage} className={`btn ${!mediaHasNextPage ? 'btn-disabled' : 'btn-primary'}`}>
+                                                                <IconArrowForward />
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                     {selectedImg && (
                                                         <div className="col-span-3 h-[450px] overflow-y-scroll pl-5">
@@ -2544,10 +2620,10 @@ const ProductEdit = (props: any) => {
                                                                 ) : (
                                                                     <img src={selectedImg.url} alt="" className="h-full w-full" />
                                                                 )} */}
-                                                                <p className="mt-2 font-semibold">{selectedImg}</p>
+                                                                <p className="mt-2 font-semibold">{getKey(selectedImg)}</p>
 
                                                                 <p className="text-sm">{moment(mediaData?.lastModified).format('DD-MM-YYYY')}</p>
-                                                                <p className="text-sm">{(mediaData?.size / 1024).toFixed(2)} KB</p>
+                                                                <p className="text-sm">{mediaData?.size} KB</p>
 
                                                                 {/* <p className="text-sm">1707 by 2560 pixels</p> */}
                                                                 <a href="#" className="text-danger underline" onClick={() => mediaImageDelete()}>

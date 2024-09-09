@@ -619,7 +619,7 @@ export const formatOptions = (lists) => {
     });
 };
 
-export const fetchImagesFromS3 = async (searchTerm = '') => {
+export const fetchImagesFromS3 = async (searchTerm = '', limit = 10, continuationToken = null) => {
     const spacesEndpoint = new AWS.Endpoint('https://blr1.digitaloceanspaces.com');
     const s3 = new AWS.S3({
         endpoint: spacesEndpoint,
@@ -628,6 +628,8 @@ export const fetchImagesFromS3 = async (searchTerm = '') => {
     });
     const params = {
         Bucket: 'prade', // Your Space name
+        MaxKeys: limit, // Set the number of items to fetch per request (pagination size)
+        ContinuationToken: continuationToken,
     };
     try {
         let allObjects = [];
@@ -678,15 +680,13 @@ export const deleteImagesFromS3 = async (key) => {
     }
 };
 
-export const generateUniqueFilename = async (filename) => {
-    const existingFiles = await fetchImagesFromS3();
-
+export const generateUniqueFilename = async (existingFiles, filename) => {
     let uniqueFilename = filename;
     let counter = 1;
     let fileExists = true;
 
     while (fileExists) {
-        fileExists = existingFiles.some((item) => item.key === uniqueFilename);
+        fileExists = existingFiles.some((item) => getKey(item.node.fileUrl) === uniqueFilename);
         if (fileExists) {
             const fileParts = filename.split('.');
             const extension = fileParts.pop();
@@ -706,18 +706,18 @@ export const generatePresignedPost = async (file) => {
         secretAccessKey, // Add your secret key here
     });
 
-    const uniqueFilename = await generateUniqueFilename(file.name);
+    // const uniqueFilename = await generateUniqueFilename(file.name);
 
     const params = {
         Bucket: 'prade', // Your Space name
         Fields: {
-            key: uniqueFilename, // File name
+            key: file.name, // File name
             acl: 'public-read',
         },
         Conditions: [
             ['content-length-range', 0, 104857600], // 100 MB limit
             ['starts-with', '$Content-Type', ''], // Allow any content type
-            ['eq', '$key', uniqueFilename],
+            ['eq', '$key', file.name],
         ],
         Expires: 60, // 1 minute expiration
     };
@@ -742,18 +742,18 @@ export const generatePresignedVideoPost = async (file) => {
         accessKeyId, // Add your access key here
         secretAccessKey, // Add your secret key here
     });
-    const uniqueFilename = await generateUniqueFilename(file.name);
+    // const uniqueFilename = await generateUniqueFilename(file.name);
 
     const params = {
         Bucket: 'prade', // Your Space name
         Fields: {
-            key: uniqueFilename, // File name
+            key: file.name, // File name
             acl: 'public-read',
         },
         Conditions: [
             ['content-length-range', 0, 104857600], // 100 MB limit (adjust as needed)
             ['starts-with', '$Content-Type', ''], // Ensure only MP4 files are allowed
-            ['eq', '$key', uniqueFilename],
+            ['eq', '$key', file.name],
         ],
         Expires: 60, // 1 minute expiration
     };
@@ -891,7 +891,54 @@ export const months = ['January', 'February', 'March', 'April', 'May', 'June', '
 export const addNewFile = async (e: any) => {
     try {
         let file = e.target.files[0];
-        let uniqueFilename = await generateUniqueFilename(file.name);
+        // let uniqueFilename = await generateUniqueFilename(file.name);
+        const isImage = file.type.startsWith('image/');
+        if (isImage) {
+            if (file.size > 300 * 1024) {
+                file = await resizingImage(file);
+                file = await resizeImage(file, 1160, 1340);
+            } else {
+                file = await resizeImage(file, 1160, 1340);
+            }
+            const { width, height } = await getImageDimensions(file);
+            console.log('Image width, height: ', width, height);
+        }
+
+        file = new File([file], file.name, {
+            type: file.type,
+            lastModified: file.lastModified,
+        });
+
+        let presignedPostData = null;
+        if (file?.name?.endsWith('.mp4')) {
+            presignedPostData = await generatePresignedVideoPost(file);
+        } else {
+            presignedPostData = await generatePresignedPost(file);
+        }
+
+        const formData = new FormData();
+        Object.keys(presignedPostData.fields).forEach((key) => {
+            formData.append(key, presignedPostData.fields[key]);
+        });
+        formData.append('file', file);
+
+        await axios.post(presignedPostData.url, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+
+        // await fetchImagesFromS3();
+        const urls = `https://prade.blr1.digitaloceanspaces.com/${presignedPostData?.fields?.key}`;
+        return urls;
+    } catch (error) {
+        console.error('Error uploading file:', error);
+    }
+};
+
+export const addNewMediaFile = async (file: any, uniqueFilename: any) => {
+    try {
+        // let uniqueFilename = await generateUniqueFilename(file.name);
         const isImage = file.type.startsWith('image/');
         if (isImage) {
             if (file.size > 300 * 1024) {
@@ -928,7 +975,6 @@ export const addNewFile = async (e: any) => {
             },
         });
 
-        await fetchImagesFromS3();
         const urls = `https://prade.blr1.digitaloceanspaces.com/${presignedPostData?.fields?.key}`;
         return urls;
     } catch (error) {
@@ -945,7 +991,7 @@ export const resizingImage = (file) => {
             'JPEG', // Format
             70, // Quality (adjust to get file size below 300KB)
             0, // Rotation
-            (uri:any) => {
+            (uri: any) => {
                 // Convert resized image blob to File
                 const resizedFile = new File([uri], file.name, { type: uri.type });
                 console.log('resizedFile: ', resizedFile);
@@ -984,7 +1030,6 @@ export const getImageDimensions = (file: File): Promise<{ width: number; height:
         reader.readAsDataURL(file);
     });
 };
-
 
 export const resizeImage = (file: File, width: number, height: number): Promise<File> => {
     return new Promise((resolve, reject) => {
@@ -1125,4 +1170,80 @@ export const formatTime = (time) => {
 export const isValidUrl = (url) => {
     const regex = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(\/[^\s]*)?$/i;
     return regex.test(url);
+};
+
+export const fetchImagesFromS3WithPagination = async (searchTerm = '', limit = 10, continuationToken = null) => {
+    console.log('continuationToken: ', continuationToken);
+    console.log('limit: ', limit);
+    console.log('searchTerm: ', searchTerm);
+    const spacesEndpoint = new AWS.Endpoint('https://blr1.digitaloceanspaces.com');
+    const s3 = new AWS.S3({
+        endpoint: spacesEndpoint,
+        accessKeyId, // Add your access key here
+        secretAccessKey, // Add your secret key here
+    });
+
+    const params = {
+        Bucket: 'prade', // Your Space name
+        MaxKeys: limit, // Set the number of items to fetch per request (pagination size)
+        ContinuationToken: continuationToken, // Token to fetch the next set of results
+    };
+
+    try {
+        const data = await s3.listObjectsV2(params).promise();
+
+        // Filter results based on search term
+        const searchLower = searchTerm.toLowerCase();
+        const filteredObjects = data.Contents.filter((item) => item.Key.toLowerCase().includes(searchLower));
+
+        // Map the filtered objects to return necessary information
+        const imageUrls = filteredObjects.map((item) => ({
+            url: `https://prade.blr1.cdn.digitaloceanspaces.com/${item.Key}`,
+            key: item.Key,
+            LastModified: item.LastModified,
+            ...item,
+        }));
+
+        // Sort the results by LastModified date
+        const sortedImages = imageUrls.sort((a: any, b: any) => b.LastModified - a.LastModified);
+
+        return {
+            images: sortedImages,
+            isTruncated: data.IsTruncated, // If there are more items to fetch
+            continuationToken: data.NextContinuationToken || null, // Token for the next page
+        };
+    } catch (error) {
+        console.error('Error fetching images:', error);
+        throw error;
+    }
+};
+
+export const getImageSizeInKB = async (imageUrl) => {
+    try {
+        const response = await fetch(imageUrl, { method: 'HEAD' });
+        const contentLength: any = response.headers.get('Content-Length');
+
+        if (contentLength) {
+            const sizeInKB = contentLength / 1024; // Convert bytes to KB
+            return sizeInKB.toFixed(2); // Return size as a string with 2 decimal points
+        } else {
+            console.log('Unable to retrieve content length.');
+            return null;
+        }
+    } catch (error) {
+        console.error('Error fetching the image:', error);
+        return null;
+    }
+};
+
+export const getMonthNumber = (dateString) => {
+    const date = new Date(dateString);
+
+    const monthNumber = date.getMonth() + 1;
+    return monthNumber;
+};
+
+export const getKey = (imageUrl) => {
+    const key = imageUrl.substring(imageUrl.lastIndexOf('/') + 1);
+    return key;
 };

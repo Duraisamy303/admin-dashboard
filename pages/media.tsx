@@ -3,17 +3,24 @@ import {
     Success,
     accessKeyId,
     addNewFile,
+    addNewMediaFile,
     deleteImagesFromS3,
     docFilter,
-    fetchImagesFromS3,
+    fetchImagesFromS3WithPagination,
     generatePresignedPost,
     generatePresignedVideoPost,
     generateUniqueFilename,
     getFileNameFromUrl,
     getFileType,
+    getImageDimensions,
+    getImageSizeInKB,
+    getKey,
+    getMonthNumber,
     imageFilter,
     months,
     objIsEmpty,
+    resizeImage,
+    resizingImage,
     secretAccessKey,
     separateFiles,
     showDeleteAlert,
@@ -29,19 +36,14 @@ import pdf from '../public/assets/images/pdf.png';
 import docs from '../public/assets/images/docs.jpg';
 import AWS from 'aws-sdk';
 import Image from 'next/image';
-import { useMutation, useQuery } from '@apollo/client';
-import { ADD_NEW_MEDIA_IMAGE, UPDATE_MEDIA_IMAGE, DELETE_MEDIA_IMAGE, GET_MEDIA_IMAGE } from '@/query/product';
+import { useLazyQuery, useMutation, useQuery } from '@apollo/client';
+import { ADD_NEW_MEDIA_IMAGE, UPDATE_MEDIA_IMAGE, DELETE_MEDIA_IMAGE, GET_MEDIA_IMAGE, MEDIA_PAGINATION } from '@/query/product';
 import { Description } from '@headlessui/react/dist/components/description/description';
 import IconLoader from '@/components/Icon/IconLoader';
+import IconArrowBackward from '@/components/Icon/IconArrowBackward';
+import IconArrowForward from '@/components/Icon/IconArrowForward';
 
 export default function Media() {
-    const longPressTimeout = useRef(null);
-
-    const [addNewImages] = useMutation(ADD_NEW_MEDIA_IMAGE);
-    const [updateImages, { loading: mediaUpdateLoading }] = useMutation(UPDATE_MEDIA_IMAGE);
-    const [deleteImages] = useMutation(DELETE_MEDIA_IMAGE);
-    const { data, refetch: getListRefetch } = useQuery(GET_MEDIA_IMAGE);
-
     const [state, setState] = useSetState({
         tab: 1,
         imageList: [],
@@ -57,109 +59,213 @@ export default function Media() {
         caption: '',
         description: '',
         mediaData: null,
+        continuationToken: '',
+        isTruncated: false,
+        endCursor: false,
+        startCursor: false,
+        previousPage: '',
+        hasNextPage: '',
+        selectedMonthNumber: null,
+        search: '',
     });
 
-    useEffect(() => {
-        getMediaImage();
-    }, []);
+    const longPressTimeout = useRef(null);
+    const PAGE_LIMIT = 10;
+    const PAGE_SIZE = 24;
+
+    const [addNewImages] = useMutation(ADD_NEW_MEDIA_IMAGE);
+    const [updateImages, { loading: mediaUpdateLoading }] = useMutation(UPDATE_MEDIA_IMAGE);
+    const [deleteImages] = useMutation(DELETE_MEDIA_IMAGE);
+    const { data, refetch: getListRefetch, loading: loading } = useQuery(GET_MEDIA_IMAGE);
+
+    const { refetch: mediaRefetch } = useQuery(MEDIA_PAGINATION);
+
+    const {
+        error,
+        data: customerData,
+        loading: getLoading,
+    } = useQuery(MEDIA_PAGINATION, {
+        variables: {
+            first: PAGE_SIZE,
+            after: null,
+            fileType: state.mediaType == 'all' ? '' : state.mediaType,
+            month: state.selectedMonthNumber,
+            year: 2024,
+            name: state.search,
+        },
+        onCompleted: (data) => {
+            console.log('data: ', data);
+            commonPagination(data);
+        },
+    });
+
+    const handleNextPage = () => {
+        fetchNextPage({
+            variables: {
+                first: PAGE_SIZE,
+                after: state.endCursor,
+                before: null,
+                fileType: state.mediaType == 'all' ? '' : state.mediaType,
+                month: state.selectedMonthNumber,
+                year: 2024,
+                name: state.search,
+            },
+        });
+    };
+
+    const handlePreviousPage = () => {
+        fetchPreviousPage({
+            variables: {
+                last: PAGE_SIZE,
+                before: state.startCursor,
+                fileType: state.mediaType == 'all' ? '' : state.mediaType,
+                month: state.selectedMonthNumber,
+                year: 2024,
+                name: state.search,
+            },
+        });
+    };
+
+    const [fetchNextPage] = useLazyQuery(MEDIA_PAGINATION, {
+        onCompleted: (data) => {
+            commonPagination(data);
+        },
+    });
+
+    const [fetchPreviousPage] = useLazyQuery(MEDIA_PAGINATION, {
+        onCompleted: (data) => {
+            commonPagination(data);
+        },
+    });
+
+    const commonPagination = (data) => {
+        setState({
+            imageList: data.files.edges,
+            startCursor: data.files.pageInfo.startCursor,
+            endCursor: data.files.pageInfo.endCursor,
+            hasNextPage: data.files.pageInfo.hasNextPage,
+            previousPage: data.files.pageInfo.hasPreviousPage,
+        });
+    };
 
     useEffect(() => {
         filterByType();
     }, [state.mediaType]);
 
-    const getMediaImage = async () => {
-        try {
-            setState({ loading: true });
-            const res = await fetchImagesFromS3();
-            if (state.mediaType == 'all') {
-                setState({ imageList: res });
-            } else if (state.mediaType == 'image') {
-                const response = imageFilter(res);
-                console.log("response: ", response);
-                setState({ imageList: response });
-            } else if (state.mediaType == 'video') {
-                const response = videoFilter(res);
-                setState({ imageList: response });
-            } else {
-                const response = docFilter(res);
-                setState({ imageList: response });
-            }
-            setState({ loading: false });
-        } catch (error) {
-            console.log('error: ', error);
-        }
-    };
 
     const handleFileChange = async (e: any) => {
         try {
-            setState({ loading: true });
-            const res = await addNewFile(e);
-            console.log("res: ", res);
-            const fileType = await getFileType(res);
-            const body = {
-                fileUrl: res,
-                title: '',
-                alt: '',
-                description: '',
-                caption: '',
-                fileType: fileType,
-            };
-
-            console.log("body: ", body);
-
-            const response = await addNewImages({
-                variables: {
-                    input: body,
-                },
-            });
-            console.log("response: ", response);
-
-            getMediaImage();
-
-            setState({ tab: 1 });
-            Success('File added successfully');
-            setState({ loading: false });
+            await addNewImage(e);
         } catch (error) {
             console.error('Error uploading file:', error);
         }
     };
 
-    const filterByType = async () => {
-        const res = await fetchImagesFromS3(state.search);
-        if (state.mediaType == 'all') {
-            setState({ imageList: res });
-        } else if (state.mediaType == 'image') {
-            const response = imageFilter(res);
-            console.log("response: ", response);
-            setState({ imageList: response });
-        } else if (state.mediaType == 'video') {
-            const response = videoFilter(res);
-            setState({ imageList: response });
-        } else {
-            const response = docFilter(res);
-            setState({ imageList: response });
+    const generateUniqueFilenames = async (filename) => {
+        let uniqueFilename = filename;
+        let counter = 0;
+        let fileExists = true;
+
+        while (fileExists) {
+            const res = await mediaRefetch({
+                first: PAGE_LIMIT,
+                after: null,
+                fileType: '',
+                month: null,
+                year: null,
+                name: uniqueFilename,
+            });
+
+            if (res?.data?.files?.edges?.length > 0) {
+                counter += 1;
+                const fileParts = filename.split('.');
+                const extension = fileParts.pop();
+                uniqueFilename = `${fileParts.join('.')}-${counter}.${extension}`;
+            } else {
+                fileExists = false;
+            }
         }
+
+        return uniqueFilename;
+    };
+
+    const addNewImage = async (e) => {
+        let files = e.target.files[0];
+        const isImage = files.type.startsWith('image/');
+        if (isImage) {
+            if (files.size > 300 * 1024) {
+                files = await resizingImage(files);
+                files = await resizeImage(files, 1160, 1340);
+            } else {
+                files = await resizeImage(files, 1160, 1340);
+            }
+            const { width, height } = await getImageDimensions(files);
+            console.log('Image width, height: ', width, height);
+        }
+        console.log("files.size : ", files.size );
+
+        const unique = await generateUniqueFilenames(files.name);
+       
+        const result = await addNewMediaFile(files, unique);
+        const fileType = await getFileType(result);
+        const body = {
+            fileUrl: result,
+            title: '',
+            alt: '',
+            description: '',
+            caption: '',
+            fileType: fileType,
+        };
+        const response = await addNewImages({
+            variables: {
+                input: body,
+            },
+        });
+
+        const res = await mediaRefetch({
+            first: PAGE_SIZE,
+            after: null,
+            fileType: '',
+            month: null,
+            year: null,
+            name: '',
+        });
+
+        commonPagination(res.data);
+        setState({ tab: 1 });
+        Success('File added successfully');
+        setState({ loading: false });
+    };
+
+    const filterByType = async () => {
+        fetchNextPage(commonInput(null, state.mediaType, state.selectedMonthNumber, state.search));
     };
 
     const searchMediaByName = async (e) => {
         setState({ search: e });
         try {
-            const res = await fetchImagesFromS3(e);
-            if (state.mediaType == 'all') {
-                setState({ imageList: res });
-            } else if (state.mediaType == 'image') {
-                const response = imageFilter(res);
-                setState({ imageList: response });
-            } else if (state.mediaType == 'video') {
-                const response = videoFilter(res);
-                setState({ imageList: response });
+            if (e !== null && e !== '' && e !== undefined) {
+                fetchNextPage(commonInput(null, state.mediaType, state.selectedMonthNumber, e));
             } else {
-                const response = docFilter(res);
-                setState({ imageList: response });
+                fetchNextPage(commonInput(null, state.mediaType, state.selectedMonthNumber, ''));
             }
         } catch (error) {
             console.log('error: ', error);
         }
+    };
+
+    const commonInput = (after, fileType, month, name) => {
+        const input = {
+            variables: {
+                first: PAGE_SIZE,
+                after,
+                fileType: fileType == 'all' ? '' : fileType,
+                month,
+                year: 2024,
+                name,
+            },
+        };
+        return input;
     };
 
     const handleCopy = () => {
@@ -204,7 +310,16 @@ export default function Media() {
             const key = getFileNameFromUrl(state.selectImg);
             await deleteImagesFromS3(key);
             await deleteImages({ variables: { file_url: state.selectImg } });
-            getMediaImage();
+            const res = await mediaRefetch({
+                first: PAGE_SIZE,
+                after: null,
+                fileType: '',
+                month: null,
+                year: null,
+                name: '',
+            });
+
+            commonPagination(res.data);
             setState({ selectImg: null });
             Swal.fire('Deleted!', 'Your files have been deleted.', 'success');
         } catch (error) {
@@ -213,84 +328,37 @@ export default function Media() {
     };
 
     const filterMediaByMonth = async (value: any) => {
-        if (value == 'all') {
-            getMediaImage();
-            setState({ date: value });
-        } else {
-            const [month, year] = value.split('/');
-            const monthIndex = new Date(`${month} 1, 2024`).getMonth(); // To get the month index
-            const res = await fetchImagesFromS3();
-            const filteredImages = res.filter((item) => {
-                const itemDate = new Date(item.LastModified);
-                return itemDate.getFullYear() === parseInt(year) && itemDate.getMonth() === monthIndex;
-            });
-            if (state.mediaType == 'all') {
-                setState({ imageList: filteredImages, date: value });
-            } else if (state.mediaType == 'image') {
-                const response = imageFilter(filteredImages);
-                setState({ imageList: response, date: value });
-            } else {
-                const response = videoFilter(filteredImages);
-                setState({ imageList: response, date: value });
-            }
-        }
+        setState({ date: value });
+        const res = getMonthNumber(value);
+        setState({ selectedMonthNumber: res ? res : null });
+
+        fetchNextPage({
+            variables: {
+                first: PAGE_SIZE,
+                after: null,
+                fileType: state.mediaType == 'all' ? '' : state.mediaType,
+                month: value == 'all' ? null : res,
+                year: 2024,
+                name: '',
+            },
+        });
     };
-
-    // const handleClickImage = async (item) => {
-    //     let url = `https://prade.blr1.digitaloceanspaces.com/${item.key}`;
-
-    //     const fileType = await getFileType(url);
-    //     const body = {
-    //         fileUrl: url,
-    //         title: '',
-    //         alt: '',
-    //         description: '',
-    //         caption: '',
-    //         fileType: fileType,
-    //     };
-    //     console.log('body: ', body);
-
-    //     const response = await addNewImages({
-    //         variables: {
-    //             input: body,
-    //         },
-    //     });
-    //     getMediaImage();
-    // };
 
     const handleClickImage = async (item) => {
-        let url = `https://prade.blr1.digitaloceanspaces.com/${item.key}`;
-
         const res = await getListRefetch({
-            fileurl: url,
+            fileurl: item.node.fileUrl,
         });
-
-        const result = res.data?.fileByFileurl;
-        if (result) {
-            setState({
-                selectImg: result?.fileUrl,
-                alt: result?.alt,
-                title: result?.title,
-                caption: result?.caption,
-                description: result?.description,
-                mediaData: { size: item.Size, lastModified: item.LastModified },
-            });
-        }
+        const result = res.data.fileByFileurl;
+        setState({
+            selectImg: result?.fileUrl,
+            alt: result?.alt,
+            title: result?.title,
+            caption: result?.caption,
+            description: result?.description,
+            mediaData: { size: `${parseFloat(result.size)?.toFixed(2)} KB`, lastModified: item.updatedAt },
+        });
     };
 
-    // const deletesImg = async (item) => {
-    //     console.log("item: ", item);
-    //     try {
-    //         // const key = getFileNameFromUrl(state.selectImg);
-    //         await deleteImagesFromS3(item.key);
-    //         await deleteImages({ variables: { file_url: item.url } });
-    //         getMediaImage();
-    //         setState({ selectImg: null });
-    //         Swal.fire('Deleted!', 'Your files have been deleted.', 'success');
-    //     } catch (error) {
-    //         console.error('Error deleting file:', error);
-    //     }
-    // };
 
     const updateMetaData = async () => {
         try {
@@ -309,90 +377,11 @@ export default function Media() {
                 },
             });
             Success('File updated successfully');
-
         } catch (error) {
             console.log('error: ', error);
         }
     };
 
-    const handleUpload = async () => {
-        try {
-            const formData = new FormData();
-
-            let fileMetadata = state.selectImg;
-            const presignedPostData: any = await generatePresignedPost(state.selectImg);
-            const response = await fetch(fileMetadata.url);
-            const blob = await response.blob();
-            const lastModifiedTimestamp = new Date(fileMetadata.LastModified).getTime();
-            const file = new File([blob], fileMetadata.key, {
-                type: getMimeType(fileMetadata.key),
-                lastModified: lastModifiedTimestamp,
-            });
-
-            Object.keys(presignedPostData.fields).forEach((key) => {
-                formData.append(key, presignedPostData.fields[key]);
-            });
-            formData.append('file', file);
-            const responsedf = await axios.post(presignedPostData.url, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
-            getMediaImage();
-        } catch (error) {
-            console.error('Error uploading file:', error);
-        }
-    };
-
-    const getMimeType = (fileName) => {
-        const extension = fileName.split('.').pop().toLowerCase();
-        const mimeTypes = {
-            jpeg: 'image/jpeg',
-            jpg: 'image/jpg',
-            png: 'image/png',
-            webp: 'image/webp',
-            gif: 'image/gif',
-            pdf: 'application/pdf',
-            // Add more MIME types as needed
-        };
-        return mimeTypes[extension] || 'application/octet-stream'; // Default MIME type
-    };
-
-    const generatePresignedPost = (file) => {
-        const spacesEndpoint = new AWS.Endpoint('https://prade.blr1.digitaloceanspaces.com');
-
-        const s3 = new AWS.S3({
-            endpoint: spacesEndpoint,
-            accessKeyId: 'DO00MUC2HWP9YVLPXKXT', // Add your access key here
-            secretAccessKey: 'W9N9b51nxVBvpS59Er9aB6Ht7xx2ZXMrbf3vjBBR8OA', // Add your secret key here
-        });
-        const params = {
-            Bucket: 'prade', // Your Space name
-            Fields: {
-                key: file.key, // File name
-                acl: 'public-read',
-                'x-amz-meta-alt-text': state.alt, // Alternative Text metadata
-                'x-amz-meta-title': state.title, // Title metadata
-                'x-amz-meta-caption': state.caption, // Caption metadata
-                'x-amz-meta-description': state.description, // Description metadata
-            },
-            Conditions: [
-                ['content-length-range', 0, 1048576], // 1 MB limit
-                ['starts-with', '$Content-Type', ''], // Allow any content type
-            ],
-            Expires: 60, // 1 minute expiration
-        };
-
-        return new Promise((resolve, reject) => {
-            s3.createPresignedPost(params, (err, data) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(data);
-                }
-            });
-        });
-    };
 
     return (
         <div className=" ">
@@ -405,7 +394,7 @@ export default function Media() {
                         <button
                             onClick={() => {
                                 setState({ tab: 0, search: '', date: 'all', mediaType: 'all' });
-                                getMediaImage();
+                                // getMediaImage();
                             }}
                             className={`${state.tab == 0 ? 'bg-primary text-white !outline-none' : ''}
                                                     -mb-[1px] flex items-center rounded p-3.5 py-2 text-lg before:inline-block`}
@@ -416,7 +405,7 @@ export default function Media() {
                             onClick={() => {
                                 setState({ tab: 1, search: '', date: 'all', mediaType: 'all' });
 
-                                getMediaImage();
+                                // getMediaImage();
                             }}
                             className={`${state.tab == 1 ? 'bg-primary text-white !outline-none' : ''}
                                                     -mb-[1px] flex items-center rounded p-3.5 py-2 text-lg before:inline-block`}
@@ -453,9 +442,9 @@ export default function Media() {
                                                     {/* <select className="form-select w-40 flex-1"> */}
                                                     <select className="form-select w-60 flex-1" value={state.mediaType} onChange={(e) => setState({ mediaType: e.target.value })}>
                                                         <option value="all">All Data</option>
-                                                        <option value="image">Images</option>
-                                                        <option value="video">Videos</option>
-                                                        <option value="doc">Docs</option>
+                                                        <option value="Image">Images</option>
+                                                        <option value="Video">Videos</option>
+                                                        <option value="Doc">Docs</option>
 
                                                         {/* <option value="July/2024">July 2024</option>
                                                                             <option value="August/2024">August 2024</option> */}
@@ -468,7 +457,13 @@ export default function Media() {
 
                                             <div className="flex justify-between gap-3 pt-3">
                                                 <div className="flex gap-3">
-                                                    <select className="form-select w-60 flex-1" value={state.date} onChange={(e) => filterMediaByMonth(e.target.value)}>
+                                                    <select
+                                                        className="form-select w-60 flex-1"
+                                                        value={state.date}
+                                                        onChange={(e) => {
+                                                            filterMediaByMonth(e.target.value);
+                                                        }}
+                                                    >
                                                         <option value="all">All Data</option>
                                                         {months.map((month, index) => (
                                                             <option key={month} value={`${month}/2024`}>{`${month} 2024`}</option>
@@ -491,38 +486,52 @@ export default function Media() {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-6 pt-5">
-                                        {state.loading ? (
+                                    <div className=" ">
+                                        {getLoading || loading ? (
                                             <CommonLoader />
-                                        ) : state.imageList?.length > 0 ? (
-                                            state.imageList?.map((item) => (
-                                                <div
-                                                    key={item.url}
-                                                    className={`flex h-[150px] w-[150px] overflow-hidden p-2 ${state.selectedImages.includes(item) ? 'border-4 border-blue-500' : ''}`}
-                                                    onMouseDown={() => handleMouseDown(item)}
-                                                    onMouseUp={handleMouseUp}
-                                                    onMouseLeave={handleMouseLeave}
-                                                    onClick={() => {
-                                                        handleClickImage(item);
-                                                        // deletesImg(item)
-                                                    }}
-                                                >
-                                                    {item?.key?.endsWith('.mp4') ? (
-                                                        <video controls src={item.url} className="h-full w-full object-cover">
-                                                            Your browser does not support the video tag.
-                                                        </video>
-                                                    ) : item?.key?.endsWith('.pdf') ? (
-                                                        <Image src={pdf} alt="Loading..." />
-                                                    ) : item?.key?.endsWith('.doc') ? (
-                                                        <Image src={docs} alt="Loading..." />
-                                                    ) : (
-                                                        <img src={item.url} alt="" className="h-full w-full" />
-                                                    )}
-                                                </div>
-                                            ))
                                         ) : (
-                                            <div className="col-span-6 flex h-64 items-center justify-center">No Data Found</div>
+                                            <div className="grid grid-cols-6 pt-5 ">
+                                                {state.imageList?.length > 0 ? (
+                                                    state.imageList?.map((item) => {
+                                                        return (
+                                                            <div
+                                                                key={item.node?.fileUrl}
+                                                                className={`flex h-[150px] w-[150px] overflow-hidden p-2 ${state.selectedImages.includes(item) ? 'border-4 border-blue-500' : ''}`}
+                                                                onMouseDown={() => handleMouseDown(item)}
+                                                                onMouseUp={handleMouseUp}
+                                                                onMouseLeave={handleMouseLeave}
+                                                                onClick={() => {
+                                                                    handleClickImage(item);
+                                                                    // deletesImg(item)
+                                                                }}
+                                                            >
+                                                                {item?.node?.fileUrl?.endsWith('.mp4') ? (
+                                                                    <video controls src={item.node?.fileUrl} className="h-full w-full object-cover">
+                                                                        Your browser does not support the video tag.
+                                                                    </video>
+                                                                ) : item?.node?.fileUrl?.endsWith('.pdf') ? (
+                                                                    <Image src={pdf} alt="Loading..." />
+                                                                ) : item?.node?.fileUrl?.endsWith('.doc') ? (
+                                                                    <Image src={docs} alt="Loading..." />
+                                                                ) : (
+                                                                    <img src={item.node?.fileUrl} alt="" className="h-full w-full" />
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    <div className="col-span-6 flex h-64 items-center justify-center">No Data Found</div>
+                                                )}
+                                            </div>
                                         )}
+                                    </div>
+                                    <div className="mt-5 flex justify-end gap-3">
+                                        <button disabled={!state.previousPage} onClick={handlePreviousPage} className={`btn ${!state.previousPage ? 'btn-disabled' : 'btn-primary'}`}>
+                                            <IconArrowBackward />
+                                        </button>
+                                        <button disabled={!state.hasNextPage} onClick={handleNextPage} className={`btn ${!state.hasNextPage ? 'btn-disabled' : 'btn-primary'}`}>
+                                            <IconArrowForward />
+                                        </button>
                                     </div>
                                 </div>
                                 {state.selectImg && (
@@ -544,12 +553,12 @@ export default function Media() {
                                                 ) : (
                                                     <img src={state.selectImg} alt="" className="" />
                                                 )}
-                                                {/* <img src={state.selectImg?.url} alt="" className="" /> */}
+                                                <img src={state.selectImg?.url} alt="" className="" />
                                             </div>
-                                            <p className="mt-2 font-semibold">{state.selectImg?.key}</p>
+                                            <p className="mt-2 font-semibold">{getKey(state.selectImg)}</p>
 
                                             <p className="text-sm">{moment(state?.mediaData?.lastModified).format('DD-MM-YYYY')}</p>
-                                            <p className="text-sm">{(state?.mediaData?.size / 1024).toFixed(2)} KB</p>
+                                            <p className="text-sm">{state?.mediaData?.size}</p>
 
                                             <a href="#" className="text-danger underline" onClick={() => multiImageDelete()}>
                                                 Delete permanently

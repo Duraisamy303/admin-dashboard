@@ -1072,36 +1072,60 @@ export const validateDateTime = (dateTimeString) => {
     return !isNaN(date.getTime());
 };
 
-export const getFileType = async (url) => {
-    const extensionToMime = {
-        jpg: 'image/jpg',
-        jpeg: 'image/jpeg',
-        png: 'image/png',
-        gif: 'image/gif',
-        webp: 'image/webp',
-        pdf: 'application/pdf',
-        doc: 'application/msword',
-        mp3: 'audio/mpeg',
-        wav: 'audio/wav',
-        mp4: 'audio/mp4',
+// export const getFileType = async (url) => {
+//     const extensionToMime = {
+//         jpg: 'image/jpg',
+//         jpeg: 'image/jpeg',
+//         png: 'image/png',
+//         gif: 'image/gif',
+//         webp: 'image/webp',
+//         pdf: 'application/pdf',
+//         doc: 'application/msword',
+//         mp3: 'audio/mpeg',
+//         wav: 'audio/wav',
+//         mp4: 'audio/mp4',
+//     };
+
+//     try {
+//         const response = await fetch(url, { method: 'HEAD' });
+//         if (!response.ok) {
+//             throw new Error('Network response was not ok');
+//         }
+//         let contentType = response.headers.get('Content-Type');
+//         if (contentType === 'binary/octet-stream') {
+//             const extension = url.split('.').pop().toLowerCase();
+//             contentType = extensionToMime[extension] || 'application/octet-stream';
+//         }
+//         return contentType;
+//     } catch (error) {
+//         console.error('There has been a problem with your fetch operation:', error);
+//         return null;
+//     }
+// };
+
+export const getFileType = async(filename) => {
+    const videoFormats = new Set(['mp4', 'avi', 'mov', 'mkv', 'webm', 'flv', 'wmv', 'mpeg', 'ogv']);
+    const imageFormats = new Set(['jpeg', 'jpg', 'png', 'gif', 'bmp', 'tiff', 'webp', 'svg', 'heic', 'ico']);
+    const documentFormats = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt']);
+  
+    const getFileExtension = (filename) => {
+      const parts = filename.split('.');
+      return parts.length > 1 ? parts.pop().toLowerCase() : '';
     };
 
-    try {
-        const response = await fetch(url, { method: 'HEAD' });
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        let contentType = response.headers.get('Content-Type');
-        if (contentType === 'binary/octet-stream') {
-            const extension = url.split('.').pop().toLowerCase();
-            contentType = extensionToMime[extension] || 'application/octet-stream';
-        }
-        return contentType;
-    } catch (error) {
-        console.error('There has been a problem with your fetch operation:', error);
-        return null;
+    const ext = getFileExtension(filename);
+    
+    if (videoFormats.has(ext)) {
+      return 'Video';
+    } else if (imageFormats.has(ext)) {
+      return 'Image';
+    } else if (documentFormats.has(ext)) {
+      return 'Doc';
+    } else {
+      return 'unknown';
     }
-};
+  };
+
 export const getFileNameFromUrl = (url) => {
     const urlObject = new URL(url);
     const pathname = urlObject.pathname;

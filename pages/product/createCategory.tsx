@@ -147,6 +147,8 @@ const Category = () => {
         name: Yup.string().required('Please fill the Category Name'),
     });
 
+    
+
     // form submit
     const onSubmit = async (record: any, { resetForm }: any) => {
         try {
@@ -318,7 +320,7 @@ const Category = () => {
             setTitle(result?.title);
             setDescription(result?.description);
             setCaption(result?.caption);
-            setMediaData({ size:`${parseFloat(result.size)?.toFixed(2)}`, lastModified: item.LastModified });
+            setMediaData({ size:`${parseFloat(result?.size)?.toFixed(2)}`, lastModified: item.LastModified });
         }
     };
 

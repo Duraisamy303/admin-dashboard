@@ -308,7 +308,7 @@ const ProductAdd = () => {
                 first: PAGE_SIZE,
                 after: mediaEndCursor,
                 before: null,
-                fileType: 'Image',
+                fileType: mediaType == 'all' ? '' : mediaType,
                 month: monthNumber,
                 year: 2024,
                 name: mediaSearch,
@@ -321,7 +321,7 @@ const ProductAdd = () => {
             variables: {
                 last: PAGE_SIZE,
                 before: mediaStartCussor,
-                fileType: 'Image',
+                fileType: mediaType == 'all' ? '' : mediaType,
                 month: monthNumber,
                 year: 2024,
                 name: mediaSearch,
@@ -486,7 +486,6 @@ const ProductAdd = () => {
         version: '2.19.0',
     });
 
-
     let editors = { isReady: false };
 
     useEffect(() => {
@@ -501,6 +500,7 @@ const ProductAdd = () => {
             }
         };
     }, [value]);
+
     const editor = useCallback(() => {
         // Check if the window object is available and if the editorRef.current is set
         if (typeof window === 'undefined' || !editorRef.current) return;
@@ -1195,16 +1195,7 @@ const ProductAdd = () => {
             const key = getFileNameFromUrl(selectedImg);
             await deleteImagesFromS3(key);
             await deleteImages({ variables: { file_url: selectedImg } });
-            const res = await mediaRefetch({
-                first: PAGE_SIZE,
-                after: null,
-                fileType: '',
-                month: null,
-                year: null,
-                name: '',
-            });
-
-            commonPagination(res.data);
+            await refresh();
             setSelectedImg(null);
             Swal.fire('Deleted!', 'Your files have been deleted.', 'success');
         } catch (error) {
@@ -1307,7 +1298,7 @@ const ProductAdd = () => {
             variables: {
                 first: PAGE_SIZE,
                 after,
-                fileType: 'Image',
+                fileType: mediaType == 'all' ? '' : mediaType,
                 month: month,
                 year: 2024,
                 name,
@@ -1338,7 +1329,7 @@ const ProductAdd = () => {
             setTitle(result?.title);
             setDescription(result?.description);
             setCaption(result?.caption);
-            setMediaData({ size: `${parseFloat(result.size)?.toFixed(2)} KB`, lastModified: item.LastModified });
+            setMediaData({ size: `${parseFloat(result?.size)?.toFixed(2)} KB`, lastModified: item.LastModified });
         }
     };
 
@@ -1380,7 +1371,6 @@ const ProductAdd = () => {
 
     const addNewImage = async (e) => {
         let files = e.target.files[0];
-        console.log('files: ', files);
         const isImage = files.type.startsWith('image/');
         if (isImage) {
             if (files.size > 300 * 1024) {
@@ -1390,9 +1380,7 @@ const ProductAdd = () => {
                 files = await resizeImage(files, 1160, 1340);
             }
             const { width, height } = await getImageDimensions(files);
-            console.log('Image width, height: ', width, height);
         }
-        console.log('files.size : ', files.size);
 
         const unique = await generateUniqueFilenames(files.name);
 
@@ -1412,19 +1400,33 @@ const ProductAdd = () => {
             },
         });
 
-        const res = await mediaRefetch({
-            first: PAGE_SIZE,
-            after: null,
-            fileType: '',
-            month: null,
-            year: null,
-            name: '',
-        });
-
-        commonPagination(res.data);
+        await refresh();
         setMediaTab(1);
         Success('File added successfully');
     };
+
+    const refresh = async () => {
+        try {
+            const res = await mediaRefetch({
+                first: PAGE_SIZE,
+                after: null,
+                fileType: '',
+                month: null,
+                year: null,
+                name: '',
+            });
+
+            commonPagination(res.data);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
+    useEffect(() => {
+        if (mediaType == 'all') {
+            refresh();
+        }
+    }, [mediaType]);
 
     return (
         <div>
@@ -1865,7 +1867,7 @@ const ProductAdd = () => {
                                     imageUrl?.map((item: any, index: any) => (
                                         <div className="relative col-span-4 flex h-[60px] w-[80px] overflow-hidden " key={index}>
                                             {item?.endsWith('.mp4') ? (
-                                                <video controls src={item} className="h-full w-full object-cover">
+                                                <video controls src={item?.url} className="h-full w-full object-cover">
                                                     Your browser does not support the video tag.
                                                 </video>
                                             ) : (

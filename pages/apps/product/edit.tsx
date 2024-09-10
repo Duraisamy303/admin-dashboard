@@ -174,7 +174,6 @@ const ProductEdit = (props: any) => {
     ];
     const { refetch: mediaRefetch } = useQuery(MEDIA_PAGINATION);
 
-
     // -------------------------------------New Added-------------------------------------------------------
     const { data: productDetails } = useQuery(PRODUCT_FULL_DETAILS, {
         variables: { channel: 'india-channel', id: id },
@@ -318,7 +317,7 @@ const ProductEdit = (props: any) => {
                 first: PAGE_SIZE,
                 after: mediaEndCursor,
                 before: null,
-                fileType: 'Image',
+                fileType: mediaType == 'all' ? '' : mediaType,
                 month: monthNumber,
                 year: 2024,
                 name: mediaSearch,
@@ -331,7 +330,7 @@ const ProductEdit = (props: any) => {
             variables: {
                 last: PAGE_SIZE,
                 before: mediaStartCussor,
-                fileType: 'Image',
+                fileType: mediaType == 'all' ? '' : mediaType,
                 month: monthNumber,
                 year: 2024,
                 name: mediaSearch,
@@ -381,6 +380,31 @@ const ProductEdit = (props: any) => {
         const options = formatOptions(getparentCategoryList);
         setCategoryList(options);
     }, [parentList]);
+
+    useEffect(() => {
+        if (mediaType == 'all') {
+            refresh();
+        } else {
+            filterByTypes();
+        }
+    }, [mediaType]);
+
+    const filterByTypes = async () => {
+        try {
+            const res = await mediaRefetch({
+                first: PAGE_SIZE,
+                after: null,
+                fileType: mediaType == 'all' ? '' : mediaType,
+                month: null,
+                year: null,
+                name: '',
+            });
+
+            commonPagination(res.data);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
 
     const productsDetails = async () => {
         try {
@@ -644,6 +668,23 @@ const ProductEdit = (props: any) => {
         }
     };
 
+    const refresh = async () => {
+        try {
+            const res = await mediaRefetch({
+                first: PAGE_SIZE,
+                after: null,
+                fileType: '',
+                month: null,
+                year: null,
+                name: '',
+            });
+
+            commonPagination(res.data);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
     const collections_list = async () => {
         try {
             if (collection_list) {
@@ -753,16 +794,7 @@ const ProductEdit = (props: any) => {
             },
         });
 
-        const res = await mediaRefetch({
-            first: PAGE_SIZE,
-            after: null,
-            fileType: '',
-            month: null,
-            year: null,
-            name: '',
-        });
-
-        commonPagination(res.data);
+        await refresh();
         setMediaTab(1);
         Success('File added successfully');
     };
@@ -775,6 +807,7 @@ const ProductEdit = (props: any) => {
     };
 
     const multiImageDelete = async (val: any) => {
+        console.log('multiImageDelete: ');
         showDeleteAlert(
             async () => {
                 // const { data } = await removeImage({
@@ -1390,7 +1423,6 @@ const ProductEdit = (props: any) => {
             let arr = [...images];
             // const urls = selectedImages?.map((item) => item.url);
             const urls = selectedImages?.map((item) => item?.node?.fileUrl);
-
             // const updatedUrls = urls.map((url) => url?.replace('.cdn', ''));
             urls.map(async (items) => {
                 const { data } = await createMedia({
@@ -1428,16 +1460,7 @@ const ProductEdit = (props: any) => {
         try {
             const key = getFileNameFromUrl(selectedImg);
             await deleteImages({ variables: { file_url: selectedImg } });
-            const res = await mediaRefetch({
-                first: PAGE_SIZE,
-                after: null,
-                fileType: '',
-                month: null,
-                year: null,
-                name: '',
-            });
-
-            commonPagination(res.data);
+            await refresh();
             setSelectedImg(null);
             Swal.fire('Deleted!', 'Your files have been deleted.', 'success');
         } catch (error) {
@@ -1582,7 +1605,7 @@ const ProductEdit = (props: any) => {
             setTitle(result?.title);
             setDescription(result?.description);
             setCaption(result?.caption);
-            setMediaData({ size: `${parseFloat(result.size)?.toFixed(2)}`, lastModified: item.LastModified });
+            setMediaData({ size: `${parseFloat(result?.size)?.toFixed(2)}`, lastModified: item.LastModified });
         }
     };
 
@@ -1650,7 +1673,7 @@ const ProductEdit = (props: any) => {
             variables: {
                 first: PAGE_SIZE,
                 after,
-                fileType: 'Image',
+                fileType: mediaType == 'all' ? '' : mediaType,
                 month: month,
                 year: 2024,
                 name,
@@ -2227,7 +2250,7 @@ const ProductEdit = (props: any) => {
                                             onDrop={(e) => handleDrop(e, index)}
                                         >
                                             {item?.url?.endsWith('.mp4') ? (
-                                                <video controls src={item} className="h-full w-full object-cover">
+                                                <video controls src={item?.url} className="h-full w-full object-cover">
                                                     Your browser does not support the video tag.
                                                 </video>
                                             ) : (

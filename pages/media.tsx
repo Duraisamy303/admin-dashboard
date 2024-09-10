@@ -149,9 +149,29 @@ export default function Media() {
     };
 
     useEffect(() => {
-        filterByType();
+        if (state.mediaType == 'all') {
+            refresh();
+        } else {
+            filterByType();
+        }
     }, [state.mediaType]);
 
+    const refresh = async () => {
+        try {
+            const res = await mediaRefetch({
+                first: PAGE_SIZE,
+                after: null,
+                fileType: '',
+                month: null,
+                year: null,
+                name: '',
+            });
+
+            commonPagination(res.data);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
 
     const handleFileChange = async (e: any) => {
         try {
@@ -200,12 +220,10 @@ export default function Media() {
                 files = await resizeImage(files, 1160, 1340);
             }
             const { width, height } = await getImageDimensions(files);
-            console.log('Image width, height: ', width, height);
         }
-        console.log("files.size : ", files.size );
 
         const unique = await generateUniqueFilenames(files.name);
-       
+
         const result = await addNewMediaFile(files, unique);
         const fileType = await getFileType(result);
         const body = {
@@ -355,10 +373,9 @@ export default function Media() {
             title: result?.title,
             caption: result?.caption,
             description: result?.description,
-            mediaData: { size: `${parseFloat(result.size)?.toFixed(2)} KB`, lastModified: item.updatedAt },
+            mediaData: { size: `${parseFloat(result?.size)?.toFixed(2)} KB`, lastModified: item.updatedAt },
         });
     };
-
 
     const updateMetaData = async () => {
         try {
@@ -381,7 +398,6 @@ export default function Media() {
             console.log('error: ', error);
         }
     };
-
 
     return (
         <div className=" ">

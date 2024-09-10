@@ -369,7 +369,7 @@ const EditCategory = () => {
             setTitle(result?.title);
             setDescription(result?.description);
             setCaption(result?.caption);
-            setMediaData({ size: `${parseFloat(result.size)?.toFixed(2)}`, lastModified: item.LastModified });
+            setMediaData({ size: `${parseFloat(result?.size)?.toFixed(2)}`, lastModified: item.LastModified });
         }
     };
 

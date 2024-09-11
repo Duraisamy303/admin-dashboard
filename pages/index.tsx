@@ -1195,7 +1195,7 @@ const Index = () => {
                                                 <IconTrashLines />
                                             </button>
 
-                                            <button type="button" className="flex" onClick={() => router.push(`/apps/product/log?id=${row.id}`)}>
+                                            <button type="button" className="flex" onClick={() => window.open(`/apps/product/log?id=${row.id}`, '_blank')}>
                                                 <IconMenuReport />
                                             </button>
                                         </div>

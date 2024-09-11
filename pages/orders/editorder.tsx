@@ -2564,7 +2564,7 @@ const Editorder = () => {
                                                     <td>{item?.productName}</td>
 
                                                     <td>
-                                                        <img src={profilePic(item?.thumbnail?.url)} height={80} alt="Selected" className="object-cover" />
+                                                        <img src={profilePic(item?.variant?.product?.thumbnail?.url)} height={80} alt="Selected" className="object-cover" />
                                                     </td>
                                                     <td>{item?.variant?.sku}</td>
 

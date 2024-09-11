@@ -2519,6 +2519,14 @@ export const ORDER_FULFILL_DATA = gql`
             }
             trackInventory
             __typename
+            images {
+                url
+            }
+            product {
+                thumbnail {
+                    url
+                }
+            }
         }
         thumbnail(size: 64) {
             url

@@ -52,6 +52,7 @@ import {
     DELETE_MEDIA_IMAGE,
     GET_MEDIA_IMAGE,
     MEDIA_PAGINATION,
+    UPDATED_PRODUCT_PAGINATION,
 } from '@/query/product';
 import {
     Failure,
@@ -174,6 +175,8 @@ const ProductEdit = (props: any) => {
     ];
     const { refetch: mediaRefetch } = useQuery(MEDIA_PAGINATION);
 
+    const { refetch: refreshfetch } = useQuery(UPDATED_PRODUCT_PAGINATION);
+
     // -------------------------------------New Added-------------------------------------------------------
     const { data: productDetails } = useQuery(PRODUCT_FULL_DETAILS, {
         variables: { channel: 'india-channel', id: id },
@@ -228,16 +231,16 @@ const ProductEdit = (props: any) => {
     });
 
     const [addFormData] = useMutation(CREATE_PRODUCT);
-    const [updateProductChannelList] = useMutation(UPDATE_PRODUCT_CHANNEL);
-    const [updateVariantList] = useMutation(UPDATE_VARIANT_LIST);
-    const [updateVariant] = useMutation(UPDATE_VARIANT);
-    const [updateMedatData] = useMutation(UPDATE_META_DATA);
-    const [assignTagToProduct] = useMutation(ASSIGN_TAG_PRODUCT);
-    const [mediaReorder] = useMutation(PRODUCTS_MEDIA_ORDERS);
-    const [createVariant] = useMutation(CREATE_VARIANT);
+    const [updateProductChannelList, { loading: updateChannelLoad }] = useMutation(UPDATE_PRODUCT_CHANNEL);
+    const [updateVariantList, { loading: updateVariantListLoad }] = useMutation(UPDATE_VARIANT_LIST);
+    const [updateVariant, { loading: updateVariantLoad }] = useMutation(UPDATE_VARIANT);
+    const [updateMedatData, { loading: updatemedaLoad }] = useMutation(UPDATE_META_DATA);
+    // const [assignTagToProduct,{loading:updateAssignTagLoad}] = useMutation(ASSIGN_TAG_PRODUCT);
+    const [mediaReorder, { loading: updateMediaReorderLoad }] = useMutation(PRODUCTS_MEDIA_ORDERS);
+    const [createVariant, { loading: createVariantLoad }] = useMutation(CREATE_VARIANT);
     const [removeImage] = useMutation(REMOVE_IMAGE);
-    const [updateProduct] = useMutation(UPDATE_PRODUCT);
-    const [deleteVarient] = useMutation(DELETE_VARIENT);
+    const [updateProduct, { loading: updateProductLoad }] = useMutation(UPDATE_PRODUCT);
+    const [deleteVarient, { loading: deleteVariantLoad }] = useMutation(DELETE_VARIENT);
     const longPressTimeout = useRef(null);
 
     const [addNewImages] = useMutation(ADD_NEW_MEDIA_IMAGE);
@@ -1132,12 +1135,12 @@ const ProductEdit = (props: any) => {
                 Failure(data?.updateMetadata?.errors[0]?.message);
             } else {
                 Success('Product updated successfully');
-                router.push('/');
+                // router.push('/');
+                productRefresh();
                 setUpdateLoading(false);
             }
         } catch (error) {
             setUpdateLoading(false);
-
             console.log('error: ', error);
         }
     };
@@ -1159,7 +1162,7 @@ const ProductEdit = (props: any) => {
                 stocks: [
                     {
                         warehouse: 'V2FyZWhvdXNlOmRmODMzODUzLTQyMGYtNGRkZi04YzQzLTVkMzdjMzI4MDRlYQ==',
-                        quantity: item.stackMgmt ? item.quantity : 0,
+                        quantity: item.quantity,
                     },
                 ],
             }));
@@ -1177,10 +1180,10 @@ const ProductEdit = (props: any) => {
                 Failure(data?.productVariantBulkCreate?.errors[0]?.message);
             } else {
                 const resVariants = data?.productVariantBulkCreate?.productVariants;
-                if (resVariants?.length > 0) {
-                    resVariants?.map((item: any) => {
-                        variantChannelListUpdate(item.id, NewAddedVariant);
-                    });
+                if (resVariants?.length > 0 && NewAddedVariant?.length > 0) {
+                    if (resVariants.length === NewAddedVariant.length) {
+                        variantChannelListUpdate(resVariants, NewAddedVariant);
+                    }
                 }
             }
         } catch (error) {
@@ -1190,21 +1193,32 @@ const ProductEdit = (props: any) => {
         }
     };
 
-    const variantChannelListUpdate = async (variantId: any, NewAddedVariant: any) => {
+    const variantChannelListUpdate = async (resVariants: any[], NewAddedVariant: any[]) => {
         try {
-            const variantArr = NewAddedVariant?.map((item: any) => ({
-                channelId: 'Q2hhbm5lbDoy',
-                price: item.regularPrice,
-                costPrice: item.regularPrice,
-            }));
+            const updatePromises = resVariants.map((variant: any, index: number) => {
+                const variantId = variant.id;
+                const newVariantData = NewAddedVariant[index];
 
-            const { data } = await updateVariantList({
-                variables: {
-                    id: variantId,
-                    input: variantArr,
-                },
-                // variables: { email: formData.email, password: formData.password },
+                const variantArr = [
+                    {
+                        channelId: 'Q2hhbm5lbDoy', // Fixed or dynamic channelId
+                        price: newVariantData.regularPrice,
+                        costPrice: newVariantData.regularPrice,
+                    },
+                ];
+
+                console.log('variantArr: ', variantArr);
+
+                return updateVariantList({
+                    variables: {
+                        id: variantId,
+                        input: variantArr,
+                    },
+                });
             });
+
+            await Promise.all(updatePromises);
+
             if (data?.productVariantChannelListingUpdate?.errors?.length > 0) {
                 setUpdateLoading(false);
                 Failure(data?.productVariantChannelListingUpdate?.errors[0]?.message);
@@ -1213,7 +1227,6 @@ const ProductEdit = (props: any) => {
             }
         } catch (error) {
             setUpdateLoading(false);
-
             console.log('error: ', error);
         }
     };
@@ -1686,6 +1699,27 @@ const ProductEdit = (props: any) => {
         setMediaMonth(value);
         const res = getMonthNumber(value);
         setMonthNumber(res);
+    };
+
+    const productRefresh = async () => {
+        try {
+            const { data } = await refreshfetch({
+                channel: 'india-channel',
+                first: PAGE_SIZE,
+                after: null,
+                search: '',
+            });
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
+    const updateProductLoader = () => {
+        let loading = true;
+        if (!updateProductLoad && !updateChannelLoad && !updateMediaReorderLoad && !createVariantLoad && !updateVariantListLoad && !updatemedaLoad && !updateVariantLoad) {
+            loading = false;
+        }
+        return loading;
     };
 
     return (
@@ -2219,7 +2253,7 @@ const ProductEdit = (props: any) => {
                             </div>
                             <div className="flex gap-5">
                                 <button type="submit" className="btn btn-primary w-full " onClick={() => updateProducts()}>
-                                    {updateLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Update'}
+                                    {updateProductLoader() ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Update'}
                                 </button>
                                 <button
                                     type="submit"

@@ -294,7 +294,7 @@ const Index = () => {
             tags: item.node.tags?.length > 0 ? item.node?.tags?.map((tag) => tag?.name).join(',') : '-',
             stock: checkStock(item.node.variants) ? 'In stock' : 'Out of stock',
             id: item.node.id,
-            orderNumber: item.node.orderNo
+            orderNumber: item.node.orderNo,
         }));
 
         return newData;
@@ -757,7 +757,7 @@ const Index = () => {
 
                 // router.push(`/apps/product/edit?id=${productId}`);
                 // window.open(`/apps/product/edit?id=${productId}`, '_blank');
-                duplicate_refresh()
+                duplicate_refresh();
             }
         } catch (error) {
             console.log('error: ', error);
@@ -999,7 +999,7 @@ const Index = () => {
                 setSelectedCat([]);
                 setSelectedTag([]);
                 setVariantIsStackMgmt(false);
-                setExpandedRow(null)
+                setExpandedRow(null);
                 setVariantQuantity(0);
                 setVariantStatus('');
                 setMenuOrder(null);
@@ -1044,9 +1044,9 @@ const Index = () => {
             setIsEditOpen(false);
         }
     };
-const expandedRows=(row)=>{
-    setExpandedRow(row.id === expandedRow ? null : row.id)
-}
+    const expandedRows = (row) => {
+        setExpandedRow(row.id === expandedRow ? null : row.id);
+    };
     return (
         <div className="">
             <div className="panel mb-5 flex items-center justify-between gap-5">
@@ -1059,7 +1059,7 @@ const expandedRows=(row)=>{
                         Export
                     </button>
                 </div>
-                <div className='flex gap-5'>
+                <div className="flex gap-5">
                     <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => router.push('/apps/product/add')}>
                         + Create
                     </button>
@@ -1147,7 +1147,7 @@ const expandedRows=(row)=>{
                             { accessor: 'orderNumber', sortable: true },
 
                             { accessor: 'sku', sortable: true, title: 'SKU' },
-                            
+
                             { accessor: 'stock', sortable: false },
                             { accessor: 'status', sortable: true },
                             { accessor: 'price', sortable: true },
@@ -1175,7 +1175,7 @@ const expandedRows=(row)=>{
                                 render: (row: any) => (
                                     <>
                                         <div className="mx-auto flex w-max items-center gap-4">
-                                            <button className="flex hover:text-info" onClick={() => router.push(`/apps/product/edit?id=${row.id}`)}>
+                                            <button className="flex hover:text-info" onClick={() => window.open(`/apps/product/edit?id=${row.id}`, '_blank')}>
                                                 <IconEdit className="h-4.5 w-4.5" />
                                             </button>
                                             <button

@@ -681,6 +681,14 @@ const EditCategory = () => {
                                                                 <div className="col-span-6 flex h-64 items-center justify-center">No Data Found</div>
                                                             )}
                                                         </div>
+                                                        <div className="mt-5 flex justify-end gap-3">
+                                                            <button disabled={!mediaPreviousPage} onClick={handlePreviousPage} className={`btn ${!mediaPreviousPage ? 'btn-disabled' : 'btn-primary'}`}>
+                                                                <IconArrowBackward />
+                                                            </button>
+                                                            <button disabled={!mediaHasNextPage} onClick={handleNextPage} className={`btn ${!mediaHasNextPage ? 'btn-disabled' : 'btn-primary'}`}>
+                                                                <IconArrowForward />
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                     {selectedImg && (
                                                         <div className="col-span-3 h-[450px] overflow-y-scroll pl-5">

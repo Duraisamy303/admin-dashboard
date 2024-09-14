@@ -149,7 +149,7 @@ const ProductAdd = () => {
     const [selectedCollection, setSelectedCollection] = useState([]);
     const [tagList, setTagList] = useState([]);
     const [selectedTag, setSelectedTag] = useState([]);
-    const [publish, setPublish] = useState('published');
+    const [publish, setPublish] = useState('draft');
     const [modal4, setModal4] = useState(false);
     const [mediaMonth, setMediaMonth] = useState('all');
     const [mediaType, setMediaType] = useState('all');
@@ -678,8 +678,10 @@ const ProductAdd = () => {
         try {
             const savedContent = await editorInstance.save();
             const descr = JSON.stringify(savedContent, null, 2);
-            setCreateLoading(true);
+            let errors = null;
+            let variantErrors = null;
 
+            let attributeErrors = null;
             // Reset error messages
             setProductNameErrMsg('');
             setSlugErrMsg('');
@@ -692,85 +694,94 @@ const ProductAdd = () => {
             setVariantErrors([]);
 
             // Validation
-            const errors = validateMainFields(JSON.parse(descr));
-            const variantErrors = validateVariants();
-            const attributeErrors: any = validateAttributes();
+            errors = validateMainFields(JSON.parse(descr));
+            variantErrors = validateVariants();
+            attributeErrors = validateAttributes();
 
             // Set errors
-            setProductNameErrMsg(errors.productName);
-            setSlugErrMsg(errors.slug);
-            setSeoTittleErrMsg(errors.seoTittle);
-            setSeoDescErrMsg(errors.seoDesc);
-            setDescriptionErrMsg(errors.description);
-            setShortDesErrMsg(errors.shortDescription);
-            setCategoryErrMsg(errors.category);
-            setVariantErrors(variantErrors);
+            if (publish !== 'draft') {
+                setProductNameErrMsg(errors.productName);
+                setSlugErrMsg(errors.slug);
+                setSeoTittleErrMsg(errors.seoTittle);
+                setSeoDescErrMsg(errors.seoDesc);
+                setDescriptionErrMsg(errors.description);
+                setShortDesErrMsg(errors.shortDescription);
+                setCategoryErrMsg(errors.category);
+                setVariantErrors(variantErrors);
 
-            if (Object.keys(attributeErrors).length > 0) {
-                setAttributeError(attributeErrors);
-            }
-
-            // Check if any error exists
-            if (Object.values(errors).some((msg) => msg !== '') || variantErrors.some((err) => Object.keys(err).length > 0) || Object.keys(attributeErrors).length > 0) {
-                setCreateLoading(false);
-                Failure('Please fill in all required fields');
-                return; // Exit if any error exists
-            }
-
-            // Prepare data for submission
-            // const collectionId = selectedCollection?.map((item) => item.value) || [];
-            const tagId = selectedTag?.map((item) => item.value) || [];
-
-            let upsells = [];
-            if (selectedUpsell?.length > 0) {
-                upsells = selectedUpsell?.map((item) => item?.value);
-            }
-
-            let crosssells = [];
-            if (selectedCrosssell?.length > 0) {
-                crosssells = selectedCrosssell?.map((item) => item?.value);
-            }
-
-            // Submit data
-            const { data } = await addFormData({
-                variables: {
-                    input: {
-                        description: descr,
-                        attributes: [],
-                        category: selectedCat?.map((item) => item?.value),
-                        collections: [],
-                        tags: tagId,
-                        name: productName,
-                        productType: 'UHJvZHVjdFR5cGU6Mg==',
-                        upsells,
-                        crosssells,
-                        seo: {
-                            description: seoDesc,
-                            title: seoTittle,
-                        },
-                        slug: slug,
-                        ...(menuOrder && menuOrder > 0 && { order_no: menuOrder }),
-                        ...(selectedValues && selectedValues.design && { prouctDesign: selectedValues.design }),
-                        ...(selectedValues && selectedValues.style && { productstyle: selectedValues.style }),
-                        ...(selectedValues && selectedValues.finish && { productFinish: selectedValues.finish }),
-                        ...(selectedValues && selectedValues.stone && { productStoneType: selectedValues.stone }),
-                        ...(selectedValues && selectedValues.type && { productItemtype: selectedValues.type }),
-                        ...(selectedValues && selectedValues.size && { productSize: selectedValues.size }),
-                        ...(selectedValues && selectedValues.stoneColor && { productStonecolor: selectedValues.stoneColor }),
-                    },
-                },
-            });
-
-            if (data?.productCreate?.errors?.length > 0) {
-                setCreateLoading(false);
-                Failure(data?.productCreate?.errors[0]?.message);
+                if (Object.keys(attributeErrors).length > 0) {
+                    setAttributeError(attributeErrors);
+                }
+                if (Object.values(errors).some((msg) => msg !== '') || variantErrors.some((err) => Object.keys(err).length > 0) || Object.keys(attributeErrors).length > 0) {
+                    setCreateLoading(false);
+                    Failure('Please fill in all required fields');
+                    return; // Exit if any error exists
+                }
             } else {
-                const productId = data?.productCreate?.product?.id;
-                productChannelListUpdate(productId);
-                if (imageUrl?.length > 0) {
-                    imageUrl.forEach(async (item) => {
-                        createMediaData(productId, item);
+                if (Object.values(errors).some((msg) => msg !== '')) {
+                    setCreateLoading(false);
+                    setProductNameErrMsg(errors.productName);
+                    Failure('Please fill in all required fields');
+                    return; // Exit if any error exists
+                } else {
+                    // Check if any error exists
+
+                    // Prepare data for submission
+                    // const collectionId = selectedCollection?.map((item) => item.value) || [];
+                    const tagId = selectedTag?.map((item) => item.value) || [];
+
+                    let upsells = [];
+                    if (selectedUpsell?.length > 0) {
+                        upsells = selectedUpsell?.map((item) => item?.value);
+                    }
+
+                    let crosssells = [];
+                    if (selectedCrosssell?.length > 0) {
+                        crosssells = selectedCrosssell?.map((item) => item?.value);
+                    }
+
+                    // Submit data
+                    const { data } = await addFormData({
+                        variables: {
+                            input: {
+                                description: descr,
+                                attributes: [],
+                                category: selectedCat?.map((item) => item?.value),
+                                collections: [],
+                                tags: tagId,
+                                name: productName,
+                                productType: 'UHJvZHVjdFR5cGU6Mg==',
+                                upsells,
+                                crosssells,
+                                seo: {
+                                    description: seoDesc,
+                                    title: seoTittle,
+                                },
+                                slug: slug,
+                                ...(menuOrder && menuOrder > 0 && { order_no: menuOrder }),
+                                ...(selectedValues && selectedValues.design && { prouctDesign: selectedValues.design }),
+                                ...(selectedValues && selectedValues.style && { productstyle: selectedValues.style }),
+                                ...(selectedValues && selectedValues.finish && { productFinish: selectedValues.finish }),
+                                ...(selectedValues && selectedValues.stone && { productStoneType: selectedValues.stone }),
+                                ...(selectedValues && selectedValues.type && { productItemtype: selectedValues.type }),
+                                ...(selectedValues && selectedValues.size && { productSize: selectedValues.size }),
+                                ...(selectedValues && selectedValues.stoneColor && { productStonecolor: selectedValues.stoneColor }),
+                            },
+                        },
                     });
+
+                    if (data?.productCreate?.errors?.length > 0) {
+                        setCreateLoading(false);
+                        Failure(data?.productCreate?.errors[0]?.message);
+                    } else {
+                        const productId = data?.productCreate?.product?.id;
+                        productChannelListUpdate(productId);
+                        if (imageUrl?.length > 0) {
+                            imageUrl.forEach(async (item) => {
+                                createMediaData(productId, item);
+                            });
+                        }
+                    }
                 }
             }
         } catch (error) {
@@ -780,15 +791,22 @@ const ProductAdd = () => {
     };
 
     const validateMainFields = (savedContent) => {
-        const errors = {
-            productName: productName.trim() === '' ? 'Product name cannot be empty' : '',
-            slug: slug.trim() === '' ? 'Slug cannot be empty' : '',
-            seoTittle: seoTittle.trim() === '' ? 'Seo title cannot be empty' : '',
-            seoDesc: seoDesc.trim() === '' ? 'Seo description cannot be empty' : '',
-            description: savedContent?.blocks?.length === 0 ? 'Description cannot be empty' : '',
-            shortDescription: shortDescription?.trim() === '' ? 'Short description cannot be empty' : '',
-            category: selectedCat?.length === 0 ? 'Category cannot be empty' : '',
-        };
+        let errors = null;
+        if (publish !== 'draft') {
+            errors = {
+                productName: productName.trim() === '' ? 'Product name cannot be empty' : '',
+                slug: slug.trim() === '' ? 'Slug cannot be empty' : '',
+                seoTittle: seoTittle.trim() === '' ? 'Seo title cannot be empty' : '',
+                seoDesc: seoDesc.trim() === '' ? 'Seo description cannot be empty' : '',
+                description: savedContent?.blocks?.length === 0 ? 'Description cannot be empty' : '',
+                shortDescription: shortDescription?.trim() === '' ? 'Short description cannot be empty' : '',
+                category: selectedCat?.length === 0 ? 'Category cannot be empty' : '',
+            };
+        } else {
+            errors = {
+                productName: productName.trim() === '' ? 'Product name cannot be empty' : '',
+            };
+        }
 
         return errors;
     };

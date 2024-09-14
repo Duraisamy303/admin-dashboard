@@ -105,7 +105,7 @@ const AbandonedCarts = () => {
                                     sortable: true,
 
                                     render: (row) => (
-                                        <div className="cursor-pointer text-info underline" onClick={() => router.push(`/customer/edit?id=${row.customerId}`)}>
+                                        <div className="cursor-pointer text-info underline" onClick={() => window.open(`/customer/edit?id=${row.customerId}`,"_blank")}>
                                             {row.name}
                                         </div>
                                     ),

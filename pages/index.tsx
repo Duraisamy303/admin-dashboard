@@ -1052,18 +1052,18 @@ const Index = () => {
             <div className="panel mb-5 flex items-center justify-between gap-5">
                 <div className="flex items-center gap-5">
                     <h5 className="text-lg font-semibold dark:text-white-light">Product</h5>
-                    <button type="button" className="btn btn-outline-primary" onClick={() => router.push('/product_import')}>
+                    <button type="button" className="btn btn-outline-primary" onClick={() => window.open('/product_import',"_blank")}>
                         Import
                     </button>
-                    <button type="button" className="btn btn-outline-primary" onClick={() => router.push('/product_export')}>
+                    <button type="button" className="btn btn-outline-primary" onClick={() => window.open('/product_export',"_blank")}>
                         Export
                     </button>
                 </div>
                 <div className="flex gap-5">
-                    <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => router.push('/apps/product/add')}>
+                    <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => window.open('/apps/product/add',"_blank")}>
                         + Create
                     </button>
-                    <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => router.push('/merchandising')}>
+                    <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => window.open('/merchandising',"_blank")}>
                         Merchandising
                     </button>
                 </div>

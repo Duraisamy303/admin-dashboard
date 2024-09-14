@@ -1103,28 +1103,28 @@ export const validateDateTime = (dateTimeString) => {
 //     }
 // };
 
-export const getFileType = async(filename) => {
+export const getFileType = async (filename) => {
     const videoFormats = new Set(['mp4', 'avi', 'mov', 'mkv', 'webm', 'flv', 'wmv', 'mpeg', 'ogv']);
     const imageFormats = new Set(['jpeg', 'jpg', 'png', 'gif', 'bmp', 'tiff', 'webp', 'svg', 'heic', 'ico']);
     const documentFormats = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt']);
-  
+
     const getFileExtension = (filename) => {
-      const parts = filename.split('.');
-      return parts.length > 1 ? parts.pop().toLowerCase() : '';
+        const parts = filename.split('.');
+        return parts.length > 1 ? parts.pop().toLowerCase() : '';
     };
 
     const ext = getFileExtension(filename);
-    
+
     if (videoFormats.has(ext)) {
-      return 'Video';
+        return 'Video';
     } else if (imageFormats.has(ext)) {
-      return 'Image';
+        return 'Image';
     } else if (documentFormats.has(ext)) {
-      return 'Doc';
+        return 'Doc';
     } else {
-      return 'unknown';
+        return 'unknown';
     }
-  };
+};
 
 export const getFileNameFromUrl = (url) => {
     const urlObject = new URL(url);
@@ -1270,4 +1270,14 @@ export const getMonthNumber = (dateString) => {
 export const getKey = (imageUrl) => {
     const key = imageUrl.substring(imageUrl.lastIndexOf('/') + 1);
     return key;
+};
+
+export const uniqueState = (arr) => {
+    const uniqueChoices = arr?.reduce((acc, current) => {
+        if (!acc.some((item) => item?.raw === current?.raw)) {
+            acc.push(current);
+        }
+        return acc;
+    }, []);
+    return uniqueChoices;
 };

@@ -154,7 +154,7 @@ const Coupon = () => {
                         <h5 className="text-lg font-semibold dark:text-white-light">Coupons</h5>
                     </div>
                     <div>
-                        <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => router.push('/createCoupon')}>
+                        <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => window.open('/createCoupon',"_blank")}>
                             + Create
                         </button>
                     </div>
@@ -196,7 +196,7 @@ const Coupon = () => {
                                                 <button
                                                     className="flex hover:text-info"
                                                     onClick={() => {
-                                                        router.push(`/editCoupon?id=${row.id}`);
+                                                        window.open(`/editCoupon?id=${row.id}`,"_blank");
                                                     }}
                                                 >
                                                     <IconEdit className="h-4.5 w-4.5" />

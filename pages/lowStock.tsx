@@ -94,7 +94,7 @@ const LowStock = () => {
                                 sortable: true,
                                 title: 'Product Name',
                                 render: (row) => (
-                                    <div className='cursor-pointer' onClick={() => router.push(`/apps/product/edit?id=${row.id}`)}>
+                                    <div className='cursor-pointer' onClick={() => window.open(`/apps/product/edit?id=${row.id}`,"_blank")}>
                                         {row.name}
                                     </div>
                                 ),

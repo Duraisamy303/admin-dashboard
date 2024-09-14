@@ -1,112 +1,92 @@
-import dynamic from 'next/dynamic';
 import React, { useState, useEffect } from 'react';
+import { fetchImagesFromS3WithPagination } from '@/utils/functions';
 
-const ReactApexChart = dynamic(() => import('react-apexcharts'), {
-    ssr: false,
-});
+const PAGE_LIMIT = 10;
 
-function Test() {
-    const tableRow = [
-        {
-            "country": "India",
-            "value1": "0",
-            "value2": "0",
-            "value3": "7",
-            "value4": "12",
-            "value5": "3",
-            "value6": "1",
-            "value7": "0",
-            "value8": "0"
+export default function TestComponent() {
+    const [images, setImages] = useState([]);
+    const [displayedImages, setDisplayedImages] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [continuationToken, setContinuationToken] = useState(null);
+    const [isTruncated, setIsTruncated] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        fetchImages();
+    }, [searchTerm]);
+
+    const fetchImages = async (token = null) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await fetchImagesFromS3WithPagination(searchTerm, PAGE_LIMIT, token);
+            if (token === null) {
+                // If token is null, it's the initial fetch or after search term change
+                setImages(res.images);
+                setDisplayedImages(res.images.slice(0, PAGE_LIMIT)); // Initialize displayed images
+            } else {
+                // If token is provided, append new images to the existing ones
+                setImages((prevImages) => [...prevImages, ...res.images]);
+                setDisplayedImages((prevDisplayedImages) => [
+                    ...prevDisplayedImages,
+                    ...res.images
+                ]);
+            }
+            setContinuationToken(res.continuationToken);
+            setIsTruncated(res.isTruncated);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
 
-    const tableColumns = [
-        { "accessor": "country", "title": "Countries" },
-        { "accessor": "value1", "title": "2024-08" },
-        { "accessor": "value2", "title": "2024-07" },
-        { "accessor": "value3", "title": "2024-06" },
-        { "accessor": "value4", "title": "2024-05" },
-        { "accessor": "value5", "title": "2024-04" },
-        { "accessor": "value6", "title": "2024-03" },
-        { "accessor": "value7", "title": "2024-02" },
-        { "accessor": "value8", "title": "2024-01" }
-    ];
+    const handleSearch = (e) => {
+        setSearchTerm(e.target.value);
+    };
 
-    // Extract categories from column titles (excluding the 'Countries' column)
-    const categories = tableColumns.filter(col => col.accessor !== 'country').map(col => col.title);
-
-    // Generate series data from table row
-    const seriesData = tableRow.map(row => ({
-        name: row.country,
-        data: categories.map((_, index) => parseFloat(row[`value${index + 1}`]) || 0)
-    }));
-
-    // State for chart data
-    const [chartData, setChartData] = useState({
-        series: seriesData,
-        options: {
-            chart: {
-                type: 'bar',
-                height: 350,
-            },
-            colors: ['#0000FF'], // You can generate colors dynamically if you have more countries or series
-            plotOptions: {
-                bar: {
-                    horizontal: false,
-                    endingShape: 'rounded',
-                },
-            },
-            dataLabels: {
-                enabled: false,
-            },
-            stroke: {
-                show: true,
-                width: 2,
-                colors: ['transparent'],
-            },
-            xaxis: {
-                categories: categories,
-                title: {
-                    text: 'Dates',
-                },
-                labels: {
-                    rotate: -45,
-                    trim: true
-                }
-            },
-            yaxis: {
-                title: {
-                    text: 'Values',
-                },
-                min: 0
-            },
-            title: {
-                text: 'Values Over Time',
-            },
-            tooltip: {
-                shared: true,
-                intersect: false,
-            },
+    const handleNext = () => {
+        if (isTruncated) {
+            fetchImages(continuationToken);
         }
-    });
+    };
+
+    const rows = [];
+    for (let i = 0; i < displayedImages.length; i += 4) {
+        rows.push(displayedImages.slice(i, i + 4));
+    }
 
     return (
-        <div className="panel overflow-hidden">
-            <div className="mb-5 flex items-center justify-between">
-                <h5 className="text-lg font-semibold dark:text-white-light">Values Over Time</h5>
+        <div>
+            <input
+                type="text"
+                value={searchTerm}
+                onChange={handleSearch}
+                placeholder="Search..."
+            />
+            {loading && <p>Loading...</p>}
+            {error && <p>Error: {error}</p>}
+            <div>
+                {displayedImages.length > 0 ? (
+                    rows.map((row, rowIndex) => (
+                        <div key={rowIndex} style={{ display: 'flex', marginBottom: '10px' }}>
+                            {row.map((image) => (
+                                <div key={image.key} style={{ marginRight: '10px' }}>
+                                    <img src={image.url} alt={image.key} style={{ width: '100px', height: '100px' }} />
+                                    <p>{image.key}</p>
+                                </div>
+                            ))}
+                        </div>
+                    ))
+                ) : (
+                    <p>No images found.</p>
+                )}
             </div>
-            <div className="mb-5 overflow-scroll">
-                <ReactApexChart
-                    series={chartData.series}
-                    options={chartData.options}
-                    className="rounded-lg bg-white dark:bg-black"
-                    type="bar"
-                    height={500}
-                    width={'100%'}
-                />
-            </div>
+           
+            <button onClick={handleNext} disabled={!isTruncated}>
+                Next
+            </button>
         </div>
     );
 }
-
-export default Test;

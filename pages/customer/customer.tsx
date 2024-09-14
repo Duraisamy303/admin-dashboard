@@ -204,7 +204,7 @@ const CustomerList = () => {
 
     // Product table create
     const CreateProduct = () => {
-        router.push('/customer/add');
+        window.open('/customer/add',"_blank");
     };
 
     const BulkDeleteProduct = async () => {
@@ -290,7 +290,7 @@ const CustomerList = () => {
                                     render: (row: any) => (
                                         <>
                                             <div className="mx-auto flex w-max items-center gap-4">
-                                                <button className="flex hover:text-info" onClick={() => router.push(`/customer/edit?id=${row.id}`)}>
+                                                <button className="flex hover:text-info" onClick={() => window.open(`/customer/edit?id=${row.id}`,"_blank")}>
                                                     <IconEdit className="h-4.5 w-4.5" />
                                                 </button>
 

@@ -202,10 +202,11 @@ const AbandonedCarts = () => {
                 },
             });
             localStorage.setItem('channel', selectedCurrency);
-            router.push({
-                pathname: '/orders/new-order',
-                query: { orderId: data?.draftOrderCreate?.order?.id },
-            });
+
+            const orderId = data?.draftOrderCreate?.order?.id;
+            const url = `/orders/new-order?orderId=${encodeURIComponent(orderId)}`;
+
+            window.open(url, '_blank');
         } catch (error) {
             console.log('error: ', error);
         }
@@ -290,12 +291,12 @@ const AbandonedCarts = () => {
         <div>
             <div className="panel mb-5 flex flex-col gap-5 md:flex-row md:items-center">
                 <h5 className="text-lg font-semibold dark:text-white-light">Orders</h5>
-                <div className="flex ltr:ml-auto rtl:mr-auto gap-3">
+                <div className="flex gap-3 ltr:ml-auto rtl:mr-auto">
                     <button type="button" className="btn btn-primary" onClick={() => setIsOpenChannel(true)}>
                         + Create
                     </button>
-                    <button type="button" className="btn btn-primary" onClick={() => router.push('/orders/export')}>
-                       Export 
+                    <button type="button" className="btn btn-primary" onClick={() => window.open('/orders/export', '_blank')}>
+                        Export
                     </button>
                 </div>
             </div>
@@ -462,10 +463,7 @@ const AbandonedCarts = () => {
                                     render: (row: any) => (
                                         <>
                                             <Tippy content="Edit">
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>  router.push(`/orders/editorder?id=${row.id}`)}
-                                                >
+                                                <button type="button" onClick={() => window.open(`/orders/editorder?id=${row.id}`,"_blank")}>
                                                     <IconPencil className="ltr:mr-2 rtl:ml-2" />
                                                 </button>
                                             </Tippy>

@@ -161,7 +161,7 @@ const Discount = () => {
                         <h5 className="text-lg font-semibold dark:text-white-light">Discounts</h5>
                     </div>
                     <div>
-                        <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => router.push('/createDiscount')}>
+                        <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => window.open('/createDiscount',"_blank")}>
                             + Create
                         </button>
                     </div>
@@ -190,7 +190,7 @@ const Discount = () => {
                                                 <button
                                                     className="flex hover:text-info"
                                                     onClick={() => {
-                                                        router.push(`/updateDiscount?id=${row.id}`);
+                                                        window.open(`/updateDiscount?id=${row.id}`,"_blank");
                                                     }}
                                                 >
                                                     <IconEdit className="h-4.5 w-4.5" />

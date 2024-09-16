@@ -37,26 +37,24 @@ import { commonBody } from '@/utils/constant';
 
 const CustomerList = () => {
     const router = useRouter();
+    
+    const PAGE_SIZE = 10;
 
     const isRtl = useSelector((state: any) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
 
-    const [customerList, setCustomerList] = useState([]);
-    const [loading, setLoading] = useState(false);
     const [recordsData, setRecordsData] = useState([]);
     const [startCursor, setStartCursor] = useState(null);
     const [endCursor, setEndCursor] = useState(null);
     const [hasNextPage, setHasNextPage] = useState(false);
     const [hasPreviousPage, setHasPreviousPage] = useState(false);
     const [search, setSearch] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState(null);
-    const [status, setStatus] = useState(null);
 
     const dispatch = useDispatch();
 
     useEffect(() => {
         dispatch(setPageTitle('Products'));
     }, [dispatch]);
-    const PAGE_SIZE = 10;
+
 
     const {
         error,

@@ -354,8 +354,8 @@ export const SEND_GIFT_CART = gql`
 `;
 
 export const CATEGORY_LIST = gql`
-    query CategoryList($first: Int!, $after: String, $channel: String!) {
-        categories(first: $first, after: $after) {
+    query CategoryList($first: Int, $last: Int, $before: String, $after: String, $channel: String!, $search: String) {
+        categories(first: $first, after: $after, last: $last, before: $before, filter: { search: $search }) {
             edges {
                 node {
                     id
@@ -380,6 +380,13 @@ export const CATEGORY_LIST = gql`
                 __typename
             }
             __typename
+            pageInfo {
+                endCursor
+                hasNextPage
+                hasPreviousPage
+                startCursor
+            }
+            totalCount
         }
     }
 `;

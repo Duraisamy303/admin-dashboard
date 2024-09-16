@@ -12,107 +12,151 @@ import Dropdown from '../../components/Dropdown';
 import IconCaretDown from '@/components/Icon/IconCaretDown';
 
 import Swal from 'sweetalert2';
-import { useMutation, useQuery } from '@apollo/client';
+import { useLazyQuery, useMutation, useQuery } from '@apollo/client';
 import { CATEGORY_LIST, DELETE_CATEGORY } from '@/query/product';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import { useRouter } from 'next/router';
 import CommonLoader from '../elements/commonLoader';
+import IconArrowBackward from '@/components/Icon/IconArrowBackward';
+import IconArrowForward from '@/components/Icon/IconArrowForward';
 
 const Category = () => {
     const isRtl = useSelector((state: any) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
+
+    const PAGE_SIZE = 10;
+
 
     const router = useRouter();
 
     const dispatch = useDispatch();
 
-    const [page, setPage] = useState(1);
-    const PAGE_SIZES = [10, 20, 30, 50, 100];
-    const [pageSize, setPageSize] = useState(PAGE_SIZES[0]);
-    const [initialRecords, setInitialRecords] = useState([]); // Initialize initialRecords with an empty array
-    const [recordsData, setRecordsData] = useState([]);
     const [selectedRecords, setSelectedRecords] = useState<any>([]);
-    const [search, setSearch] = useState('');
-    const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
-        columnAccessor: 'id',
-        direction: 'asc',
-    });
-    const [categoryList, setCategoryList] = useState([]);
 
     const [deleteCategory] = useMutation(DELETE_CATEGORY);
     const [bulkDelete] = useMutation(DELETE_CATEGORY);
 
-    const {
-        error,
-        loading: loading,
-        data: categoryData,
-        refetch: categoryListRefetch,
-    } = useQuery(CATEGORY_LIST, {
-        variables: { channel: 'india-channel', first: 200 },
+    const [recordsData, setRecordsData] = useState([]);
+    const [startCursor, setStartCursor] = useState(null);
+    const [endCursor, setEndCursor] = useState(null);
+    const [hasNextPage, setHasNextPage] = useState(false);
+    const [hasPreviousPage, setHasPreviousPage] = useState(false);
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
+        columnAccessor: 'id',
+        direction: 'asc',
     });
 
     useEffect(() => {
         dispatch(setPageTitle('Category'));
     });
 
-    useEffect(() => {
-        getCategoryList();
-    }, [categoryData]);
+    const {
+        data: customerData,
+        loading: getLoading,
+        refetch: categoryListRefetch,
+    } = useQuery(CATEGORY_LIST, {
+        variables: {
+            channel: 'india-channel',
+            first: PAGE_SIZE,
+            after: null,
+            search: search !== '' ? search : '',
+        },
+        onCompleted: (data) => {
+            console.log('data: ', data);
+            commonPagination(data);
+        },
+    });
 
-    // Update initialRecords whenever finishList changes
-    useEffect(() => {
-        // Sort finishList by 'id' and update initialRecords
-        setInitialRecords(categoryList);
-    }, [categoryList]);
+    const { data, refetch: refetch } = useQuery(CATEGORY_LIST);
 
-    useEffect(() => {
-        setPage(1);
-    }, [pageSize]);
+    const [fetchNextPage] = useLazyQuery(CATEGORY_LIST, {
+        onCompleted: (data) => {
+            commonPagination(data);
+        },
+    });
 
-    useEffect(() => {
-        const from = (page - 1) * pageSize;
-        const to = from + pageSize;
-        setRecordsData([...initialRecords.slice(from, to)]);
-    }, [page, pageSize, initialRecords]);
+    const [fetchPreviousPage] = useLazyQuery(CATEGORY_LIST, {
+        onCompleted: (data) => {
+            commonPagination(data);
+        },
+    });
 
-    useEffect(() => {
-        setInitialRecords(() => {
-            return categoryList.filter((item: any) => {
-                return (
-                    item.id.toString().includes(search.toLowerCase()) ||
-                    // item.image.toLowerCase().includes(search.toLowerCase()) ||
-                    item.name.toLowerCase().includes(search.toLowerCase())
-                    // item.description.toLowerCase().includes(search.toLowerCase()) ||
-                    // item.slug.toLowerCase().includes(search.toLowerCase()) ||
-                    // item.count.toString().includes(search.toLowerCase())
-                );
-            });
+    const commonPagination = (data) => {
+        const customers = data?.categories?.edges;
+        const pageInfo = data?.categories?.pageInfo;
+
+        const newData = customers?.map((item: any) => {
+            const jsonObject = JSON.parse(item?.node?.description || item?.node?.description);
+            // Extract the text value
+            const textValue = jsonObject?.blocks[0]?.data?.text;
+            return {
+                ...item.node,
+                parent: item.node.parent?.name || '',
+                parentId: item.node.parent?.id,
+                product: item.node.products?.totalCount,
+                textdescription: textValue || '',
+                image: item.node?.backgroundImageUrl, // Set textValue or empty string if it doesn't exist
+            };
         });
-    }, [search]);
+        setRecordsData(newData);
+        setStartCursor(pageInfo?.startCursor || null);
+        setEndCursor(pageInfo?.endCursor || null);
+        setHasNextPage(pageInfo?.hasNextPage || false);
+        setHasPreviousPage(pageInfo?.hasPreviousPage || false);
+    };
 
-    useEffect(() => {
-        setInitialRecords(initialRecords);
-    }, [sortStatus]);
+    const handleNextPage = () => {
+        fetchNextPage({
+            variables: {
+                channel: 'india-channel',
+                first: PAGE_SIZE,
+                after: endCursor,
+                before: null,
+            },
+        });
+    };
 
-    const getCategoryList = () => {
-        if (categoryData) {
-            if (categoryData.categories && categoryData.categories.edges) {
-                const newData = categoryData?.categories?.edges?.map((item: any) => {
-                    const jsonObject = JSON.parse(item?.node?.description || item?.node?.description);
-                    // Extract the text value
-                    const textValue = jsonObject?.blocks[0]?.data?.text;
-
-                    return {
-                        ...item.node,
-                        parent: item.node.parent?.name || '',
-                        parentId: item.node.parent?.id,
-                        product: item.node.products?.totalCount,
-                        textdescription: textValue || '',
-                        image: item.node?.backgroundImageUrl, // Set textValue or empty string if it doesn't exist
-                    };
-                });
-                setCategoryList(newData);
-            }
+    const handlePreviousPage = () => {
+        fetchPreviousPage({
+            variables: {
+                channel: 'india-channel',
+                last: PAGE_SIZE,
+                before: startCursor,
+            },
+        });
+    };
+    // Statement Earrings necklaces
+    const refresh = async () => {
+        try {
+            const { data } = await refetch({
+                channel: 'india-channel',
+                first: PAGE_SIZE,
+                after: null,
+                search: '',
+            });
+            commonPagination(data);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+    const handleSearchChange = async (e) => {
+        console.log('e: ', e);
+        setSearch(e);
+        if (e == '') {
+            console.log('if: ');
+            refresh();
         } else {
+            console.log('else: ');
+            const res = await categoryListRefetch({
+                variables: {
+                    channel: 'india-channel',
+                    search: e,
+                    last: PAGE_SIZE,
+                    before: startCursor,
+                },
+            });
+            commonPagination(res?.data);
         }
     };
 
@@ -157,10 +201,10 @@ const Category = () => {
                 selectedRecords?.map(async (item: any) => {
                     await bulkDelete({ variables: { id: item.id } });
                 });
-                const updatedRecordsData = categoryList.filter((record) => !selectedRecords.includes(record));
-                setCategoryList(updatedRecordsData);
+                const updatedRecordsData = recordsData.filter((record) => !selectedRecords.includes(record));
+                setRecordsData(updatedRecordsData);
+                // setCategoryList(updatedRecordsData);
                 setSelectedRecords([]);
-                await categoryListRefetch();
 
                 Swal.fire('Deleted!', 'Your files have been deleted.', 'success');
             },
@@ -174,13 +218,13 @@ const Category = () => {
         showDeleteAlert(
             async () => {
                 const { data } = await deleteCategory({ variables: { id: record.id } });
-                const updatedRecordsData = categoryList.filter((dataRecord: any) => dataRecord.id !== record.id);
+                const updatedRecordsData = recordsData.filter((dataRecord: any) => dataRecord.id !== record.id);
                 setRecordsData(updatedRecordsData);
-                setCategoryList(updatedRecordsData);
+                // setCategoryList(updatedRecordsData);
                 // getCategoryList()
                 setSelectedRecords([]);
                 // setCategoryList(finishList)
-                await categoryListRefetch();
+                // await categoryListRefetch();
 
                 Swal.fire('Deleted!', 'Your file has been deleted.', 'success');
             },
@@ -197,7 +241,7 @@ const Category = () => {
                     <h5 className="text-lg font-semibold dark:text-white-light">Category</h5>
 
                     <div className="mt-5 md:mt-0 md:flex  md:ltr:ml-auto md:rtl:mr-auto">
-                        <input type="text" className="form-input mb-3 mr-2 w-full md:mb-0 md:w-auto" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                        <input type="text" className="form-input mb-3 mr-2 w-full md:mb-0 md:w-auto" placeholder="Search..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
                         <div className="dropdown  mb-3 mr-0  md:mb-0 md:mr-2">
                             <Dropdown
                                 placement={`${isRtl ? 'bottom-start' : 'bottom-end'}`}
@@ -225,7 +269,7 @@ const Category = () => {
                         </button>
                     </div>
                 </div>
-                {loading ? (
+                {getLoading ? (
                     <CommonLoader />
                 ) : (
                     <div className="datatables">
@@ -287,23 +331,29 @@ const Category = () => {
                                 },
                             ]}
                             highlightOnHover
-                            totalRecords={initialRecords.length}
-                            recordsPerPage={pageSize}
-                            page={page}
-                            onPageChange={(p) => setPage(p)}
-                            recordsPerPageOptions={PAGE_SIZES}
-                            onRecordsPerPageChange={setPageSize}
+                            totalRecords={recordsData?.length}
+                            recordsPerPage={PAGE_SIZE}
+                            minHeight={200}
+                            page={null}
+                            onPageChange={(p) => {}}
+                            withBorder={true}
                             sortStatus={sortStatus}
                             onSortStatusChange={setSortStatus}
                             selectedRecords={selectedRecords}
-                            onSelectedRecordsChange={(selectedRecords) => {
-                                setSelectedRecords(selectedRecords);
+                            onSelectedRecordsChange={(val) => {
+                                setSelectedRecords(val);
                             }}
-                            minHeight={200}
-                            paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
                         />
                     </div>
                 )}
+                <div className="mt-5 flex justify-end gap-3">
+                    <button disabled={!hasPreviousPage} onClick={handlePreviousPage} className={`btn ${!hasPreviousPage ? 'btn-disabled' : 'btn-primary'}`}>
+                        <IconArrowBackward />
+                    </button>
+                    <button disabled={!hasNextPage} onClick={handleNextPage} className={`btn ${!hasNextPage ? 'btn-disabled' : 'btn-primary'}`}>
+                        <IconArrowForward />
+                    </button>
+                </div>
             </div>
         </div>
     );

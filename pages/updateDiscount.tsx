@@ -35,7 +35,7 @@ import IconLoader from '@/components/Icon/IconLoader';
 const EditCoupon = () => {
     const router = useRouter();
     const id = router?.query?.id;
-    const [updateDiscount,{loading:updateDisLoding}] = useMutation(UPDATE_DISCOUNT);
+    const [updateDiscount, { loading: updateDisLoding }] = useMutation(UPDATE_DISCOUNT);
     const [channelUpdate, { loading: chennelLoading }] = useMutation(UPDATE_DISCOUNT_CHANNEL);
     const { data: discountDetail, refetch: discountRefetch, loading } = useQuery(DISCOUNT_DETAILS);
     const { data: productCat, refetch: categorySearchRefetch } = useQuery(SEARCH_CATEGORIES);
@@ -110,7 +110,10 @@ const EditCoupon = () => {
             setState({
                 couponName: data?.name,
                 codeType: data.type === 'FIXED' ? { value: 'Fixed Amount', label: 'Fixed Amount' } : { value: 'Percentage', label: 'Percentage' },
-                couponValue: data?.channelListings[0]?.discountValue,
+                couponValue:
+                    data.type === 'FIXED'
+                        ? data?.channelListings?.find((item) => item.channel?.currencyCode == 'INR')?.discountValue
+                        : data?.channelListings?.find((item) => item.channel?.currencyCode == 'USD')?.discountValue,
                 startDate: data?.startDate ? new Date(data?.startDate).toISOString().slice(0, 16) : null,
                 specificInfo: data?.categories != null || data?.products != null ? { value: 'Specific products', label: 'Specific products' } : { value: 'All products', label: 'All products' },
             });
@@ -184,11 +187,20 @@ const EditCoupon = () => {
                         addChannels: [
                             {
                                 channelId: 'Q2hhbm5lbDox',
-                                discountValue: state.couponValue,
+                                // discountValue: state.couponValue,
+                                discountValue:
+                                    state.codeType?.value == 'Free Shipping'
+                                        ? '100'
+                                        : state.codeType?.value == 'Fixed Amount'
+                                        ? Number((Number(state.couponValue) * USDAmt).toFixed(2))
+                                        : state.codeType?.value == 'Percentage'
+                                        ? state.couponValue
+                                        : null,
                             },
                             {
                                 channelId: 'Q2hhbm5lbDoy',
-                                discountValue: state.couponValue,
+                                // discountValue: state.couponValue,
+                                discountValue: state.codeType?.value == 'Free Shipping' ? '100' : Number(state.couponValue),
                             },
                         ],
                         removeChannels: [],
@@ -202,7 +214,6 @@ const EditCoupon = () => {
                 // if (state.description !== '') {
                 updateMetaData(id);
                 // }
-               
             }
         } catch (error) {
             console.log('error: ', error);
@@ -210,25 +221,25 @@ const EditCoupon = () => {
     };
 
     const extraDatas = (id: any) => {
-            const oldCat = state.oldCat?.map((val) => val.value) || [];
-            const selectedCategory = state.selectedCategory?.map((val) => val.value) || [];
+        const oldCat = state.oldCat?.map((val) => val.value) || [];
+        const selectedCategory = state.selectedCategory?.map((val) => val.value) || [];
 
-            const oldProduct = state.oldProduct?.map((val) => val.value) || [];
-            const selectedProduct = state.selectedProduct?.map((val) => val.value) || [];
+        const oldProduct = state.oldProduct?.map((val) => val.value) || [];
+        const selectedProduct = state.selectedProduct?.map((val) => val.value) || [];
 
-            const newlyAddedCat = selectedCategory.filter((item) => !oldCat.includes(item));
-            const removedCat = oldCat.filter((item) => !selectedCategory.includes(item));
+        const newlyAddedCat = selectedCategory.filter((item) => !oldCat.includes(item));
+        const removedCat = oldCat.filter((item) => !selectedCategory.includes(item));
 
-            const newlyAddedProduct = selectedProduct.filter((item) => !oldProduct.includes(item));
-            const removedProduct = oldProduct.filter((item) => !selectedProduct.includes(item));
+        const newlyAddedProduct = selectedProduct.filter((item) => !oldProduct.includes(item));
+        const removedProduct = oldProduct.filter((item) => !selectedProduct.includes(item));
 
-            if (newlyAddedCat?.length > 0 || newlyAddedProduct?.length > 0) {
-                assignData(id, newlyAddedCat, newlyAddedProduct);
-            }
-            if (removedCat?.length > 0 || removedProduct?.length > 0) {
-                removeData(id, removedCat, removedProduct);
-            }
-      
+        if (newlyAddedCat?.length > 0 || newlyAddedProduct?.length > 0) {
+            assignData(id, newlyAddedCat, newlyAddedProduct);
+        }
+        if (removedCat?.length > 0 || removedProduct?.length > 0) {
+            removeData(id, removedCat, removedProduct);
+        }
+
         router.push(`/discount`);
         Success('Discount Updated Successfully');
     };
@@ -477,7 +488,7 @@ const EditCoupon = () => {
 
                 <div className="mt-5 flex items-center justify-end gap-4">
                     <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => updateCoupon()}>
-                        {updateDisLoding||  assignLoading || removeLoading || metaLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Submit'}
+                        {updateDisLoding || assignLoading || removeLoading || metaLoading ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Submit'}
                     </button>
                     <button type="button" className="btn btn-danger  w-full md:mb-0 md:w-auto" onClick={() => router.push('/discount')}>
                         {'Cancel'}

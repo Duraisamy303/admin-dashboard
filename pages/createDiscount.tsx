@@ -111,11 +111,21 @@ const CreateDiscount = () => {
                         addChannels: [
                             {
                                 channelId: 'Q2hhbm5lbDox',
-                                discountValue: state.couponValue,
+                                // discountValue: state.couponValue,
+                                discountValue:
+                                state.codeType?.value == 'Free Shipping'
+                                    ? '100'
+                                    : state.codeType?.value == 'Fixed Amount'
+                                    ? Number((Number(state.couponValue) * USDAmt).toFixed(2))
+                                    : state.codeType?.value == 'Percentage'
+                                    ? state.couponValue
+                                    : null,
                             },
                             {
                                 channelId: 'Q2hhbm5lbDoy',
-                                discountValue: state.couponValue,
+                                // discountValue: state.couponValue,
+                                discountValue: state.codeType?.value == 'Free Shipping' ? '100' : Number(state.couponValue),
+
                             },
                         ],
                         removeChannels: [],

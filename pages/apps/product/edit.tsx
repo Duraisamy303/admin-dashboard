@@ -928,6 +928,57 @@ const ProductEdit = (props: any) => {
                     // setCreateLoading(false);
                     Failure('Please fill in all required fields');
                     return; // Exit if any error exists
+                } else {
+                    console.log('else: ');
+                    let upsells = [];
+                    if (selectedUpsell?.length > 0) {
+                        upsells = selectedUpsell?.map((item) => item?.value);
+                    }
+                    let crosssells = [];
+                    if (selectedCrosssell?.length > 0) {
+                        crosssells = selectedCrosssell?.map((item) => item?.value);
+                    }
+
+                    const tagId = selectedTag?.map((item) => item.value) || [];
+                    // const savedContent = await editorInstance.save();
+                    // const descr = JSON.stringify(savedContent, null, 2);
+                    const { data } = await updateProduct({
+                        variables: {
+                            id: id,
+                            input: {
+                                attributes: [],
+                                category: selectedCat?.map((item) => item?.value),
+                                collections: [],
+                                tags: tagId,
+                                name: productName,
+                                description: descr,
+                                rating: 0,
+                                seo: {
+                                    description: seoDesc,
+                                    title: seoTittle,
+                                },
+                                upsells,
+                                crosssells,
+                                slug: slug,
+                                ...(menuOrder && menuOrder > 0 && { order_no: menuOrder }),
+                                ...(selectedValues && selectedValues.design && { prouctDesign: selectedValues.design }),
+                                ...(selectedValues && selectedValues.style && { productstyle: selectedValues.style }),
+                                ...(selectedValues && selectedValues.finish && { productFinish: selectedValues.finish }),
+                                ...(selectedValues && selectedValues.stone && { productStoneType: selectedValues.stone }),
+                                ...(selectedValues && selectedValues.type && { productItemtype: selectedValues.type }),
+                                ...(selectedValues && selectedValues.size && { productSize: selectedValues.size }),
+                                ...(selectedValues && selectedValues.stoneColor && { productStonecolor: selectedValues.stoneColor }),
+                            },
+                            firstValues: 10,
+                        },
+                    });
+
+                    if (data?.productUpdate?.errors?.length > 0) {
+                        Failure(data?.productUpdate?.errors[0]?.message);
+                        setUpdateLoading(false);
+                    } else {
+                        productChannelListUpdate();
+                    }
                 }
             } else {
                 if (Object.values(errors).some((msg) => msg !== '')) {
@@ -935,6 +986,7 @@ const ProductEdit = (props: any) => {
                     Failure('Please fill in all required fields');
                     return; // Exit if any error exists
                 } else {
+                    console.log('else: ');
                     let upsells = [];
                     if (selectedUpsell?.length > 0) {
                         upsells = selectedUpsell?.map((item) => item?.value);

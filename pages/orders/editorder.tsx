@@ -712,11 +712,11 @@ const Editorder = () => {
             setCurrencyLoading(false);
 
             setIsOpenChannel(false);
-
-            router.push({
-                pathname: '/orders/new-order',
-                query: { orderId: data?.draftOrderCreate?.order?.id },
-            });
+            window.open(`/orders/new-order?orderId=${data?.draftOrderCreate?.order?.id}`);
+            // router.push({
+            //     pathname: '/orders/new-order',
+            //     query: { orderId: data?.draftOrderCreate?.order?.id },
+            // });
         } catch (error) {
             setCurrencyLoading(false);
 
@@ -729,11 +729,11 @@ const Editorder = () => {
             setUpdateLoading(true);
             if (shippingPatner == '') {
                 Success('Order updated successfully');
-                router.push('/orders/orders');
+                // router.push('/orders/orders');
                 setShippingError(true);
             } else if (trackingNumber == '') {
                 Success('Order updated successfully');
-                router.push('/orders/orders');
+                // router.push('/orders/orders');
                 setTrackingError(true);
             } else {
                 updateShippingProvider();
@@ -764,7 +764,7 @@ const Editorder = () => {
             getOrderDetails();
             setUpdateLoading(false);
             Success('Order updated successfully');
-            router.push('/orders/orders');
+            // router.push('/orders/orders');
         } catch (error) {
             setUpdateLoading(false);
 

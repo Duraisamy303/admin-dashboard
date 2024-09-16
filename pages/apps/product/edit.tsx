@@ -1796,7 +1796,7 @@ const ProductEdit = (props: any) => {
                     <h5 className="text-lg font-semibold dark:text-white-light">Edit Product</h5>
 
                     <div className="flex ltr:ml-auto rtl:mr-auto">
-                        <button type="button" className="btn btn-primary" onClick={() => router.push('/apps/product/add')}>
+                        <button type="button" className="btn btn-primary" onClick={() => window.open('/apps/product/add',"_blank")}>
                             + Create
                         </button>
                     </div>

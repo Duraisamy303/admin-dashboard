@@ -2728,7 +2728,7 @@ const ProductAdd = () => {
                                                             style={{
                                                                 listStyleType: 'none',
                                                                 paddingTop: '10px',
-                                                                gap: 5,
+                                                                // gap: 5,
                                                             }}
                                                         >
                                                             {Object.keys(productPreview?.attributes).map((key) => {
@@ -2786,7 +2786,7 @@ const ProductAdd = () => {
                                                     </div>
                                                 )}
                                                 {productPreview?.category?.length > 0 && (
-                                                    <div className="flex flex-wrap  gap-3">
+                                                    <div className="flex flex-wrap  gap-2 pt-2">
                                                         <span style={{ fontWeight: 'bold' }}>Categories : </span>
                                                         {productPreview?.category?.map((item, index) => (
                                                             <span key={item?.value} style={{ marginRight: '3px', cursor: 'pointer' }}>
@@ -2798,7 +2798,7 @@ const ProductAdd = () => {
                                                 )}
 
                                                 {productPreview?.tags?.length > 0 && (
-                                                    <div className="flex flex-wrap  gap-3 ">
+                                                    <div className="flex flex-wrap  gap-2 pt-2">
                                                         <span style={{ fontWeight: 'bold' }}>Tags : </span>
                                                         {productPreview?.tags?.map((item, index) => (
                                                             <span key={item?.value} style={{ marginRight: '3px', cursor: 'pointer' }}>

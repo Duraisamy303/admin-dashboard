@@ -205,7 +205,7 @@ const AbandonedCarts = () => {
 
             const orderId = data?.draftOrderCreate?.order?.id;
             const url = `/orders/new-order?orderId=${encodeURIComponent(orderId)}`;
-
+            setIsOpenChannel(false);
             window.open(url, '_blank');
         } catch (error) {
             console.log('error: ', error);

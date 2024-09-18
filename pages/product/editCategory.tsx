@@ -152,37 +152,6 @@ const EditCategory = () => {
         // getMediaImage();
     }, []);
 
-    // useEffect(() => {
-    //     filterByMonth();
-    // }, [mediaMonth]);
-
-    const filterByMonth = async () => {
-        const res = await fetchImagesFromS3(mediaSearch);
-        if (mediaMonth == 'all') {
-            getMediaImage();
-        } else {
-            const [month, year] = mediaMonth.split('/');
-            const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
-            const filteredImages = res?.filter((item) => {
-                const itemDate = new Date(item.LastModified);
-                return itemDate.getFullYear() === parseInt(year) && itemDate.getMonth() === monthIndex;
-            });
-            const filter = filterImages(filteredImages);
-            setMediaImages(filter);
-        }
-    };
-
-    const getMediaImage = async () => {
-        try {
-            setLoading(true);
-            const res = await fetchImagesFromS3();
-            const filter = filterImages(res);
-            setMediaImages(filter);
-            setLoading(false);
-        } catch (error) {
-            console.log('error: ', error);
-        }
-    };
 
     const filterByCategory = async () => {
         try {
@@ -583,7 +552,6 @@ const EditCategory = () => {
                                             <button
                                                 onClick={() => {
                                                     setMediaTab(0);
-                                                    getMediaImage();
                                                     setMediaMonth('all'), setMediaSearch('');
                                                 }}
                                                 className={`${mediaTab == 0 ? 'bg-primary text-white !outline-none' : ''}
@@ -594,7 +562,6 @@ const EditCategory = () => {
                                             <button
                                                 onClick={() => {
                                                     setMediaTab(1);
-                                                    getMediaImage();
                                                     setMediaMonth('all'), setMediaSearch('');
                                                 }}
                                                 className={`${mediaTab == 1 ? 'bg-primary text-white !outline-none' : ''}

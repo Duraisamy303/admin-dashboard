@@ -242,6 +242,33 @@ const Index = () => {
         });
     };
 
+    const filter = [10, 20, 50, 100, 200];
+
+    const handlePageChange = (e) => {
+        setSelectPage(e.target.value);
+        if (e.target.value == '') {
+            fetchLowStockList({
+                variables: {
+                    channel: 'india-channel',
+                    first: 20,
+                    after: null,
+                    search: search,
+                    filter: buildFilter(e.target.value, status),
+                },
+            });
+        } else {
+            fetchLowStockList({
+                variables: {
+                    channel: 'india-channel',
+                    first: e.target.value,
+                    after: null,
+                    search: search,
+                    filter: buildFilter(e.target.value, status),
+                },
+            });
+        }
+    };
+
     return (
         <div>
             <div className="panel mb-5 flex items-center justify-between gap-5">
@@ -256,12 +283,12 @@ const Index = () => {
                 <div className="flex gap-5">
                     <input type="text" className="form-input mb-3 mr-2 h-[40px] md:mb-0 md:w-auto" placeholder="Search..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
 
-                    {/* <select className="form-select flex-1" value={selectPage} onChange={(e) => handlePageChange(e)}>
+                   <select className="form-select flex-1" value={selectPage} onChange={(e) => handlePageChange(e)}>
                         <option value="">Select a Page</option>
                         {filter.map((parent) => (
                             <option value={parent}>{parent}</option>
                         ))}
-                    </select> */}
+                    </select>
                 </div>
                 <div>
                     <select className="form-select flex-1" value={selectedCategory} onChange={handleCategoryChange}>

@@ -112,13 +112,13 @@ const Index = () => {
         direction: 'asc',
     });
 
-    const [deleteProducts] = useMutation(DELETE_PRODUCTS);
+    const [deleteProducts, { loading: deleteDuplicateLoad }] = useMutation(DELETE_PRODUCTS);
     const { data: productDetails, refetch: productDetailsRefetch } = useQuery(PRODUCT_FULL_DETAILS);
-    const [addFormData] = useMutation(CREATE_PRODUCT);
-    const [updateProductChannelList] = useMutation(UPDATE_PRODUCT_CHANNEL);
-    const [createVariant] = useMutation(CREATE_VARIANT);
-    const [updateVariantList] = useMutation(UPDATE_VARIANT_LIST);
-    const [updateMedatData] = useMutation(UPDATE_META_DATA);
+    const [addFormData, { loading: createDuplicateLoad }] = useMutation(CREATE_PRODUCT);
+    const [updateProductChannelList, { loading: duplicateChannelLoad }] = useMutation(UPDATE_PRODUCT_CHANNEL);
+    const [createVariant, { loading: duplicateCreateVariantLoad }] = useMutation(CREATE_VARIANT);
+    const [updateVariantList, { loading: duplicateUpdateVariantLoad }] = useMutation(UPDATE_VARIANT_LIST);
+    const [updateMedatData, { loading: duplicateUpdateMetaLoad }] = useMutation(UPDATE_META_DATA);
     const { refetch: refreshfetch } = useQuery(UPDATED_PRODUCT_PAGINATION);
     const [updateProduct] = useMutation(UPDATE_PRODUCT);
     const [updateVariant] = useMutation(UPDATE_VARIANT);
@@ -219,7 +219,7 @@ const Index = () => {
         }
     };
 
-    const duplicate_refresh = async () => {
+    const duplicate_refresh = async (row) => {
         try {
             const { data } = await refreshfetch({
                 channel: 'india-channel',
@@ -233,6 +233,7 @@ const Index = () => {
             setEndCursor(data?.products?.pageInfo?.endCursor || null);
             setHasNextPage(data?.products?.pageInfo?.hasNextPage || false);
             setHasPreviousPage(data?.products?.pageInfo?.hasPreviousPage || false);
+            setLoadingRows((prev) => ({ ...prev, [row.id]: false }));
             Success('Product created successfully');
         } catch (error) {
             console.log('error: ', error);
@@ -757,7 +758,7 @@ const Index = () => {
 
                 // router.push(`/apps/product/edit?id=${productId}`);
                 // window.open(`/apps/product/edit?id=${productId}`, '_blank');
-                duplicate_refresh();
+                duplicate_refresh(row);
             }
         } catch (error) {
             console.log('error: ', error);
@@ -1047,23 +1048,24 @@ const Index = () => {
     const expandedRows = (row) => {
         setExpandedRow(row.id === expandedRow ? null : row.id);
     };
+
     return (
         <div className="">
             <div className="panel mb-5 flex items-center justify-between gap-5">
                 <div className="flex items-center gap-5">
                     <h5 className="text-lg font-semibold dark:text-white-light">Product</h5>
-                    <button type="button" className="btn btn-outline-primary" onClick={() => window.open('/product_import',"_blank")}>
+                    <button type="button" className="btn btn-outline-primary" onClick={() => window.open('/product_import', '_blank')}>
                         Import
                     </button>
-                    <button type="button" className="btn btn-outline-primary" onClick={() => window.open('/product_export',"_blank")}>
+                    <button type="button" className="btn btn-outline-primary" onClick={() => window.open('/product_export', '_blank')}>
                         Export
                     </button>
                 </div>
                 <div className="flex gap-5">
-                    <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => window.open('/apps/product/add',"_blank")}>
+                    <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => window.open('/apps/product/add', '_blank')}>
                         + Create
                     </button>
-                    <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => window.open('/merchandising',"_blank")}>
+                    <button type="button" className="btn btn-primary  w-full md:mb-0 md:w-auto" onClick={() => window.open('/merchandising', '_blank')}>
                         Merchandising
                     </button>
                 </div>
@@ -1133,7 +1135,7 @@ const Index = () => {
                                     <>
                                         <div className="">{row.name}</div>
                                         <div className="flex gap-3">
-                                            <button onClick={() => duplicate(row)} className=" cursor-pointer text-blue-400 underline">
+                                            <button onClick={() => duplicate(row)} className="cursor-pointer text-blue-400 underline">
                                                 {loadingRows[row.id] ? '...Loading' : 'Duplicate'}
                                             </button>
 

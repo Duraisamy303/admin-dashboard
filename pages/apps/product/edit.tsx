@@ -1625,7 +1625,7 @@ const ProductEdit = (props: any) => {
         // Step 2: Filter objects from the first array
         const result = parentList?.categories?.edges.filter((item) => idSet.has(item.node.id) && item.node.level === 0).map((item) => item.node);
 
-        if (result.length > 0) {
+        if (result?.length > 0) {
             parentCat = result[0]?.id;
             const res = await relatedProductsRefetch({
                 channel: 'india-channel',
@@ -3006,7 +3006,7 @@ const ProductEdit = (props: any) => {
                                                                 }
 
                                                                 return (
-                                                                    <div className="flex flex-wrap gap-3" key={key}>
+                                                                    <div className="flex flex-wrap gap-2" key={key}>
                                                                         <span style={{ fontWeight: 'bold' }}>{label} : </span>
                                                                         {attribute.map((item, index) => (
                                                                             <span key={item.id} style={{ marginRight: '3px', cursor: 'pointer' }}>
@@ -3024,7 +3024,7 @@ const ProductEdit = (props: any) => {
                                                     <div className="flex flex-wrap gap-3">
                                                         <span style={{ fontWeight: 'bold' }}>SKU : </span>
                                                         {productPreview?.variants?.map((item, index) => (
-                                                            <span key={item?.value} style={{ marginRight: '3px', cursor: 'pointer' }}>
+                                                            <span key={item?.value} style={{ cursor: 'pointer', display: 'flex', flexWrap: 'wrap', wordBreak: 'break-word' }}>
                                                                 {item?.sku}
                                                                 {index < productPreview?.variants?.length - 1 ? ', ' : ''}
                                                             </span>
@@ -3032,7 +3032,7 @@ const ProductEdit = (props: any) => {
                                                     </div>
                                                 )}
                                                 {productPreview?.category?.length > 0 && (
-                                                    <div className="flex flex-wrap  gap-3">
+                                                    <div className="flex flex-wrap  gap-3 pt-3">
                                                         <span style={{ fontWeight: 'bold' }}>Categories : </span>
                                                         {productPreview?.category?.map((item, index) => (
                                                             <span key={item?.value} style={{ marginRight: '3px', cursor: 'pointer' }}>
@@ -3044,7 +3044,7 @@ const ProductEdit = (props: any) => {
                                                 )}
 
                                                 {productPreview?.tags?.length > 0 && (
-                                                    <div className="flex flex-wrap  gap-3 ">
+                                                    <div className="flex flex-wrap  gap-3 pt-3">
                                                         <span style={{ fontWeight: 'bold' }}>Tags : </span>
                                                         {productPreview?.tags?.map((item, index) => (
                                                             <span key={item?.value} style={{ marginRight: '3px', cursor: 'pointer' }}>

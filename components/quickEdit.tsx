@@ -183,7 +183,7 @@ export default function QuickEdit(props: any) {
 
     const validateVariants = () => {
         return state.variants.map((variant) => {
-            const errors:any = {};
+            const errors: any = {};
             if (!variant.sku) errors.sku = 'SKU cannot be empty';
             // if (variant.quantity <= 0 || isNaN(variant.quantity)) errors.quantity = 'Quantity must be a valid number and greater than 0';
             if (variant.regularPrice <= 0 || isNaN(variant.regularPrice)) errors.regularPrice = 'Price must be a valid number and greater than 0';
@@ -347,9 +347,9 @@ export default function QuickEdit(props: any) {
                 },
             }));
 
-            const NewAddedVariant = state.variants.filter((item) => item.id == undefined);
+            const NewAddedVariant = state.variants.filter((item) => item.id == undefined || item.id == '');
 
-            const updateArr = arrayOfVariants.filter((item) => item.id != undefined);
+            const updateArr = arrayOfVariants.filter((item) => item.id != undefined || item.id != '');
 
             if (NewAddedVariant?.length > 0) {
                 bulkVariantCreate(NewAddedVariant);
@@ -364,7 +364,6 @@ export default function QuickEdit(props: any) {
 
                 if (res?.data?.productVariantBulkUpdate?.errors?.length > 0) {
                     setState({ loading: false });
-
                     Failure(res?.data?.productVariantBulkUpdate?.errors[0]?.message);
                 } else {
                     const results = res?.data?.productVariantBulkUpdate?.results || [];
@@ -600,8 +599,7 @@ export default function QuickEdit(props: any) {
                                             placeholder="Enter Regular Price"
                                             className="form-input"
                                         />
-                                       {state.variantError[index]?.regularPrice && <p className="error-message mt-1 text-red-500">{state.variantError[index].regularPrice}</p>} 
-
+                                        {state.variantError[index]?.regularPrice && <p className="error-message mt-1 text-red-500">{state.variantError[index].regularPrice}</p>}
                                     </div>
                                 </div>
                                 {index !== 0 && ( // Render remove button only for items after the first one

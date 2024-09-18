@@ -1120,9 +1120,9 @@ const ProductEdit = (props: any) => {
             }));
 
             // const NewAddedVariant = arrayOfVariants.filter((item) => item.id == undefined);
-            const NewAddedVariant = variants.filter((item) => item.id == undefined);
+            const NewAddedVariant = variants.filter((item) => item.id == undefined || item.id == '');
 
-            const updateArr = arrayOfVariants.filter((item) => item.id != undefined);
+            const updateArr = arrayOfVariants.filter((item) => item.id != undefined || item.id != '');
 
             if (NewAddedVariant?.length > 0) {
                 bulkVariantCreate(NewAddedVariant);
@@ -1796,7 +1796,7 @@ const ProductEdit = (props: any) => {
                     <h5 className="text-lg font-semibold dark:text-white-light">Edit Product</h5>
 
                     <div className="flex ltr:ml-auto rtl:mr-auto">
-                        <button type="button" className="btn btn-primary" onClick={() => window.open('/apps/product/add',"_blank")}>
+                        <button type="button" className="btn btn-primary" onClick={() => window.open('/apps/product/add', '_blank')}>
                             + Create
                         </button>
                     </div>

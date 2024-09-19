@@ -376,6 +376,7 @@ export const CATEGORY_LIST = gql`
                         alt
                     }
                     backgroundImageUrl
+                    menuOrder
                 }
                 __typename
             }
@@ -387,6 +388,43 @@ export const CATEGORY_LIST = gql`
                 startCursor
             }
             totalCount
+        }
+    }
+`;
+
+export const CATEGORY_DETAILS = gql`
+    query ViewCategory($id: ID!) {
+        category(id: $id) {
+            id
+            level
+            name
+            children(first: 90) {
+                totalCount
+                edges {
+                    node {
+                        id
+                        name
+                        description
+                        slug
+                        products {
+                            totalCount
+                        }
+                        backgroundImage {
+                            url
+                            alt
+                        }
+                        backgroundImageUrl
+                        menuOrder
+                    }
+                }
+            }
+            products {
+                totalCount
+            }
+            backgroundImage {
+                alt
+                url
+            }
         }
     }
 `;
@@ -11090,8 +11128,8 @@ export const PRODUCT_BY_NAME = gql`
 `;
 
 export const LOW_STOCK_LIST = gql`
-    query ProductListPaginated($channel: String!, $first: Int!, $after: String, $filter: ProductFilterInput!) {
-        products(filter: $filter, first: $first, after: $after, channel: $channel) {
+    query ProductListPaginated($channel: String!, $first: Int, $last: Int, $after: String, $before: String, $filter: ProductFilterInput!, $search: String) {
+        products(filter: $filter, first: $first, after: $after, before: $before, channel: $channel, last: $last, search: $search) {
             totalCount
             edges {
                 node {

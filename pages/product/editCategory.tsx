@@ -11,6 +11,7 @@ import * as Yup from 'yup';
 import { useLazyQuery, useMutation, useQuery } from '@apollo/client';
 import {
     ADD_NEW_MEDIA_IMAGE,
+    CATEGORY_DETAILS,
     CATEGORY_LIST,
     CREATE_CATEGORY,
     DELETE_CATEGORY,
@@ -72,6 +73,13 @@ const EditCategory = () => {
     const { error, data: categoryData } = useQuery(CATEGORY_LIST, {
         variables: { channel: 'india-channel', first: 100 },
     });
+
+    const {  data: categoryDatas } = useQuery(CATEGORY_DETAILS, {
+        variables: { id:catId},
+    });
+
+    console.log("categoryDatas: ", categoryDatas);
+    
 
     const [parentLists, setParentLists] = useState([]);
     const [previewUrl, setPreviewUrl] = useState(null);

@@ -37,7 +37,6 @@ import { commonBody } from '@/utils/constant';
 
 const CustomerList = () => {
     const router = useRouter();
-    
     const PAGE_SIZE = 10;
 
     const isRtl = useSelector((state: any) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
@@ -54,7 +53,13 @@ const CustomerList = () => {
     useEffect(() => {
         dispatch(setPageTitle('Products'));
     }, [dispatch]);
-
+    useEffect(() => {
+        if (search == '' && search == undefined) {
+            refresh();
+        } else {
+            handleSearchChange();
+        }
+    }, [search]);
 
     const {
         error,
@@ -72,9 +77,10 @@ const CustomerList = () => {
             },
             sort: {
                 direction: 'ASC',
-                field: 'LAST_NAME',
+                field: 'CREATED_AT',
             },
-            ...commonBody,
+
+            PERMISSION_MANAGE_ORDERS: true,
         },
         onCompleted: (data) => {
             console.log('data: ', data);
@@ -125,9 +131,10 @@ const CustomerList = () => {
                 },
                 sort: {
                     direction: 'ASC',
-                    field: 'LAST_NAME',
+                    field: 'CREATED_AT',
                 },
-                ...commonBody,
+
+                PERMISSION_MANAGE_ORDERS: true,
             },
         });
     };
@@ -144,9 +151,10 @@ const CustomerList = () => {
                 },
                 sort: {
                     direction: 'ASC',
-                    field: 'LAST_NAME',
+                    field: 'CREATED_AT',
                 },
-                ...commonBody,
+
+                PERMISSION_MANAGE_ORDERS: true,
             },
         });
     };
@@ -165,9 +173,10 @@ const CustomerList = () => {
                     },
                     sort: {
                         direction: 'ASC',
-                        field: 'LAST_NAME',
+                        field: 'CREATED_AT',
                     },
-                    ...commonBody,
+
+                    PERMISSION_MANAGE_ORDERS: true,
                 },
             });
             commonPagination(data);
@@ -175,34 +184,30 @@ const CustomerList = () => {
             console.log('error: ', error);
         }
     };
-    const handleSearchChange = async (e) => {
-        setSearch(e);
-        if (e == '') {
-            refresh();
-        } else {
-            const res = await customerListRefetch({
-                variables: {
-                    last: PAGE_SIZE,
-                    before: startCursor,
-                    filter: {
-                        dateJoined: null,
-                        numberOfOrders: null,
-                        search: e,
-                    },
-                    sort: {
-                        direction: 'ASC',
-                        field: 'LAST_NAME',
-                    },
-                    ...commonBody,
+    const handleSearchChange = async () => {
+        const res = await customerListRefetch({
+            variables: {
+                last: PAGE_SIZE,
+                before: startCursor,
+                filter: {
+                    dateJoined: null,
+                    numberOfOrders: null,
+                    search: search,
                 },
-            });
-            commonPagination(res?.data);
-        }
+                sort: {
+                    direction: 'ASC',
+                    field: 'CREATED_AT',
+                },
+
+                PERMISSION_MANAGE_ORDERS: true,
+            },
+        });
+        commonPagination(res?.data);
     };
 
     // Product table create
     const CreateProduct = () => {
-        window.open('/customer/add',"_blank");
+        window.open('/customer/add', '_blank');
     };
 
     const BulkDeleteProduct = async () => {
@@ -225,7 +230,7 @@ const CustomerList = () => {
                         </button> */}
                     </div>
                     <div className="mt-5 md:mt-0 md:flex  md:ltr:ml-auto md:rtl:mr-auto">
-                        <input type="text" className="form-input  mb-3 mr-2 w-full md:mb-0 md:w-auto" placeholder="Search..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
+                        <input type="text" className="form-input  mb-3 mr-2 w-full md:mb-0 md:w-auto" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} />
                         <div className="dropdown mb-3 mr-0  md:mb-0 md:mr-2">
                             <Dropdown
                                 placement={`${isRtl ? 'bottom-start' : 'bottom-end'}`}
@@ -288,7 +293,7 @@ const CustomerList = () => {
                                     render: (row: any) => (
                                         <>
                                             <div className="mx-auto flex w-max items-center gap-4">
-                                                <button className="flex hover:text-info" onClick={() => window.open(`/customer/edit?id=${row.id}`,"_blank")}>
+                                                <button className="flex hover:text-info" onClick={() => window.open(`/customer/edit?id=${row.id}`, '_blank')}>
                                                     <IconEdit className="h-4.5 w-4.5" />
                                                 </button>
 

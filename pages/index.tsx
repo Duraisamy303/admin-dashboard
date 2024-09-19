@@ -477,15 +477,6 @@ const Index = () => {
                 });
                 const updatedRecordsData = recordsData.filter((dataRecord: any) => dataRecord.id !== record.id);
                 setRecordsData(updatedRecordsData);
-                fetchLowStockList({
-                    variables: {
-                        channel: 'india-channel',
-                        first: PAGE_SIZE,
-                        after: null,
-                        search: search,
-                        filter: buildFilter(selectedCategory, status),
-                    },
-                });
                 Swal.fire('Deleted!', 'Your Product has been deleted.', 'success');
             },
             () => {

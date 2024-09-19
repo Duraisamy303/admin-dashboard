@@ -124,7 +124,7 @@ const ProductEdit = (props: any) => {
     useEffect(() => {
         setIsMounted(true);
     });
-    const [menuOrder, setMenuOrder] = useState(0);
+    const [menuOrder, setMenuOrder] = useState(null);
     const [selectedUpsell, setSelectedUpsell] = useState([]);
     const [selectedCrosssell, setSelectedCrosssell] = useState([]);
     const [mediaDate, setMediaDate] = useState('all');
@@ -960,7 +960,7 @@ const ProductEdit = (props: any) => {
                                 upsells,
                                 crosssells,
                                 slug: slug,
-                                ...(menuOrder && menuOrder > 0 && { order_no: menuOrder }),
+                                order_no: menuOrder,
                                 ...(selectedValues && selectedValues.design && { prouctDesign: selectedValues.design }),
                                 ...(selectedValues && selectedValues.style && { productstyle: selectedValues.style }),
                                 ...(selectedValues && selectedValues.finish && { productFinish: selectedValues.finish }),
@@ -1017,7 +1017,9 @@ const ProductEdit = (props: any) => {
                                 upsells,
                                 crosssells,
                                 slug: slug,
-                                ...(menuOrder && menuOrder > 0 && { order_no: menuOrder }),
+                                // ...(menuOrder && menuOrder > 0 && { order_no: menuOrder }),
+                                order_no: menuOrder,
+
                                 ...(selectedValues && selectedValues.design && { prouctDesign: selectedValues.design }),
                                 ...(selectedValues && selectedValues.style && { productstyle: selectedValues.style }),
                                 ...(selectedValues && selectedValues.finish && { productFinish: selectedValues.finish }),
@@ -1138,6 +1140,9 @@ const ProductEdit = (props: any) => {
                 if (data?.productVariantBulkUpdate?.errors?.length > 0) {
                     setUpdateLoading(false);
                     Failure(data?.productVariantBulkUpdate?.errors[0]?.message);
+                } else if (data?.productVariantBulkUpdate?.results[0]?.errors?.length > 0) {
+                    setUpdateLoading(false);
+                    Failure(data?.productVariantBulkUpdate?.results[0]?.errors[0]?.message);
                 } else {
                     const results = data?.productVariantBulkUpdate?.results || [];
 
@@ -2232,7 +2237,11 @@ const ProductEdit = (props: any) => {
                                                                 type="number"
                                                                 style={{ width: '100%' }}
                                                                 value={menuOrder}
-                                                                onChange={(e: any) => setMenuOrder(e.target.value)}
+                                                                // onChange={(e: any) => setMenuOrder(e.target.value)}
+                                                                onChange={(e) => {
+                                                                    const value = e.target.value;
+                                                                    setMenuOrder(value === '' ? null : value);
+                                                                }}
                                                                 placeholder="Enter Menu Order"
                                                                 name="regularPrice"
                                                                 className="form-input"

@@ -135,7 +135,7 @@ const ProductAdd = () => {
     useEffect(() => {
         setIsMounted(true);
     });
-    const [menuOrder, setMenuOrder] = useState(0);
+    const [menuOrder, setMenuOrder] = useState(null);
 
     // ------------------------------------------New Data--------------------------------------------
 
@@ -716,7 +716,7 @@ const ProductAdd = () => {
                     setCreateLoading(false);
                     Failure('Please fill in all required fields');
                     // Exit if any error exists
-                }else{
+                } else {
                     const tagId = selectedTag?.map((item) => item.value) || [];
 
                     let upsells = [];
@@ -747,7 +747,7 @@ const ProductAdd = () => {
                                     title: seoTittle,
                                 },
                                 slug: slug,
-                                ...(menuOrder && menuOrder > 0 && { order_no: menuOrder }),
+                                order_no: menuOrder,
                                 ...(selectedValues && selectedValues.design && { prouctDesign: selectedValues.design }),
                                 ...(selectedValues && selectedValues.style && { productstyle: selectedValues.style }),
                                 ...(selectedValues && selectedValues.finish && { productFinish: selectedValues.finish }),
@@ -813,7 +813,9 @@ const ProductAdd = () => {
                                     title: seoTittle,
                                 },
                                 slug: slug,
-                                ...(menuOrder && menuOrder > 0 && { order_no: menuOrder }),
+                                // ...(menuOrder && menuOrder > 0 && { order_no: menuOrder }),
+                                order_no: menuOrder,
+
                                 ...(selectedValues && selectedValues.design && { prouctDesign: selectedValues.design }),
                                 ...(selectedValues && selectedValues.style && { productstyle: selectedValues.style }),
                                 ...(selectedValues && selectedValues.finish && { productFinish: selectedValues.finish }),
@@ -1320,7 +1322,7 @@ const ProductAdd = () => {
         longPressTimeout.current = setTimeout(() => {
             setIsLongPress(true);
             handleImageSelect(item);
-        }, 100); // 100ms for long press
+        }, 10); // 100ms for long press
     };
 
     const handleMouseUp = () => {
@@ -1829,7 +1831,10 @@ const ProductAdd = () => {
                                                                 type="number"
                                                                 style={{ width: '100%' }}
                                                                 value={menuOrder}
-                                                                onChange={(e: any) => setMenuOrder(e.target.value)}
+                                                                onChange={(e) => {
+                                                                    const value = e.target.value;
+                                                                    setMenuOrder(value === '' ? null : value);
+                                                                }}
                                                                 placeholder="Enter Menu Order"
                                                                 name="regularPrice"
                                                                 className="form-input"

@@ -59,6 +59,8 @@ export default function QuickEdit(props: any) {
         variantError: [],
     });
 
+    console.log('menuOrder: ', state.menuOrder);
+
     useEffect(() => {
         getProductDetails();
         tags_list();
@@ -199,92 +201,98 @@ export default function QuickEdit(props: any) {
                 productName: state.name.trim() === '' ? 'Product name cannot be empty' : '',
                 category: state.categories?.length === 0 ? 'Category cannot be empty' : '',
             };
-            setState({ error: errors });
-            const variantErrors = validateVariants();
-            setState({ error: errors, variantError: variantErrors });
 
-            if (Object.values(errors).some((msg) => msg !== '') || variantErrors.some((err) => Object.keys(err).length > 0)) {
-                setState({ loading: false });
-                Failure('Please fill in all required fields');
-                return; // Exit if any error exists
-            }
-
-            let upsells = [];
-            if (state.productData?.getUpsells?.length > 0) {
-                upsells = state.productData?.getUpsells?.map((item: any) => item?.productId);
-            }
-            let crosssells = [];
-            if (state.productData?.getCrosssells?.length > 0) {
-                crosssells = state.productData?.getCrosssells?.map((item: any) => item?.productId);
-            }
-
-            let finish = [];
-            if (state.productData?.productFinish?.length > 0) {
-                finish = state.productData?.productFinish?.map((item: any) => item.id);
-            }
-
-            let design = [];
-            if (state.productData?.prouctDesign?.length > 0) {
-                design = state.productData?.prouctDesign?.map((item: any) => item.id);
-            }
-
-            let style = [];
-            if (state.productData?.productstyle?.length > 0) {
-                style = state.productData?.productstyle?.map((item: any) => item.id);
-            }
-
-            let stone = [];
-            if (state.productData?.productStoneType?.length > 0) {
-                stone = state.productData?.productStoneType?.map((item: any) => item.id);
-            }
-
-            let size = [];
-            if (state.productData?.productSize?.length > 0) {
-                size = state.productData?.productSize?.map((item: any) => item.id);
-            }
-
-            const tagId = state.tags?.map((item) => item.value) || [];
-
-            const input = {
-                attributes: [],
-                category: state.categories?.map((item) => item?.value),
-                collections: state.productData?.collections.map((item) => item.id),
-                tags: tagId,
-                name: state.name,
-                description: state.productData?.description,
-                rating: 0,
-                seo: {
-                    description: state.productData?.seoDescription,
-                    title: state.productData?.seoTitle,
-                },
-                upsells,
-                crosssells,
-                slug: state.productData?.slug,
-                order_no: state.menuOrder,
-                prouctDesign: design,
-                productstyle: style,
-                productFinish: finish,
-                productStoneType: stone,
-                productSize: size,
-            };
-
-            const res = await updateProduct({
-                variables: {
-                    id: data?.id,
-                    input,
-                    firstValues: 10,
-                },
-            });
-
-            if (res?.data?.productUpdate?.errors?.length > 0) {
-                Failure(data?.productUpdate?.errors[0]?.message);
-                setState({ loading: false });
+            if (state.publish != 'draft') {
+                const variantErrors = validateVariants();
+                setState({ error: errors, variantError: variantErrors });
+                if (Object.values(errors).some((msg) => msg !== '') || variantErrors.some((err) => Object.keys(err).length > 0)) {
+                    setState({ loading: false });
+                    Failure('Please fill in all required fields');
+                } else {
+                    await commonFunction();
+                }
             } else {
-                productChannelListUpdate();
+                await commonFunction();
             }
         } catch (error) {
             setState({ loading: false });
         } finally {
+        }
+    };
+
+    const commonFunction = async () => {
+        let upsells = [];
+        if (state.productData?.getUpsells?.length > 0) {
+            upsells = state.productData?.getUpsells?.map((item: any) => item?.productId);
+        }
+        let crosssells = [];
+        if (state.productData?.getCrosssells?.length > 0) {
+            crosssells = state.productData?.getCrosssells?.map((item: any) => item?.productId);
+        }
+
+        let finish = [];
+        if (state.productData?.productFinish?.length > 0) {
+            finish = state.productData?.productFinish?.map((item: any) => item.id);
+        }
+
+        let design = [];
+        if (state.productData?.prouctDesign?.length > 0) {
+            design = state.productData?.prouctDesign?.map((item: any) => item.id);
+        }
+
+        let style = [];
+        if (state.productData?.productstyle?.length > 0) {
+            style = state.productData?.productstyle?.map((item: any) => item.id);
+        }
+
+        let stone = [];
+        if (state.productData?.productStoneType?.length > 0) {
+            stone = state.productData?.productStoneType?.map((item: any) => item.id);
+        }
+
+        let size = [];
+        if (state.productData?.productSize?.length > 0) {
+            size = state.productData?.productSize?.map((item: any) => item.id);
+        }
+
+        const tagId = state.tags?.map((item) => item.value) || [];
+
+        const input = {
+            attributes: [],
+            category: state.categories?.map((item) => item?.value),
+            collections: state.productData?.collections.map((item) => item.id),
+            tags: tagId,
+            name: state.name,
+            description: state.productData?.description,
+            rating: 0,
+            seo: {
+                description: state.productData?.seoDescription,
+                title: state.productData?.seoTitle,
+            },
+            upsells,
+            crosssells,
+            slug: state.productData?.slug,
+            order_no: state.menuOrder,
+            prouctDesign: design,
+            productstyle: style,
+            productFinish: finish,
+            productStoneType: stone,
+            productSize: size,
+        };
+
+        const res = await updateProduct({
+            variables: {
+                id: data?.id,
+                input,
+                firstValues: 10,
+            },
+        });
+
+        if (res?.data?.productUpdate?.errors?.length > 0) {
+            Failure(data?.productUpdate?.errors[0]?.message);
+            setState({ loading: false });
+        } else {
+            productChannelListUpdate();
         }
     };
 
@@ -365,6 +373,9 @@ export default function QuickEdit(props: any) {
                 if (res?.data?.productVariantBulkUpdate?.errors?.length > 0) {
                     setState({ loading: false });
                     Failure(res?.data?.productVariantBulkUpdate?.errors[0]?.message);
+                } else if (res?.data?.productVariantBulkUpdate?.results[0]?.errors?.length > 0) {
+                    setState({ loading: false });
+                    Failure(res?.data?.productVariantBulkUpdate?.results[0]?.errors[0]?.message);
                 } else {
                     const results = res?.data?.productVariantBulkUpdate?.results || [];
                     if (results.length > 0) {
@@ -665,7 +676,11 @@ export default function QuickEdit(props: any) {
                                 type="number"
                                 name={`menuOrder`}
                                 value={state.menuOrder}
-                                onChange={(e) => setState({ menuOrder: e.target.value })}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setState({ menuOrder: value === '' ? null : value });
+                                }}
+                                // onChange={(e) => setState({ menuOrder: e.target.value })}
                                 style={{ width: '100%' }}
                                 placeholder="Product Order Number"
                                 className="form-input"

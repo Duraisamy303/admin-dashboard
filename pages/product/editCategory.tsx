@@ -62,7 +62,7 @@ const EditCategory = () => {
     const PAGE_SIZE = 24;
 
     const catId = router?.query?.id;
-    console.log("catId: ", catId);
+    console.log('catId: ', catId);
 
     const dispatch = useDispatch();
     useEffect(() => {
@@ -84,6 +84,7 @@ const EditCategory = () => {
     const [mediaDate, setMediaDate] = useState('all');
     const [catData, setCatData] = useState(null);
     const [name, setName] = useState('');
+    const [menuOrder, setMenuOrder] = useState(null);
     const [selectedCat, setSelectedCat] = useState(null);
     const [mediaMonth, setMediaMonth] = useState('all');
     const [description, setDescription] = useState('');
@@ -98,7 +99,6 @@ const EditCategory = () => {
     const [mediaHasNextPage, setMediaHasNextPage] = useState(false);
     const [mediaPreviousPage, setMediaPreviousPage] = useState(false);
     const [monthNumber, setMonthNumber] = useState(null);
-
 
     const { data: parentList } = useQuery(PARENT_CATEGORY_LIST, {
         variables: { channel: 'india-channel' },
@@ -152,7 +152,6 @@ const EditCategory = () => {
         // getMediaImage();
     }, []);
 
-
     const filterByCategory = async () => {
         try {
             const res = categoryData?.categories?.edges;
@@ -168,6 +167,7 @@ const EditCategory = () => {
             }
             setPreviewUrl(find?.node?.backgroundImageUrl);
             setSelectedCat({ value: find?.node?.parent?.id, label: find?.node?.parent?.name });
+            setMenuOrder(find?.node?.menuOrder);
         } catch (error) {
             console.log('error: ', error);
         }
@@ -192,6 +192,7 @@ const EditCategory = () => {
                     name: name,
                     description: Description,
                     backgroundImageUrl: previewUrl ? previewUrl : '',
+                    menuOrder: menuOrder,
                 },
                 id: catId,
                 parent: selectedCat ? selectedCat?.value : '',
@@ -220,9 +221,8 @@ const EditCategory = () => {
     //     }
     // };
 
-
     const searchMediaByName = async (e) => {
-        setMediaSearch(e)
+        setMediaSearch(e);
         try {
             if (e !== null && e !== '' && e !== undefined) {
                 fetchNextPage(commonInput(null, monthNumber, e));
@@ -241,7 +241,6 @@ const EditCategory = () => {
         });
     };
 
-  
     const handleFileChange = async (e: any) => {
         try {
             await addNewImage(e);
@@ -280,7 +279,7 @@ const EditCategory = () => {
 
     const addNewImage = async (e) => {
         let files = e.target.files[0];
-        console.log("files: ", files);
+        console.log('files: ', files);
         const isImage = files.type.startsWith('image/');
         if (isImage) {
             if (files.size > 300 * 1024) {
@@ -292,10 +291,10 @@ const EditCategory = () => {
             const { width, height } = await getImageDimensions(files);
             console.log('Image width, height: ', width, height);
         }
-        console.log("files.size : ", files.size );
+        console.log('files.size : ', files.size);
 
         const unique = await generateUniqueFilenames(files.name);
-       
+
         const result = await addNewMediaFile(files, unique);
         const fileType = await getFileType(result);
         const body = {
@@ -322,7 +321,7 @@ const EditCategory = () => {
         });
 
         commonPagination(res.data);
-        setMediaTab(1)
+        setMediaTab(1);
         Success('File added successfully');
     };
 
@@ -360,7 +359,6 @@ const EditCategory = () => {
                 },
             });
             Success('File updated successfully');
-
         } catch (error) {
             console.log('error: ', error);
         }
@@ -420,7 +418,7 @@ const EditCategory = () => {
                 first: PAGE_SIZE,
                 after,
                 fileType: 'Image',
-                month:month,
+                month: month,
                 year: 2024,
                 name,
             },
@@ -435,7 +433,7 @@ const EditCategory = () => {
                 after: mediaEndCursor,
                 before: null,
                 fileType: 'Image',
-                month:monthNumber,
+                month: monthNumber,
                 year: 2024,
                 name: mediaSearch,
             },
@@ -455,7 +453,6 @@ const EditCategory = () => {
         });
     };
 
-
     return (
         <div>
             <div className="mt-6">
@@ -471,6 +468,22 @@ const EditCategory = () => {
                     <div className="mt-5">
                         <label htmlFor="description mt-4">Description </label>
                         <textarea className="form-textarea" style={{ height: '100px' }} placeholder="Enter Description" value={description} onChange={(e) => setDescription(e.target.value)}></textarea>
+                    </div>
+
+                    <div className="mt-5">
+                        <label>Menu Order </label>
+                        <input
+                            value={menuOrder}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                setMenuOrder(value === '' ? null : value);
+                            }}
+                            name="name"
+                            type="number"
+                            id="fullName"
+                            placeholder="Enter Menu Order"
+                            className="form-input"
+                        />
                     </div>
 
                     <div className="mb-5 mt-5">
@@ -599,11 +612,15 @@ const EditCategory = () => {
                                                         </div>
                                                         <div className="flex justify-between gap-3 pt-3">
                                                             <div className="flex gap-3">
-                                                                <select className="form-select w-60 flex-1" value={mediaMonth}  onChange={(e) => {
-                                                                            const res = getMonthNumber(e.target.value);
-                                                                            setMonthNumber(res);
-                                                                            setMediaMonth(e.target.value);
-                                                                        }}>
+                                                                <select
+                                                                    className="form-select w-60 flex-1"
+                                                                    value={mediaMonth}
+                                                                    onChange={(e) => {
+                                                                        const res = getMonthNumber(e.target.value);
+                                                                        setMonthNumber(res);
+                                                                        setMediaMonth(e.target.value);
+                                                                    }}
+                                                                >
                                                                     <option value="all">All Data</option>
                                                                     {months.map((month, index) => (
                                                                         <option key={month} value={`${month}/2024`}>{`${month} 2024`}</option>
@@ -622,7 +639,7 @@ const EditCategory = () => {
                                                         </div>
 
                                                         <div className="grid grid-cols-6 gap-3 pt-5">
-                                                        {mediaImages?.length > 0 ? (
+                                                            {mediaImages?.length > 0 ? (
                                                                 mediaImages?.map((item) => (
                                                                     <div
                                                                         key={item?.node?.fileUrl}
@@ -675,7 +692,7 @@ const EditCategory = () => {
                                                                 {/* <p className="mt-2 font-semibold">{selectedImg}</p> */}
                                                                 <p className="mt-2 font-semibold">{getKey(selectedImg)}</p>
 
-                                                                <p className="text-sm">{moment(mediaData?.lastModified).format("DD-MM-YYYY")}</p>
+                                                                <p className="text-sm">{moment(mediaData?.lastModified).format('DD-MM-YYYY')}</p>
                                                                 <p className="text-sm">{mediaData?.size} KB</p>
 
                                                                 {/* <p className="text-sm">1707 by 2560 pixels</p> */}

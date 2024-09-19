@@ -95,6 +95,7 @@ const Category = () => {
                 parentId: item.node.parent?.id,
                 product: item.node.products?.totalCount,
                 textdescription: textValue || '',
+                menuOrder:item.node?.menuOrder,
                 image: item.node?.backgroundImageUrl, // Set textValue or empty string if it doesn't exist
             };
         });
@@ -288,6 +289,11 @@ const Category = () => {
                                     accessor: 'parent',
                                     sortable: true,
                                 },
+                                {
+                                    accessor: 'menuOrder',
+                                    sortable: true,
+                                },
+                                
                                 {
                                     accessor: 'product',
                                     sortable: true,

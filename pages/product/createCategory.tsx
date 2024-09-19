@@ -147,8 +147,6 @@ const Category = () => {
         name: Yup.string().required('Please fill the Category Name'),
     });
 
-    
-
     // form submit
     const onSubmit = async (record: any, { resetForm }: any) => {
         try {
@@ -159,6 +157,7 @@ const Category = () => {
                     name: record.name,
                     description: Description,
                     backgroundImageUrl: previewUrl ? previewUrl : '',
+                    menuOrder: record.menuOrder == '' ? null : record.menuOrder,
                 },
                 parent: record.parentCategory,
             };
@@ -320,7 +319,7 @@ const Category = () => {
             setTitle(result?.title);
             setDescription(result?.description);
             setCaption(result?.caption);
-            setMediaData({ size:`${parseFloat(result?.size)?.toFixed(2)}`, lastModified: item.LastModified });
+            setMediaData({ size: `${parseFloat(result?.size)?.toFixed(2)}`, lastModified: item.LastModified });
         }
     };
 
@@ -418,7 +417,7 @@ const Category = () => {
                 </div>
                 <div className="mb-5 p-5">
                     <Formik
-                        initialValues={{ name: '', textdescription: '', parentCategory: '', image: null }}
+                        initialValues={{ name: '', textdescription: '', parentCategory: '', image: null, menuOrder: null }}
                         validationSchema={SubmittedForm}
                         onSubmit={(values, { resetForm }) => {
                             onSubmit(values, { resetForm }); // Call the onSubmit function with form values and resetForm method
@@ -438,6 +437,10 @@ const Category = () => {
                                     <Field name="description" as="textarea" id="description" placeholder="Enter Description" className="form-input" />
 
                                     {submitCount ? errors.description ? <div className="mt-1 text-danger">{errors.description}</div> : <div className="mt-1 text-success"></div> : ''}
+                                </div>
+                                <div className={submitCount && 'has-success'}>
+                                    <label htmlFor="menuOrder">Menu Order </label>
+                                    <Field name="menuOrder" type="number" id="menuOrder" placeholder="Enter menu order" className="form-input" />
                                 </div>
 
                                 <div>

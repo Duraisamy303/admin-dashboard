@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@apollo/client';
 import { COUNTRY_LIST, CREATE_CUSTOMER_ADDRESS, CUSTOMER_ADDRESS, DELETE_CUSTOMER_ADDRESS, SET_DEFAULT_ADDRESS, STATE_LIST, UPDATE_CUSTOMER_ADDRESS } from '@/query/product';
-import { Failure, Success, objIsEmpty, useSetState } from '@/utils/functions';
+import { Failure, Success, objIsEmpty, uniqueStateAddress, useSetState } from '@/utils/functions';
 import IconSettings from '@/components/Icon/IconSettings';
 import { useRouter } from 'next/router';
 import IconLoader from '@/components/Icon/IconLoader';
@@ -525,8 +525,8 @@ const Address = () => {
                                         const res = await countryAreaRefetch({
                                             code: selectedCountry?.code,
                                         });
-
-                                        setState({ countryAreaList: res?.data?.addressValidationRules?.countryAreaChoices });
+                                        const response = uniqueStateAddress(res?.data?.addressValidationRules?.countryAreaChoices);
+                                        setState({ countryAreaList: response });
                                     }
                                 }}
                             >

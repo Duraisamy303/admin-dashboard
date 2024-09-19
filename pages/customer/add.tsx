@@ -1,7 +1,7 @@
 import IconLoader from '@/components/Icon/IconLoader';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import { ADD_CUSTOMER, COUNTRY_LIST, STATES_LIST } from '@/query/product';
-import { Failure, Success, useSetState } from '@/utils/functions';
+import { Failure, Success, uniqueStateAddress, useSetState } from '@/utils/functions';
 import { useMutation, useQuery } from '@apollo/client';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
@@ -265,7 +265,9 @@ const Add = () => {
                             const res = await countryAreaRefetch({
                                 code: selectedCountry.code,
                             });
-                            setState({ countryAreaList: res?.data?.addressValidationRules?.countryAreaChoices });
+                            const response = uniqueStateAddress(res?.data?.addressValidationRules?.countryAreaChoices);
+
+                            setState({ countryAreaList: response });
                         }}
                     >
                         <option value={''}>Select country</option>

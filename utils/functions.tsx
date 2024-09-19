@@ -1150,6 +1150,17 @@ export const getUniqueStates = (states: any) => {
     return uniqueStates;
 };
 
+export const uniqueStateAddress = (data) => {
+    const uniqueData = data?.reduce((acc, current) => {
+        const duplicate = acc?.find((item) => item?.raw === current?.raw);
+        if (!duplicate) {
+            acc.push(current);
+        }
+        return acc;
+    }, []);
+    return uniqueData;
+};
+
 export const generateLineChartLoopData = (data: any[]) => {
     // Extract value keys
     const valueKeys = Object.keys(data[0]).filter((key) => key.startsWith('value'));

@@ -463,7 +463,7 @@ const AbandonedCarts = () => {
                                     render: (row: any) => (
                                         <>
                                             <Tippy content="Edit">
-                                                <button type="button" onClick={() => window.open(`/orders/editorder?id=${row.id}`,"_blank")}>
+                                                <button type="button" onClick={() => window.open(`/orders/editorder?id=${row.id}`, '_blank')}>
                                                     <IconPencil className="ltr:mr-2 rtl:ml-2" />
                                                 </button>
                                             </Tippy>
@@ -478,10 +478,20 @@ const AbandonedCarts = () => {
                                     transitionTimingFunction: 'ease-out',
                                 },
                                 allowMultiple: false,
-                                content: ({ record }) =>
+                                content: ({ record, collapse }) =>
                                     expandedRow === record.id ? (
                                         <div>
-                                            <OrderQuickEdit id={record?.id} updateList={() => refresh()} closeExpand={() => setExpandedRows(null)} />
+                                            <OrderQuickEdit
+                                                id={record?.id}
+                                                updateList={() => {
+                                                    refresh();
+                                                    collapse();
+                                                }}
+                                                closeExpand={() => {
+                                                    setExpandedRows(null);
+                                                    collapse();
+                                                }}
+                                            />
                                         </div>
                                     ) : null,
                             }}

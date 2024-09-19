@@ -1139,7 +1139,13 @@ const Index = () => {
                                                 {loadingRows[row.id] ? '...Loading' : 'Duplicate'}
                                             </button>
 
-                                            <button onClick={() => expandedRows(row)} className=" cursor-pointer text-blue-400 underline">
+                                            <button
+                                                onClick={() => {
+                                                    // Toggle row expansion
+                                                    expandedRow === row.id ? setExpandedRow(null) : setExpandedRow(row.id);
+                                                }}
+                                                className=" cursor-pointer text-blue-400 underline"
+                                            >
                                                 Quick Edit
                                             </button>
                                         </div>
@@ -1212,10 +1218,20 @@ const Index = () => {
                                 transitionTimingFunction: 'ease-out',
                             },
                             allowMultiple: false,
-                            content: ({ record }) =>
+                            content: ({ record, collapse }) =>
                                 expandedRow === record.id ? (
                                     <div>
-                                        <QuickEdit data={record} updateList={refresh} closeExpand={() => setExpandedRow(null)} />
+                                        <QuickEdit
+                                            data={record}
+                                            updateList={() => {
+                                                refresh();
+                                                collapse();
+                                            }}
+                                            closeExpand={() => {
+                                                setExpandedRow(null);
+                                                collapse();
+                                            }} // Close when the 'close' button is clicked
+                                        />
                                     </div>
                                 ) : null,
                         }}

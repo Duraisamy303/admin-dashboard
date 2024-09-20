@@ -189,6 +189,10 @@ const LoginBoxed = () => {
                                             onChange={handleChange}
                                             placeholder="Enter Email"
                                             className="form-input ps-10 placeholder:text-white-dark"
+                                            onInput={(e: any) => {
+                                                e.target.value = e.target.value.replace(/[^a-zA-Z0-9@._-]/g, '');
+                                            }}
+                                            pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
                                         />
                                         {/* <input id="Email" type="email" placeholder="Enter Email" className="form-input ps-10 placeholder:text-white-dark" /> */}
                                         <span className="absolute start-4 top-1/2 -translate-y-1/2">
@@ -225,7 +229,10 @@ const LoginBoxed = () => {
                                 </button> */}
                             </form>
 
-                            <button onClick={() => submitForm()} className="btn  animate__animated animate__fadeIn btn-gradient !mt-6 w-full border-0 uppercase shadow-[0_10px_20px_-10px_rgba(67,97,238,0.44)]">
+                            <button
+                                onClick={() => submitForm()}
+                                className="btn  animate__animated animate__fadeIn btn-gradient !mt-6 w-full border-0 uppercase shadow-[0_10px_20px_-10px_rgba(67,97,238,0.44)]"
+                            >
                                 {loading ? <IconLoader /> : 'Sign in'}
                             </button>
                             {/* <div className="relative my-7 text-center md:mb-9">

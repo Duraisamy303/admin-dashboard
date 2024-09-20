@@ -11129,13 +11129,15 @@ export const PRODUCT_BY_NAME = gql`
 
 export const LOW_STOCK_LIST = gql`
     query ProductListPaginated($channel: String!, $first: Int, $last: Int, $after: String, $before: String, $filter: ProductFilterInput!, $search: String) {
-        products(filter: $filter, first: $first, after: $after, before: $before, channel: $channel, last: $last, search: $search) {
+        products(filter: $filter, first: $first, after: $after, before: $before, channel: $channel, last: $last, search: $search, sortBy: { direction: ASC, field: NAME }) {
             totalCount
             edges {
                 node {
                     id
                     name
+                    __typename
                 }
+                __typename
             }
             pageInfo {
                 endCursor

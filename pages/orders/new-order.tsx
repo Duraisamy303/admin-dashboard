@@ -54,6 +54,7 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import Swal from 'sweetalert2';
 import * as Yup from 'yup';
+import Select from 'react-select';
 
 const NewOrder = () => {
     const router = useRouter();
@@ -136,10 +137,12 @@ const NewOrder = () => {
     const { data: customer } = useQuery(CUSTOMER_LIST, {
         variables: {
             after: null,
-            first: 50,
+            first: 100,
             query: '',
         },
     });
+
+    const { data, refetch: customerSearch } = useQuery(CUSTOMER_LIST);
 
     const { data: countryData } = useQuery(COUNTRY_LIST);
 
@@ -776,10 +779,24 @@ const NewOrder = () => {
 
     const handleChangeCustomer = async (val: any) => {
         {
-            const selectedCustomerId: any = val.target.value;
+            const selectedCustomerId: any = val.value;
             setState({ selectedCustomerId: selectedCustomerId, showShippingInputs: true, showBillingInputs: true });
 
             await addressRefetch({ id: selectedCustomerId });
+        }
+    };
+
+    const searchCustomer = async (input) => {
+        try {
+            const res = await customerSearch({
+                first: 100,
+                query: input,
+                after: null,
+            });
+            const funRes = UserDropdownData(res.data);
+            setState({ customerList: funRes });
+        } catch (error) {
+            console.log('error: ', error);
         }
     };
 
@@ -880,8 +897,20 @@ const NewOrder = () => {
                                             Customer:
                                         </label>
                                     </div>
+                                    <Select
+                                        placeholder="Select a customer"
+                                        options={state.customerList}
+                                        value={state.selectedCustomer}
+                                        onChange={(val: any) => handleChangeCustomer(val)}
+                                        isSearchable={true}
+                                        onInputChange={(inputValue, { action }) => {
+                                            if (action === 'input-change') {
+                                                searchCustomer(inputValue); // Only pass the actual input value
+                                            }
+                                        }}
+                                    />
 
-                                    <select
+                                    {/* <select
                                         className="form-select"
                                         value={state.selectedCustomer}
                                         onChange={(val) => {
@@ -896,7 +925,7 @@ const NewOrder = () => {
                                                 {item?.label}
                                             </option>
                                         ))}
-                                    </select>
+                                    </select> */}
                                     {customerErrMsg && <p className="text-red-500">{customerErrMsg}</p>}
                                 </div>
                             </div>

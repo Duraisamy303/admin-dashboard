@@ -106,7 +106,7 @@ const CustomerList = () => {
         setRecordsData(
             customers?.map((item) => ({
                 ...item.node,
-                name: item.node.firstName + item.node.lastName,
+                name: `${item.node.firstName} ${item.node.lastName}`,
                 email: item.node.email,
                 orderCount: item.node.orders.totalCount,
                 dateJoined: moment(item.node.dateJoined).format('YYYY-MM-DD'),

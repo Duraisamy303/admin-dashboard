@@ -324,7 +324,7 @@ export const UserDropdownData = (shippingProvider: any) => {
         if (shippingProvider && shippingProvider?.search?.edges?.length > 0) {
             const dropdownData = shippingProvider?.search?.edges?.map((item: any) => ({
                 value: item.node?.id,
-                label: `${item?.node?.firstName} -${item?.node?.lastName}`,
+                label: `${item?.node?.firstName} ${item?.node?.lastName}`,
             }));
             return dropdownData;
         } else {

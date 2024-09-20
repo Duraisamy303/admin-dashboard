@@ -39,7 +39,7 @@ const Add = () => {
         email: Yup.string().email('Invalid email').required('Email is required'),
         pFirstName: Yup.string().required('Primary first name is required'),
         pLastName: Yup.string().required('Primary last name is required'),
-        company: Yup.string().required('Company name is required'),
+        // company: Yup.string().required('Company name is required'),
         phone: Yup.string()
             .required('Phone number is required')
             .matches(/^\d{10}$/, 'Phone number is not valid'),

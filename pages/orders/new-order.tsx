@@ -737,7 +737,7 @@ const NewOrder = () => {
                                 phone: state.billingAddress.phone,
                                 postalCode: state.billingAddress.pincode,
                                 streetAddress1: state.billingAddress.address_1,
-                                streetAddress2: state.billingAddress.address_2,
+                                // streetAddress2: state.billingAddress.address_2,
                             },
                             shippingAddress: {
                                 city: state.shippingAddress.city,
@@ -750,7 +750,7 @@ const NewOrder = () => {
                                 phone: state.shippingAddress.phone,
                                 postalCode: state.shippingAddress.pincode,
                                 streetAddress1: state.shippingAddress.address_1,
-                                streetAddress2: state.shippingAddress.address_2,
+                                // streetAddress2: state.shippingAddress.address_2,
                             },
                         },
                     },
@@ -851,7 +851,7 @@ const NewOrder = () => {
                             phone: state.shippingAddress.phone,
                             postalCode: state.shippingAddress.pincode,
                             streetAddress1: state.shippingAddress.address_1,
-                            streetAddress2: state.shippingAddress.address_2,
+                            // streetAddress2: state.shippingAddress.address_2,
                         },
                     },
                 },
@@ -953,8 +953,8 @@ const NewOrder = () => {
                                             <p>{state.billingAddress?.company}</p>
                                             <p>
                                                 {state.billingAddress?.address_1}
-                                                <br />
-                                                {state.billingAddress?.address_2}
+                                                {/* <br />
+                                                {state.billingAddress?.address_2} */}
                                                 <br /> {state.billingAddress?.city}
                                                 <br /> {state.billingAddress?.state}
                                                 {/* <br /> {selectedCountry} */}
@@ -1038,7 +1038,7 @@ const NewOrder = () => {
                                     </div>
 
                                     <div className="mt-5 grid grid-cols-12 gap-3">
-                                        <div className="col-span-6">
+                                        <div className="col-span-12">
                                             <label htmlFor="addressline1" className=" text-sm font-medium text-gray-700">
                                                 Addres Line 1
                                             </label>
@@ -1052,7 +1052,7 @@ const NewOrder = () => {
                                             {billingErrMsg.address_1 && <div className="mt-1 text-danger">{billingErrMsg.address_1}</div>}
                                             {state.billingAddress['billing.address_1'] && <div className="mt-1 text-danger">{state.billingAddress['billing.address_1']}</div>}
                                         </div>
-                                        <div className="col-span-6">
+                                        {/* <div className="col-span-6">
                                             <label htmlFor="addressline2" className=" text-sm font-medium text-gray-700">
                                                 Addres Line 2
                                             </label>
@@ -1065,7 +1065,7 @@ const NewOrder = () => {
                                             />
                                             {billingErrMsg.address_2 && <div className="mt-1 text-danger">{billingErrMsg.address_2}</div>}
                                             {state.billingAddress['billing.address_2'] && <div className="mt-1 text-danger">{state.billingAddress['billing.address_2']}</div>}
-                                        </div>
+                                        </div> */}
                                     </div>
 
                                     <div className="mt-5 grid grid-cols-12 gap-3">
@@ -1228,7 +1228,7 @@ const NewOrder = () => {
                                             <p>{`${state.shippingAddress?.firstName} ${state.shippingAddress?.lastName}`}</p>
                                             <p>{state.shippingAddress?.company}</p>
                                             <p>
-                                                {`${state.shippingAddress?.address_1} - ${state.shippingAddress?.address_2}`}
+                                                {state.shippingAddress?.address_1}
                                                 <br /> {state.shippingAddress?.city}
                                                 <br /> {state.shippingAddress?.state}
                                                 <br /> {state.shippingAddress?.countryArea}
@@ -1315,7 +1315,7 @@ const NewOrder = () => {
                                     </div>
 
                                     <div className="mt-5 grid grid-cols-12 gap-3">
-                                        <div className="col-span-6">
+                                        <div className="col-span-12">
                                             <label htmlFor="addressline1" className=" text-sm font-medium text-gray-700">
                                                 Addres Line 1
                                             </label>
@@ -1329,7 +1329,7 @@ const NewOrder = () => {
                                             {shippingErrMsg.address_1 && <div className="mt-1 text-danger">{shippingErrMsg.address_1}</div>}
                                             {state.shippingAddress['shipping.address_1'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.address_1']}</div>}
                                         </div>
-                                        <div className="col-span-6">
+                                        {/* <div className="col-span-6">
                                             <label htmlFor="addressline2" className=" text-sm font-medium text-gray-700">
                                                 Addres Line 2
                                             </label>
@@ -1342,7 +1342,7 @@ const NewOrder = () => {
                                             />
                                             {shippingErrMsg.address_2 && <div className="mt-1 text-danger">{shippingErrMsg.address_2}</div>}
                                             {state.shippingAddress['shipping.address_2'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.address_2']}</div>}
-                                        </div>
+                                        </div> */}
                                     </div>
 
                                     <div className="mt-5 grid grid-cols-12 gap-3">

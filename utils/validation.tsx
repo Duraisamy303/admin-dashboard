@@ -6,7 +6,7 @@ export const billingValidation = Yup.object().shape({
     email: Yup.string().required('Email is required'),
     company: Yup.string().required('Company is required'),
     address_1: Yup.string().required('Street address is required'),
-    address_2: Yup.string().required('Street address is required'),
+    // address_2: Yup.string().required('Street address is required'),
     city: Yup.string().required('City is required'),
     pincode: Yup.string().required('Postal code is required'),
     state: Yup.string().required('State is required'),
@@ -41,7 +41,7 @@ export const AddressValidation = (state: any) => {
     const phoneRegex = /^[0-9]{10,15}$/;
     const pincodeRegex = /^[0-9]{5,10}$/;
 
-    const requiredFields = ['firstName', 'lastName',  'address_1', 'address_2', 'city', 'state', 'country'];
+    const requiredFields = ['firstName', 'lastName',  'address_1',  'city', 'state', 'country'];
 
     requiredFields.forEach((field) => {
         if (!state?.billingAddress?.[field]) {

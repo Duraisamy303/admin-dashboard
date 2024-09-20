@@ -86,7 +86,7 @@ const Editorder = () => {
             lastName: '',
             company: '',
             address_1: '',
-            address_2: '',
+            // address_2: '',
             city: '',
             state: '',
             country: '',
@@ -102,7 +102,7 @@ const Editorder = () => {
             lastName: '',
             company: '',
             address_1: '',
-            address_2: '',
+            // address_2: '',
             city: '',
             state: '',
             country: '',
@@ -369,7 +369,7 @@ const Editorder = () => {
                     lastName: billing?.lastName,
                     company: billing?.companyName,
                     address_1: billing?.streetAddress1,
-                    address_2: billing?.streetAddress2,
+                    // address_2: billing?.streetAddress2,
                     city: billing?.city,
                     state: billing?.countryArea,
                     country: billing?.country.code,
@@ -387,7 +387,7 @@ const Editorder = () => {
                     lastName: shipping?.lastName,
                     company: shipping?.companyName,
                     address_1: shipping?.streetAddress1,
-                    address_2: shipping?.streetAddress2,
+                    // address_2: shipping?.streetAddress2,
                     city: shipping?.city,
                     state: shipping?.countryArea,
                     country: shipping?.country.code,
@@ -532,7 +532,7 @@ const Editorder = () => {
             email: Yup.string().required('Email is required'),
             company: Yup.string().required('Company is required'),
             address_1: Yup.string().required('Street address is required'),
-            address_2: Yup.string().required('Street address is required'),
+            // address_2: Yup.string().required('Street address is required'),
             city: Yup.string().required('City is required'),
             state: Yup.string().required('State is required'),
             country: Yup.string().required('Country is required'),
@@ -548,7 +548,7 @@ const Editorder = () => {
             email: Yup.string().required('Email is required'),
             company: Yup.string().required('Company is required'),
             address_1: Yup.string().required('Street address is required'),
-            address_2: Yup.string().required('Street address is required'),
+            // address_2: Yup.string().required('Street address is required'),
             city: Yup.string().required('City is required'),
             state: Yup.string().required('State is required'),
             country: Yup.string().required('Country is required'),
@@ -1347,7 +1347,6 @@ const Editorder = () => {
                                                 <p>{formData?.billing?.company}</p>
                                                 <p>
                                                     {formData?.billing?.address_1}
-                                                    {formData?.billing?.address_2 && <div>{formData.billing.address_2}</div>}
                                                     <br /> {formData?.billing?.city}
                                                     <br /> {formData?.billing?.state}
                                                     <br /> {formData?.billing?.countryArea}
@@ -1442,7 +1441,7 @@ const Editorder = () => {
 
                                                     {/* <input type="text" id="billingaddress1" name="billingaddress1" className="form-input" required /> */}
                                                 </div>
-                                                <div className="col-span-6">
+                                                {/* <div className="col-span-6">
                                                     <label htmlFor="addressline2" className=" text-sm font-medium text-gray-700">
                                                         Addres Line 2
                                                     </label>
@@ -1454,7 +1453,7 @@ const Editorder = () => {
                                                         onChange={handleChange}
                                                     />
                                                     {errors['billing.address_2'] && <div className="mt-1 text-danger">{errors['billing.address_2']}</div>}
-                                                </div>
+                                                </div> */}
                                             </div>
 
                                             <div className="mt-5 grid grid-cols-12 gap-3">
@@ -1609,7 +1608,7 @@ const Editorder = () => {
                                                 <p>{`${formData?.shipping?.firstName} ${formData?.shipping?.lastName}`}</p>
                                                 <p>{formData?.shipping?.company}</p>
                                                 <p>
-                                                    {`${formData?.shipping?.address_1} - ${formData?.shipping?.address_2}`}
+                                                    {formData?.shipping?.address_1}
                                                     <br /> {formData?.shipping?.city}
                                                     <br /> {formData?.shipping?.state}
                                                     <br /> {formData?.shipping?.countryArea}
@@ -1707,7 +1706,7 @@ const Editorder = () => {
 
                                                     {/* <input type="text" id="shippingaddress1" name="shippingaddress1" className="form-input" required /> */}
                                                 </div>
-                                                <div className="col-span-6">
+                                                {/* <div className="col-span-6">
                                                     <label htmlFor="addressline2" className=" text-sm font-medium text-gray-700">
                                                         Addres Line 2
                                                     </label>
@@ -1719,7 +1718,7 @@ const Editorder = () => {
                                                         onChange={handleChange}
                                                     />
                                                     {errors['shipping.address_2'] && <div className="mt-1 text-danger">{errors['shipping.address_2']}</div>}
-                                                </div>
+                                                </div> */}
                                             </div>
 
                                             <div className="mt-5 grid grid-cols-12 gap-3">

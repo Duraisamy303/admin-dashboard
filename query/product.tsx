@@ -127,6 +127,8 @@ export const CUSTOMER_ALL_LIST = gql`
                 __typename
             }
             __typename
+             totalCount
+
         }
     }
 

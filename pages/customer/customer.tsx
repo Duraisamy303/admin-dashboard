@@ -46,9 +46,13 @@ const CustomerList = () => {
     const [endCursor, setEndCursor] = useState(null);
     const [hasNextPage, setHasNextPage] = useState(false);
     const [hasPreviousPage, setHasPreviousPage] = useState(false);
+    const [total, setTotal] = useState(null);
+
     const [search, setSearch] = useState('');
 
     const dispatch = useDispatch();
+
+    const [removeCustomer, { loading: removeloading }] = useMutation(DELETE_CUSTOMER);
 
     useEffect(() => {
         dispatch(setPageTitle('Products'));
@@ -101,6 +105,7 @@ const CustomerList = () => {
     });
 
     const commonPagination = (data) => {
+        console.log('data: ', data);
         const customers = data?.customers?.edges;
         const pageInfo = data?.customers?.pageInfo;
         setRecordsData(
@@ -116,6 +121,7 @@ const CustomerList = () => {
         setEndCursor(pageInfo?.endCursor || null);
         setHasNextPage(pageInfo?.hasNextPage || false);
         setHasPreviousPage(pageInfo?.hasPreviousPage || false);
+        setTotal(data?.customers.totalCount);
     };
 
     const handleNextPage = () => {
@@ -214,14 +220,32 @@ const CustomerList = () => {
         await customerListRefetch();
     };
 
-    const DeleteProduct = async (record: any) => {};
+    const DeleteProduct = (row: any) => {
+        showDeleteAlert(
+            async () => {
+                const res = await removeCustomer({
+                    variables: {
+                        ids: [row.id],
+                    },
+                });
+                const updatedRecordsData = recordsData.filter((dataRecord: any) => dataRecord.id !== row.id);
+                setRecordsData(updatedRecordsData);
+                setTotal(total - 1);
+                Swal.fire('Deleted!', 'Your Customer has been deleted.', 'success');
+                // refresh();
+            },
+            () => {
+                Swal.fire('Cancelled', 'Your Customer List is safe :)', 'error');
+            }
+        );
+    };
 
     return (
         <div>
             <div className="panel mt-6">
                 <div className="mb-10 flex flex-col gap-5 lg:mb-5 lg:flex-row lg:items-center">
                     <div className="flex items-center gap-2">
-                        <h5 className="text-lg font-semibold dark:text-white-light">Customer</h5>
+                        <h5 className="text-lg font-semibold dark:text-white-light">Customers {total !== null && `(${total})`}</h5>
                         {/* <button type="button" className="btn btn-outline-primary">
                             Import
                         </button>
@@ -260,7 +284,7 @@ const CustomerList = () => {
                 </div>
 
                 <div className="datatables">
-                    {getLoading ? (
+                    {getLoading || removeloading ? (
                         <CommonLoader />
                     ) : (
                         <DataTable

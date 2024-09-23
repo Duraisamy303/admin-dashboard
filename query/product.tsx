@@ -127,8 +127,7 @@ export const CUSTOMER_ALL_LIST = gql`
                 __typename
             }
             __typename
-             totalCount
-
+            totalCount
         }
     }
 
@@ -397,36 +396,14 @@ export const CATEGORY_LIST = gql`
 export const CATEGORY_DETAILS = gql`
     query ViewCategory($id: ID!) {
         category(id: $id) {
+            name
+            menuOrder
+            backgroundImageUrl
+            description
             id
             level
-            name
-            children(first: 90) {
-                totalCount
-                edges {
-                    node {
-                        id
-                        name
-                        description
-                        slug
-                        products {
-                            totalCount
-                        }
-                        backgroundImage {
-                            url
-                            alt
-                        }
-                        backgroundImageUrl
-                        menuOrder
-                    }
-                }
-            }
-            products {
-                totalCount
-            }
-            backgroundImage {
-                alt
-                url
-            }
+            updatedAt
+            slug
         }
     }
 `;

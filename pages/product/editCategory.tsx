@@ -66,20 +66,6 @@ const EditCategory = () => {
     console.log('catId: ', catId);
 
     const dispatch = useDispatch();
-    useEffect(() => {
-        dispatch(setPageTitle('Category'));
-    });
-
-    const { error, data: categoryData } = useQuery(CATEGORY_LIST, {
-        variables: { channel: 'india-channel', first: 100 },
-    });
-
-    const {  data: categoryDatas } = useQuery(CATEGORY_DETAILS, {
-        variables: { id:catId},
-    });
-
-    console.log("categoryDatas: ", categoryDatas);
-    
 
     const [parentLists, setParentLists] = useState([]);
     const [previewUrl, setPreviewUrl] = useState(null);
@@ -108,11 +94,33 @@ const EditCategory = () => {
     const [mediaPreviousPage, setMediaPreviousPage] = useState(false);
     const [monthNumber, setMonthNumber] = useState(null);
 
+    useEffect(() => {
+        dispatch(setPageTitle('Category'));
+    });
+
+    const { error, data: categoryData } = useQuery(CATEGORY_LIST, {
+        variables: { channel: 'india-channel', first: 100 },
+    });
+
+    const { data: categoryDatas } = useQuery(CATEGORY_DETAILS, {
+        variables: { id: catId },
+    });
+
     const { data: parentList } = useQuery(PARENT_CATEGORY_LIST, {
         variables: { channel: 'india-channel' },
     });
 
     const { refetch: mediaRefetch } = useQuery(MEDIA_PAGINATION);
+
+    const [updateCategory, { loading }] = useMutation(UPDATE_CATEGORY_NEW);
+
+    const [addNewImages] = useMutation(ADD_NEW_MEDIA_IMAGE);
+
+    const [updateImages, { loading: mediaUpdateLoading }] = useMutation(UPDATE_MEDIA_IMAGE);
+
+    const [deleteImages] = useMutation(DELETE_MEDIA_IMAGE);
+
+    const { data, refetch: getListRefetch } = useQuery(GET_MEDIA_IMAGE);
 
     const { data: customerData, loading: getLoading } = useQuery(MEDIA_PAGINATION, {
         variables: {
@@ -124,13 +132,11 @@ const EditCategory = () => {
             name: '',
         },
         onCompleted: (data) => {
-            console.log('data: ', data);
             commonPagination(data);
         },
     });
 
     const commonPagination = (data) => {
-        console.log('data: ', data);
         setMediaImages(data.files.edges);
         setMediaStartCussor(data.files.pageInfo.startCursor);
         setMediaEndCursor(data.files.pageInfo.endCursor);
@@ -139,8 +145,12 @@ const EditCategory = () => {
     };
 
     useEffect(() => {
-        filterByCategory();
-    }, [categoryData, catId]);
+        getDetails();
+    }, [categoryDatas, catId]);
+
+    useEffect(() => {
+        filterByType();
+    }, [monthNumber]);
 
     useEffect(() => {
         const getparentCategoryList = parentList?.categories?.edges;
@@ -148,43 +158,25 @@ const EditCategory = () => {
         setParentLists(options);
     }, [parentList]);
 
-    //Mutation
-    const [updateCategory, { loading }] = useMutation(UPDATE_CATEGORY_NEW);
-
-    const [addNewImages] = useMutation(ADD_NEW_MEDIA_IMAGE);
-    const [updateImages, { loading: mediaUpdateLoading }] = useMutation(UPDATE_MEDIA_IMAGE);
-    const [deleteImages] = useMutation(DELETE_MEDIA_IMAGE);
-    const { data, refetch: getListRefetch } = useQuery(GET_MEDIA_IMAGE);
-
-    useEffect(() => {
-        // getMediaImage();
-    }, []);
-
-    const filterByCategory = async () => {
+    const getDetails = async () => {
         try {
-            const res = categoryData?.categories?.edges;
-            const find = res?.find((item) => item?.node?.id == catId);
-            setCatData(find?.node);
-            setName(find?.node?.name);
-            if (find?.node?.description) {
-                const jsonObject = JSON.parse(find?.node?.description);
+            const find = categoryDatas?.category;
+            setCatData(find);
+            setName(find?.name);
+            if (find?.description) {
+                const jsonObject = JSON.parse(find?.description);
                 const textValue = jsonObject?.blocks[0]?.data?.text;
                 setDescription(textValue);
             } else {
                 setDescription('');
             }
-            setPreviewUrl(find?.node?.backgroundImageUrl);
-            setSelectedCat({ value: find?.node?.parent?.id, label: find?.node?.parent?.name });
-            setMenuOrder(find?.node?.menuOrder);
+            setPreviewUrl(find?.backgroundImageUrl);
+            setSelectedCat({ value: find?.parent?.id, label: find?.parent?.name });
+            setMenuOrder(find?.menuOrder);
         } catch (error) {
             console.log('error: ', error);
         }
     };
-
-    // FORM VALIDATION
-    const SubmittedForm = Yup.object().shape({
-        name: Yup.string().required('Please fill the Category Name'),
-    });
 
     // form submit
     const onSubmit = async () => {
@@ -217,17 +209,6 @@ const EditCategory = () => {
             console.log('error: ', error);
         }
     };
-
-    // const searchMediaByName = async (e) => {
-    //     setMediaSearch(e);
-    //     try {
-    //         const res = await fetchImagesFromS3(e);
-    //         const filter = filterImages(res);
-    //         setMediaImages(filter);
-    //     } catch (error) {
-    //         console.log('error: ', error);
-    //     }
-    // };
 
     const searchMediaByName = async (e) => {
         setMediaSearch(e);
@@ -297,9 +278,7 @@ const EditCategory = () => {
                 files = await resizeImage(files, 1160, 1340);
             }
             const { width, height } = await getImageDimensions(files);
-            console.log('Image width, height: ', width, height);
         }
-        console.log('files.size : ', files.size);
 
         const unique = await generateUniqueFilenames(files.name);
 
@@ -399,10 +378,6 @@ const EditCategory = () => {
             console.error('Error deleting file:', error);
         }
     };
-
-    useEffect(() => {
-        filterByType();
-    }, [monthNumber]);
 
     const filterByType = async () => {
         fetchNextPage(commonInput(null, monthNumber, mediaSearch));

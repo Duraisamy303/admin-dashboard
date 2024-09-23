@@ -41,7 +41,7 @@ const ProductImport = () => {
         setState({ loading: true });
 
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('adminToken');
 
             let formData = new FormData();
             //update_menu_order

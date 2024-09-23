@@ -40,7 +40,7 @@ const LoginBoxed = () => {
     const router = useRouter();
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('adminToken');
         if (token) {
             router.replace('/');
         }
@@ -69,7 +69,7 @@ const LoginBoxed = () => {
         } else {
             console.log('data?.tokenCreate: ', data?.tokenCreate);
 
-            localStorage.setItem('token', data?.tokenCreate?.token);
+            localStorage.setItem('adminToken', data?.tokenCreate?.token);
             localStorage.setItem('user', data?.tokenCreate?.user);
             localStorage.setItem('userEmail', data?.tokenCreate?.user?.email);
             localStorage.setItem('userName', data?.tokenCreate?.user?.firstName);

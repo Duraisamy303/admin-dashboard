@@ -6,7 +6,7 @@ const PrivateRouter = (WrappedComponent:any) => {
     const router = useRouter();
 
     useEffect(() => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('adminToken');
       if (!token) {
         const baseUrl = `${window.location.origin}/auth/boxed-signin`;
         router.replace(baseUrl); // Redirect to login if no token is found

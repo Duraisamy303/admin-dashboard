@@ -41,7 +41,7 @@ const Header = () => {
     const [user, setUser] = useState({ email: '', name: '' });
 
     useEffect(() => {
-        const Token: any = localStorage.getItem('token');
+        const Token: any = localStorage.getItem('adminToken');
         setToken(Token);
         const UserEmail = localStorage.getItem('userEmail');
         const UserName = localStorage.getItem('userName');

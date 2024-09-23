@@ -169,7 +169,7 @@ export const sampleParams = {
 
 export const uploadImage = async (productId: any, file: any) => {
     try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('adminToken');
         const formData = new FormData();
 
         // Define GraphQL mutation operation
@@ -219,7 +219,7 @@ export const uploadImage = async (productId: any, file: any) => {
 
 export const duplicateUploadImage = async (productId, imageUrl) => {
     try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('adminToken');
         const formData = new FormData();
         formData.append(
             'operations',
@@ -260,7 +260,7 @@ export const categoryImageUpload = async (categoryId, imageUrl) => {
         const fileExtension = blob.type.split('/')[1];
         const fileName = `uploaded_image.${fileExtension}`;
         const file = new File([blob], fileName, { type: blob.type });
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('adminToken');
         const formData = new FormData();
 
         const operations = JSON.stringify({

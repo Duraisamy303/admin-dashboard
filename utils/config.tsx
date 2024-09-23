@@ -1,5 +1,5 @@
 export const configuration = (body:any) => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("adminToken");
     const config = {
       method: "POST",
       headers: {

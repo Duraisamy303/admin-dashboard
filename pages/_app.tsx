@@ -30,7 +30,7 @@ const App = ({ Component, pageProps }: AppPropsWithLayout) => {
     });
 
     const authLink = new ApolloLink((operation, forward) => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('adminToken');
 
         operation.setContext({
             headers: {
@@ -49,9 +49,7 @@ const App = ({ Component, pageProps }: AppPropsWithLayout) => {
 
     const getLayout = Component.getLayout ?? ((page) => <DefaultLayout>{page}</DefaultLayout>);
 
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-    }, []);
+ 
     return (
         <ApolloProvider client={client}>
             <Provider store={store}>

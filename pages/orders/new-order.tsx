@@ -122,9 +122,11 @@ const NewOrder = () => {
     const [newAddLine] = useMutation(ADD_NEW_LINE);
     const [updateLine] = useMutation(UPDATE_LINE);
     const [deleteLine] = useMutation(DELETE_LINE);
-    const [updateShippingCost] = useMutation(UPDATE_SHIPPING_COST);
-    const [finalizeOrder] = useMutation(FINALIZE_ORDER);
-    const [updateDraftOrder] = useMutation(UPDATE_DRAFT_ORDER);
+    const [updateShippingCost, { loading: updateShippingCastLoading }] = useMutation(UPDATE_SHIPPING_COST);
+    const [finalizeOrder, { loading: finalizeOrderLoading }] = useMutation(FINALIZE_ORDER);
+    const [updateDraftOrder, { loading: updateDraftOrderLoading }] = useMutation(UPDATE_DRAFT_ORDER);
+    const [updatefinalDraftOrder, { loading: updateFinalDraftOrderLoading }] = useMutation(UPDATE_DRAFT_ORDER);
+
     const [addCoupenAmt] = useMutation(ADD_COUPEN);
     const [removeDiscount] = useMutation(REMOVE_DISCOUNT);
 
@@ -721,7 +723,7 @@ const NewOrder = () => {
             } else if (state.lineList.length == 0) {
                 Failure('Please add product to order');
             } else {
-                const data = await updateDraftOrder({
+                const data = await updatefinalDraftOrder({
                     variables: {
                         id: orderId,
                         input: {
@@ -769,9 +771,13 @@ const NewOrder = () => {
                     id: orderId,
                 },
             });
-            getOrderData();
-            Success('Order Created Successfully');
-            router.push(`/orders/editorder?id=${orderId}`);
+            if (res?.data?.draftOrderComplete?.errors?.length > 0) {
+                Failure(res?.data?.draftOrderComplete?.errors[0]?.message);
+            } else {
+                getOrderData();
+                Success('Order Created Successfully');
+                router.push(`/orders/editorder?id=${orderId}`);
+            }
         } catch (error) {
             console.log('error: ', error);
         }
@@ -825,7 +831,6 @@ const NewOrder = () => {
             Failure('Please select customer');
             return false;
         }
-        setState({ setUpdateAddressLoading: true });
         setBillingErrMsg({});
         setShippingErrMsg({});
         const address = AddressValidation(state);
@@ -857,7 +862,6 @@ const NewOrder = () => {
                 },
             });
             if (res?.data?.draftOrderUpdate?.errors?.length > 0) {
-                setState({ setUpdateAddressLoading: false });
                 Failure(res?.data?.draftOrderUpdate?.errors[0]?.message);
             } else {
                 updateShippingAmount();
@@ -1474,7 +1478,7 @@ const NewOrder = () => {
                             </div>
                             <div className="">
                                 <button type="button" className="btn btn-primary" onClick={() => updateAddress()}>
-                                    {state.updateAddressLoading ? <IconLoader /> : 'Update Address'}
+                                    {updateDraftOrderLoading || updateShippingCastLoading ? <IconLoader /> : 'Update Address'}
                                 </button>
                             </div>
                         </div>
@@ -1668,7 +1672,7 @@ const NewOrder = () => {
                                             Move To Trash
                                         </a> */}
                                 <button onClick={() => createOrder()} className="btn btn-outline-primary">
-                                    Create
+                                    {updateFinalDraftOrderLoading || finalizeOrderLoading ? <IconLoader /> : 'Create'}
                                 </button>
                             </div>
                         </div>

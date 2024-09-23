@@ -378,25 +378,23 @@ const AbandonedCarts = () => {
                                 {
                                     accessor: 'order',
                                     sortable: true,
-                                    render: (row, index) => (
+                                    render: (row) => (
                                         <>
                                             <div className="">{row.order}</div>
                                             <div className="flex gap-3">
-                                                <button onClick={() => expandedRows(row)} className=" cursor-pointer text-blue-400 underline">
+                                                <div onClick={() => expandedRows(row)} className="cursor-pointer text-blue-400 underline">
                                                     Quick Edit
-                                                </button>
+                                                </div>
                                             </div>
                                         </>
                                     ),
                                 },
                                 { accessor: 'invoice', sortable: true, title: 'Invoice Number' },
-
                                 { accessor: 'date', sortable: true },
                                 {
                                     accessor: 'status',
                                     sortable: true,
                                     title: 'Order status',
-
                                     render: (row) => (
                                         <div
                                             className={`flex w-max gap-4 rounded-full px-2 py-1 ${
@@ -419,7 +417,6 @@ const AbandonedCarts = () => {
                                     accessor: 'paymentStatus',
                                     sortable: true,
                                     title: 'Payment status',
-
                                     render: (row) => (
                                         <div
                                             className={`flex w-max gap-4 rounded-full px-2 py-1 ${
@@ -455,12 +452,11 @@ const AbandonedCarts = () => {
                                         );
                                     },
                                 },
-
                                 { accessor: 'total', sortable: true },
                                 {
                                     accessor: 'actions',
                                     title: 'Actions',
-                                    render: (row: any) => (
+                                    render: (row) => (
                                         <>
                                             <Tippy content="Edit">
                                                 <button type="button" onClick={() => window.open(`/orders/editorder?id=${row.id}`, '_blank')}>
@@ -485,7 +481,6 @@ const AbandonedCarts = () => {
                                                 id={record?.id}
                                                 updateList={() => {
                                                     refresh();
-                                                    collapse();
                                                 }}
                                                 closeExpand={() => {
                                                     setExpandedRows(null);
@@ -498,7 +493,7 @@ const AbandonedCarts = () => {
                             highlightOnHover
                             totalRecords={recordsData.length}
                             recordsPerPage={PAGE_SIZE}
-                            page={null} // Add this line to set the current page
+                            page={null}
                             onPageChange={(p) => {}} // Dummy handler for onPageChange
                             sortStatus={{
                                 columnAccessor: 'name',
@@ -509,6 +504,7 @@ const AbandonedCarts = () => {
                             minHeight={200}
                             paginationText={({ from, to, totalRecords }) => ''}
                         />
+
                         <div className="mt-5 flex justify-end gap-3">
                             <button disabled={!hasPreviousPage} onClick={handlePreviousPage} className={`btn ${!hasPreviousPage ? 'btn-disabled' : 'btn-primary'}`}>
                                 <IconArrowBackward />

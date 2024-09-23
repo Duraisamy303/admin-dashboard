@@ -120,3 +120,6 @@ table tr .mantine-Checkbox-root {
 .mantine-ScrollArea-viewport > div:first-child > div {
     @apply bg-none;
 }
+.mantine-11131i9{
+    cursor: default;
+}

@@ -80,7 +80,7 @@ const CustomerList = () => {
                 search: search,
             },
             sort: {
-                direction: 'ASC',
+                direction: 'DESC',
                 field: 'CREATED_AT',
             },
 
@@ -136,7 +136,7 @@ const CustomerList = () => {
                     search: search,
                 },
                 sort: {
-                    direction: 'ASC',
+                    direction: 'DESC',
                     field: 'CREATED_AT',
                 },
 
@@ -156,7 +156,7 @@ const CustomerList = () => {
                     search: search,
                 },
                 sort: {
-                    direction: 'ASC',
+                    direction: 'DESC',
                     field: 'CREATED_AT',
                 },
 
@@ -178,7 +178,7 @@ const CustomerList = () => {
                         numberOfOrders: null,
                     },
                     sort: {
-                        direction: 'ASC',
+                        direction: 'DESC',
                         field: 'CREATED_AT',
                     },
 
@@ -201,7 +201,7 @@ const CustomerList = () => {
                     search: search,
                 },
                 sort: {
-                    direction: 'ASC',
+                    direction: 'DESC',
                     field: 'CREATED_AT',
                 },
 

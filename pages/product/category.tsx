@@ -25,7 +25,6 @@ const Category = () => {
 
     const PAGE_SIZE = 10;
 
-
     const router = useRouter();
 
     const dispatch = useDispatch();
@@ -95,7 +94,7 @@ const Category = () => {
                 parentId: item.node.parent?.id,
                 product: item.node.products?.totalCount,
                 textdescription: textValue || '',
-                menuOrder:item.node?.menuOrder,
+                menuOrder: item.node?.menuOrder,
                 image: item.node?.backgroundImageUrl, // Set textValue or empty string if it doesn't exist
             };
         });
@@ -278,7 +277,11 @@ const Category = () => {
                             records={recordsData}
                             columns={[
                                 // { accessor: 'id', sortable: true },
-                                { accessor: 'image', sortable: true, render: (row) => <img src={row?.image} alt="Product" className="h-10 w-10 object-cover ltr:mr-2 rtl:ml-2" /> },
+                                {
+                                    accessor: 'image',
+                                    sortable: true,
+                                    render: (row) => <img src={row?.image ? row?.image : '/assets/images/placeholder.png'} alt="Product" className="h-10 w-10 object-cover ltr:mr-2 rtl:ml-2" />,
+                                },
                                 { accessor: 'name', sortable: true },
                                 {
                                     accessor: 'textdescription',

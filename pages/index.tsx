@@ -1118,7 +1118,11 @@ const Index = () => {
                         className="table-hover whitespace-nowrap"
                         records={recordsData}
                         columns={[
-                            { accessor: 'image', sortable: true, render: (row) => <img src={row.image} alt="Product" className="h-10 w-10 object-cover ltr:mr-2 rtl:ml-2" /> },
+                            {
+                                accessor: 'image',
+                                sortable: true,
+                                render: (row) => <img src={row?.image ? row?.image : '/assets/images/placeholder.png'} alt="Product" className="h-10 w-10 object-cover ltr:mr-2 rtl:ml-2" />,
+                            },
                             {
                                 accessor: 'name',
                                 sortable: true,

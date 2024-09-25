@@ -93,6 +93,27 @@ const CustomerList = () => {
         },
     });
 
+    const {} = useQuery(CUSTOMER_ALL_LIST, {
+        variables: {
+            first: PAGE_SIZE,
+            after: null,
+            filter: {
+                dateJoined: null,
+                numberOfOrders: null,
+                search: '',
+            },
+            sort: {
+                direction: 'DESC',
+                field: 'CREATED_AT',
+            },
+
+            PERMISSION_MANAGE_ORDERS: true,
+        },
+        onCompleted: (data) => {
+            setTotal(data?.customers.totalCount);
+        },
+    });
+
     const [fetchNextPage] = useLazyQuery(CUSTOMER_ALL_LIST, {
         onCompleted: (data) => {
             commonPagination(data);
@@ -122,7 +143,6 @@ const CustomerList = () => {
         setEndCursor(pageInfo?.endCursor || null);
         setHasNextPage(pageInfo?.hasNextPage || false);
         setHasPreviousPage(pageInfo?.hasPreviousPage || false);
-        setTotal(data?.customers.totalCount);
     };
 
     const handleNextPage = () => {

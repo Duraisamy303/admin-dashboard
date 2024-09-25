@@ -29,6 +29,12 @@ const AbandonedCarts = () => {
     const [endCursor, setEndCursor] = useState(null);
     const [hasNextPage, setHasNextPage] = useState(false);
     const [hasPreviousPage, setHasPreviousPage] = useState(false);
+    const [total, setTotal] = useState(0);
+    const [pendingPayment, setPendingPayment] = useState(0);
+    const [processing, setProcessing] = useState(0);
+    const [completed, setCompleted] = useState(0);
+    const [cancelled, setCancelled] = useState(0);
+
     const [isOpenChannel, setIsOpenChannel] = useState(false);
     const [currencyPopup, setCurrencyPopup] = useState('');
 
@@ -90,6 +96,8 @@ const AbandonedCarts = () => {
         },
     });
 
+    const { refetch: orderRefetch,loading:refetchLoading } = useQuery(ORDER_LIST);
+
     const [fetchNextPage] = useLazyQuery(ORDER_LIST, {
         onCompleted: (data) => {
             setData(data);
@@ -101,6 +109,54 @@ const AbandonedCarts = () => {
             setData(data);
         },
     });
+
+    useEffect(() => {
+        getTotalCounts();
+    }, []);
+
+    const getTotalCounts = async () => {
+        const filters = [
+            { type: 'process', filter: { status: ['UNCONFIRMED'] } },
+            { type: 'complete', filter: { status: ['FULFILLED'] } },
+            { type: 'cancel', filter: { status: ['CANCELED'] } },
+            { type: 'pending', filter: { paymentStatus: ['PENDING'] } },
+        ];
+
+        let totalCounts = {};
+
+        for (let { type, filter } of filters) {
+            try {
+                const { data } = await orderRefetch({
+                    channel: 'india-channel',
+                    first: PAGE_SIZE,
+                    after: null,
+                    filter: filter,
+                });
+
+                totalCounts[type] = data?.orders?.totalCount || 0; // assuming `totalCount` exists in the response
+
+                // Update state based on type
+                switch (type) {
+                    case 'pending':
+                        setPendingPayment(data?.orders?.totalCount || 0);
+                        break;
+                    case 'process':
+                        setProcessing(data?.orders?.totalCount || 0);
+                        break;
+                    case 'complete':
+                        setCompleted(data?.orders?.totalCount || 0);
+                        break;
+                    case 'cancel':
+                        setCancelled(data?.orders?.totalCount || 0);
+                        break;
+                    default:
+                        break;
+                }
+            } catch (error) {
+                console.log(`Error fetching ${type} count: `, error);
+            }
+        }
+    };
 
     const handleNextPage = () => {
         fetchNextPage({
@@ -162,6 +218,7 @@ const AbandonedCarts = () => {
         setEndCursor(pageInfo?.endCursor || null);
         setHasNextPage(pageInfo?.hasNextPage || false);
         setHasPreviousPage(pageInfo?.hasPreviousPage || false);
+        setTotal(data?.orders?.totalCount);
     };
 
     const refresh = async () => {
@@ -287,6 +344,50 @@ const AbandonedCarts = () => {
         }
     };
 
+    const filterStatus = (type) => {
+        if (type == 'all') {
+            refresh();
+        } else {
+            filterByStatus(type);
+        }
+    };
+
+    const filterByStatus = async (type) => {
+        let filter: any = {};
+        if (type == 'process') {
+            filter.status = ['UNCONFIRMED'];
+        } else if (type == 'complete') {
+            filter.status = ['FULFILLED'];
+        } else if (type == 'cancel') {
+            filter.status = ['CANCELED'];
+        }
+        if (type == 'pending') {
+            filter.paymentStatus = ['PENDING'];
+        }
+
+        try {
+            const { data } = await orderRefetch({
+                channel: 'india-channel',
+                first: PAGE_SIZE,
+                after: null,
+                filter: filter,
+            });
+
+            setData(data);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
+    const statuses = [
+        { label: 'All', value: 'all', count: total },
+        // { label: 'Mine', value: 'mine', count: 0 },
+        // { label: 'Pending Payment', value: 'pending', count: pendingPayment },
+        { label: 'Processing', value: 'process', count: processing },
+        { label: 'Completed', value: 'complete', count: completed },
+        { label: 'Cancelled', value: 'cancel', count: cancelled },
+    ];
+
     return (
         <div>
             <div className="panel mb-5 flex flex-col gap-5 md:flex-row md:items-center">
@@ -300,11 +401,19 @@ const AbandonedCarts = () => {
                     </button>
                 </div>
             </div>
-            <div className=" flex flex-col justify-between gap-3 md:flex-row md:items-center">
-                <div className="flex">
-                    <input type="text" className="form-input mr-2 w-[300px]" placeholder="Search..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
-
-                    <div className="dropdown  mr-2  w-[200px]">
+            <div className="mb-4">
+                {statuses.map(({ label, value, count }, index) => (
+                    <span key={value} className="cursor-pointer text-blue-500 dark:text-white-light" onClick={() => filterStatus(value)}>
+                        {label}
+                        <span className="ml-1 cursor-pointer text-gray-500">{`(${count})`}</span>
+                        {index < statuses.length - 1 && <span className="mx-2">|</span>}
+                    </span>
+                ))}
+            </div>
+            <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                <div className="flex space-x-3">
+                    <input type="text" className="form-input w-[300px]" placeholder="Search..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
+                    <div className="dropdown w-[200px]">
                         <select id="priority" className="form-select" value={status} onChange={(e) => handleChangeStaus(e.target.value)}>
                             <option value="">Status</option>
                             <option value="UNCONFIRMED">Processing</option>
@@ -314,9 +423,10 @@ const AbandonedCarts = () => {
                         </select>
                     </div>
                 </div>
-                <div className="flex ">
-                    <div className="dropdown  mr-2  w-[200px]">
-                        <select id="priority" className="form-select " value={duration} onChange={(e) => handleChangeDuration(e.target.value)}>
+
+                <div className="flex space-x-3">
+                    <div className="dropdown w-[200px]">
+                        <select id="priority" className="form-select" value={duration} onChange={(e) => handleChangeDuration(e.target.value)}>
                             <option value="">Select duration</option>
                             <option value="weekly">Weekly</option>
                             <option value="monthly">Monthly</option>
@@ -327,8 +437,9 @@ const AbandonedCarts = () => {
                         </select>
                     </div>
                 </div>
+
                 {duration == 'custom' && (
-                    <div className="flex justify-end gap-4 pb-4">
+                    <div className="flex space-x-4 pb-4">
                         <div className="col-span-4">
                             <label htmlFor="dateTimeCreated" className="block pr-2 text-sm font-medium text-gray-700">
                                 Start Date:
@@ -366,8 +477,9 @@ const AbandonedCarts = () => {
                     </div>
                 )}
             </div>
+
             <div className="panel mt-6">
-                {getLoading ? (
+                {getLoading || refetchLoading? (
                     <CommonLoader />
                 ) : (
                     <div className="datatables">

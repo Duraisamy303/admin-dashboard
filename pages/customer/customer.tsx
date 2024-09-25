@@ -37,7 +37,7 @@ import { commonBody } from '@/utils/constant';
 
 const CustomerList = () => {
     const router = useRouter();
-    const PAGE_SIZE = 10;
+    const PAGE_SIZE = 20;
 
     const isRtl = useSelector((state: any) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
 

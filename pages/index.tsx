@@ -187,6 +187,7 @@ const Index = () => {
     useEffect(() => {
         publishCount();
         draftCount();
+        totalCount();
     }, []);
 
     const { loading: getLoading, refetch: fetchLowStockList } = useQuery(UPDATED_PRODUCT_PAGINATION, {
@@ -204,7 +205,6 @@ const Index = () => {
             setEndCursor(data?.products?.pageInfo?.endCursor || null);
             setHasNextPage(data?.products?.pageInfo?.hasNextPage || false);
             setHasPreviousPage(data?.products?.pageInfo?.hasPreviousPage || false);
-            setTotal(data?.products?.totalCount);
         },
     });
 
@@ -246,6 +246,21 @@ const Index = () => {
             });
 
             setPublish(data?.products?.totalCount);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
+    const totalCount = async () => {
+        try {
+            const { data } = await refreshfetch({
+                channel: 'india-channel',
+                first: PAGE_SIZE,
+                after: null,
+                search: '',
+            });
+
+            setTotal(data?.products?.totalCount);
         } catch (error) {
             console.log('error: ', error);
         }
@@ -1126,6 +1141,13 @@ const Index = () => {
         }
     };
 
+    const clearFilter = () => {
+        refresh(true);
+        setSearch('');
+        setStatus('');
+        setSelectedCategory('');
+    };
+
     return (
         <div className="">
             <div className="panel mb-5 flex items-center justify-between gap-5">
@@ -1225,20 +1247,42 @@ const Index = () => {
                                 marginRight: ' 10px',
                                 boxShadow: 'black',
                                 width: '40px !important',
+                                padding: '5px',
                             }}
                         >
                             <li>
-                                <button type="button" onClick={() => bulkEdit()}>
+                                <button
+                                    type="button"
+                                    className=" text-black hover:text-primary"
+                                    onClick={() => bulkEdit()}
+                                    style={{
+                                        fontSize: '16px',
+                                        fontWeight: 600,
+                                    }}
+                                >
                                     Edit
                                 </button>
                             </li>
                             <li>
-                                <button type="button" onClick={() => BulkDeleteProduct()}>
+                                <button
+                                    type="button"
+                                    onClick={() => BulkDeleteProduct()}
+                                    className=" text-black hover:text-primary"
+                                    style={{
+                                        fontSize: '16px',
+                                        fontWeight: 600,
+                                    }}
+                                >
                                     Delete
                                 </button>
                             </li>
                         </ul>
                     </Dropdown>
+                </div>
+                <div className="">
+                    <button type="button" className="btn btn-primary" onClick={() => clearFilter()}>
+                        Clear Filter
+                    </button>
                 </div>
             </div>
 

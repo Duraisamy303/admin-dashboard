@@ -19,7 +19,7 @@ import IconTrash from '@/components/Icon/IconTrash';
 import Swal from 'sweetalert2';
 import IconRefresh from '@/components/Icon/IconRefresh';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 20;
 
 const AbandonedCarts = () => {
     const router = useRouter();

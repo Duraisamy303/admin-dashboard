@@ -4,6 +4,7 @@ import { Tab } from '@headlessui/react';
 import Link from 'next/link';
 import {
     Failure,
+    addReportCommasToNumber,
     downloadExlcel,
     filterByDates,
     formatCurrency,
@@ -53,46 +54,7 @@ const Reports = () => {
     const order = ['Sales by date', 'Sales by product', 'Sales by category', 'Coupons by date'];
     const analysis = ['Order Analysis', 'Revenue Analysis', 'Customer Analysis', 'Product by Country', 'Product Revenue'];
     const customer = ['Guests list', 'Customer list'];
-    const orderFilter = ['Last 7 Days', 'This Month', 'Last Month', 'Year', 'Custome'];
-
-    const salesByDate = [
-        {
-            name: 'gross sales in this period',
-            value: '0.00',
-        },
-        {
-            name: 'average gross monthly sales',
-            value: '0.00',
-        },
-        {
-            name: 'net sales in this period',
-            value: '0.00',
-        },
-        {
-            name: 'average net monthly sales',
-            value: '0.00',
-        },
-        {
-            name: 'orders placed',
-            value: '0.00',
-        },
-        {
-            name: 'items purchased',
-            value: '0.00',
-        },
-        {
-            name: 'refunded 0 orders (0 items',
-            value: '0.00',
-        },
-        {
-            name: 'charged for shipping',
-            value: '0.00',
-        },
-        {
-            name: 'worth of coupons used',
-            value: '0.00',
-        },
-    ];
+    const orderFilter = ['Last 7 Days', 'This Month', 'Last Month', 'Year', 'Custom'];
 
     const [salesBydate, { loading: salesBydateLoading }] = useMutation(SALES_BY_DATE);
     const [salesByProduct, { loading: salesByProductLoading }] = useMutation(SALES_BY_PRODUCT);
@@ -298,7 +260,7 @@ const Reports = () => {
                 (startDate = start), (endDate = end);
             }
 
-            if (state.orderDateFilter == 'Custome') {
+            if (state.orderDateFilter == 'Custom') {
                 (startDate = moment(state.orderStartDate).format('YYYY-MM-DD')), (endDate = moment(state.orderEndDate).format('YYYY-MM-DD'));
             }
 
@@ -325,29 +287,30 @@ const Reports = () => {
                 },
                 {
                     name: 'Product total amount',
-                    value: `${formatCurrency('INR')}${response.productsTotalAmountTotal}`,
+                    value: `${formatCurrency('INR')}${addReportCommasToNumber(response.productsTotalAmountTotal)}`,
                 },
                 {
                     name: `Refunded 0 orders (0 items)`,
-                    value: `${formatCurrency('INR')}${response.refundAmountListTotal}`,
+                    value: `${formatCurrency('INR')}${addReportCommasToNumber(response.refundAmountListTotal)}`,
                 },
                 {
                     name: 'Charged for shipping',
-                    value: `${formatCurrency('INR')}${response.shippingAmountListTotal}`,
+                    value: `${formatCurrency('INR')}${addReportCommasToNumber(response.shippingAmountListTotal)}`,
                 },
                 {
                     name: 'Worth of coupons used',
-                    value: `${formatCurrency('INR')}${response.couponAmountListTotal}`,
+                    value: `${formatCurrency('INR')}${addReportCommasToNumber(response.couponAmountListTotal)}`,
                 },
                 {
                     name: 'COD Amount',
-                    value: `${formatCurrency('INR')}${response.codAmountListTotal}`,
+                    value: `${formatCurrency('INR')}${addReportCommasToNumber(response.codAmountListTotal)}`,
                 },
                 {
                     name: 'Gift Wrap Amount',
-                    value: `${formatCurrency('INR')}${response.giftwrapAmountListTotal}`,
+                    value: `${formatCurrency('INR')}${addReportCommasToNumber(response.giftwrapAmountListTotal)}`,
                 },
             ];
+
             const tableColumn = [
                 { accessor: 'date', title: 'Date' },
                 { accessor: 'noOfOrders', title: 'No of orders' },
@@ -430,7 +393,7 @@ const Reports = () => {
                 (startDate = start), (endDate = end);
             }
 
-            if (state.orderDateFilter == 'Custome') {
+            if (state.orderDateFilter == 'Custom') {
                 (startDate = moment(state.orderStartDate).format('YYYY-MM-DD')), (endDate = moment(state.orderEndDate).format('YYYY-MM-DD'));
             }
 
@@ -515,7 +478,7 @@ const Reports = () => {
                     (startDate = start), (endDate = end);
                 }
 
-                if (state.orderDateFilter == 'Custome') {
+                if (state.orderDateFilter == 'Custom') {
                     (startDate = moment(state.orderStartDate).format('YYYY-MM-DD')), (endDate = moment(state.orderEndDate).format('YYYY-MM-DD'));
                 }
 
@@ -609,7 +572,7 @@ const Reports = () => {
                     (startDate = start), (endDate = end);
                 }
 
-                if (state.orderDateFilter == 'Custome') {
+                if (state.orderDateFilter == 'Custom') {
                     (startDate = moment(state.orderStartDate).format('YYYY-MM-DD')), (endDate = moment(state.orderEndDate).format('YYYY-MM-DD'));
                 }
                 const arr = categoryid?.map((item) => item.value);
@@ -731,7 +694,7 @@ const Reports = () => {
                 (startDate = start), (endDate = end);
             }
 
-            if (state.orderDateFilter == 'Custome') {
+            if (state.orderDateFilter == 'Custom') {
                 (startDate = moment(state.orderStartDate).format('YYYY-MM-DD')), (endDate = moment(state.orderEndDate).format('YYYY-MM-DD'));
             }
 
@@ -824,7 +787,7 @@ const Reports = () => {
                 (startDate = start), (endDate = end);
             }
 
-            if (state.analysisDateFilter == 'Custome') {
+            if (state.analysisDateFilter == 'Custom') {
                 (startDate = moment(state.analysisStartDate).format('YYYY-MM-DD')), (endDate = moment(state.analysisEndDate).format('YYYY-MM-DD'));
             }
             let categoryIds = [];
@@ -912,7 +875,7 @@ const Reports = () => {
                 (startDate = start), (endDate = end);
             }
 
-            if (state.analysisDateFilter == 'Custome') {
+            if (state.analysisDateFilter == 'Custom') {
                 (startDate = moment(state.analysisStartDate).format('YYYY-MM-DD')), (endDate = moment(state.analysisEndDate).format('YYYY-MM-DD'));
             }
             let categoryIds = [];
@@ -1002,7 +965,7 @@ const Reports = () => {
                 (startDate = start), (endDate = end);
             }
 
-            if (state.analysisDateFilter == 'Custome') {
+            if (state.analysisDateFilter == 'Custom') {
                 (startDate = moment(state.analysisStartDate).format('YYYY-MM-DD')), (endDate = moment(state.analysisEndDate).format('YYYY-MM-DD'));
             }
             let categoryIds = [];
@@ -1102,7 +1065,7 @@ const Reports = () => {
                 (startDate = start), (endDate = end);
             }
 
-            if (state.analysisDateFilter == 'Custome') {
+            if (state.analysisDateFilter == 'Custom') {
                 (startDate = moment(state.analysisStartDate).format('YYYY-MM-DD')), (endDate = moment(state.analysisEndDate).format('YYYY-MM-DD'));
             }
 
@@ -1206,7 +1169,7 @@ const Reports = () => {
                 (startDate = start), (endDate = end);
             }
 
-            if (state.analysisDateFilter == 'Custome') {
+            if (state.analysisDateFilter == 'Custom') {
                 (startDate = moment(state.analysisStartDate).format('YYYY-MM-DD')), (endDate = moment(state.analysisEndDate).format('YYYY-MM-DD'));
             }
             let categoryIds = [];
@@ -1359,7 +1322,7 @@ const Reports = () => {
                 (startDate = start), (endDate = end);
             }
 
-            if (state.customerDateFilter == 'Custome') {
+            if (state.customerDateFilter == 'Custom') {
                 (startDate = moment(state.customerStartDate).format('YYYY-MM-DD')), (endDate = moment(state.customerEndDate).format('YYYY-MM-DD'));
             }
 
@@ -1673,7 +1636,7 @@ const Reports = () => {
                                     </div>
                                 </div>
                             </div>
-                            {state.orderDateFilter == 'Custome' && (
+                            {state.orderDateFilter == 'Custom' && (
                                 <div className="mt-3 flex   items-center gap-4">
                                     <div className="">
                                         <label htmlFor="dateTimeCreated" className="block pr-2 text-sm font-medium text-gray-700">
@@ -1720,12 +1683,12 @@ const Reports = () => {
                                                 <div
                                                     style={{ borderRightWidth: '3px', borderRightColor: getBorderColor(index), height: '80px' }} // Adjust the height as needed
                                                     // onClick={() => setState({ orderIndex: index })}
-                                                    className={`dark:hover:text-primary-dark mb-4 cursor-pointer border border-gray-300 px-4 py-2 hover:bg-neutral-400 dark:hover:bg-gray-700`}
+                                                    className={`dark:hover:text-primary-dark mb-4  border border-gray-300 px-4 py-2  dark:hover:bg-gray-700`}
 
                                                     // className={`dark:hover:text-primary-dark hover: mb-4 cursor-pointer px-4 py-2 ${'border-gray-300'} border`}
                                                 >
-                                                    <div className="text-md text-bold cursor-pointer text-lg ">{`${link.value}`}</div>
-                                                    <div className="text-md cursor-pointer  text-[16px]">{link.name}</div>
+                                                    <div className="text-md text-bold  text-lg ">{`${link.value}`}</div>
+                                                    <div className="text-md   text-[16px]">{link.name}</div>
                                                 </div>
                                             </React.Fragment>
                                         ))
@@ -1845,7 +1808,7 @@ const Reports = () => {
                                             <CommonLoader />
                                         ) : (
                                             <>
-                                                {state.orderChartData?.series?.length > 0 && (
+                                                {state.orderChartData?.series?.length > 0 && state.tableData?.length > 0 && (
                                                     <div className="panel mb-5">
                                                         <div className="mb-5 flex items-center justify-between">
                                                             <h5 className="text-lg font-semibold dark:text-white-light">{state.orderSubMenu}</h5>
@@ -1914,7 +1877,7 @@ const Reports = () => {
                                 </div>
                             </div>
 
-                            {state.customerDateFilter == 'Custome' && (
+                            {state.customerDateFilter == 'Custom' && (
                                 <div className="mt-3 flex   items-center gap-4">
                                     <div className="">
                                         <label htmlFor="dateTimeCreated" className="block pr-2 text-sm font-medium text-gray-700">
@@ -2105,7 +2068,7 @@ const Reports = () => {
                                                 <ReactApexChart
                                                     series={state.analysisChartData.series}
                                                     options={state.analysisChartData.options}
-                                                    className="rounded-lg bg-white dark:bg-black overflow-scroll"
+                                                    className="overflow-scroll rounded-lg bg-white dark:bg-black"
                                                     type="bar"
                                                     height={500}
                                                     width={'100%'}

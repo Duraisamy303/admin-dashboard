@@ -1292,3 +1292,14 @@ export const uniqueState = (arr) => {
     }, []);
     return uniqueChoices;
 };
+
+
+export const addReportCommasToNumber = (value: any) => {
+    if (typeof value === 'number') {
+        return new Intl.NumberFormat('en-IN', {
+            maximumFractionDigits: 0,
+        }).format(value);
+    } else {
+        return value;
+    }
+};

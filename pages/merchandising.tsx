@@ -8,12 +8,13 @@ import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import placeholders from '../public/assets/images/placeholder.png';
 import { UPDATED_PRODUCT_PAGINATION, PRODUCT_PREV_PAGINATION, REARANGE_ORDER, MERCHANDISING_PAGINATION, PARENT_CATEGORY_LIST } from '@/query/product';
 import { Success, isValidImageUrl } from '@/utils/functions';
+import IconLoader from '@/components/Icon/IconLoader';
 
 const Index = () => {
     const PAGE_SIZE = 20;
     const router = useRouter();
 
-    const [reorder] = useMutation(REARANGE_ORDER);
+    const [reorder, { loading: reorderLoading }] = useMutation(REARANGE_ORDER);
 
     const { data: parentList } = useQuery(PARENT_CATEGORY_LIST, {
         variables: { channel: 'india-channel' },
@@ -187,7 +188,7 @@ const Index = () => {
                     },
                 },
             });
-            Success("Product list updated successfully")
+            Success('Product list updated successfully');
         } catch (error) {
             console.error('Error reordering products:', error);
         }
@@ -272,10 +273,10 @@ const Index = () => {
     return (
         <div>
             <div className="panel mb-5 flex items-center justify-between gap-5">
-                <div className="flex items-center gap-5 justify-between w-full">
+                <div className="flex w-full items-center justify-between gap-5">
                     <h5 className="text-lg font-semibold dark:text-white-light">Merchandising</h5>
                     <button type="button" className="btn btn-outline-primary" onClick={() => handleSave()}>
-                        Save Product
+                        {reorderLoading ?<IconLoader className="mr-2 h-4 w-4 animate-spin" /> : 'Save Product'}
                     </button>
                 </div>
             </div>
@@ -283,7 +284,7 @@ const Index = () => {
                 <div className="flex gap-5">
                     <input type="text" className="form-input mb-3 mr-2 h-[40px] md:mb-0 md:w-auto" placeholder="Search..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
 
-                   <select className="form-select flex-1" value={selectPage} onChange={(e) => handlePageChange(e)}>
+                    <select className="form-select flex-1" value={selectPage} onChange={(e) => handlePageChange(e)}>
                         <option value="">Select a Page</option>
                         {filter.map((parent) => (
                             <option value={parent}>{parent}</option>

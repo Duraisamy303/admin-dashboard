@@ -47,6 +47,7 @@ const CustomerList = () => {
     const [hasNextPage, setHasNextPage] = useState(false);
     const [hasPreviousPage, setHasPreviousPage] = useState(false);
     const [total, setTotal] = useState(null);
+    const [selectedRecords, setSelectedRecords] = useState([]);
 
     const [search, setSearch] = useState('');
 
@@ -217,7 +218,24 @@ const CustomerList = () => {
     };
 
     const BulkDeleteProduct = async () => {
-        await customerListRefetch();
+        showDeleteAlert(
+            async () => {
+                const ids = selectedRecords?.map((item) => item.id);
+                const res = await removeCustomer({
+                    variables: {
+                        ids: ids,
+                    },
+                });
+                const updatedRecordsData = recordsData.filter((dataRecord: any) => !ids.includes(dataRecord.id));
+                setRecordsData(updatedRecordsData);
+                setTotal(total - ids?.length);
+                Swal.fire('Deleted!', 'Your Customer has been deleted.', 'success');
+                // refresh();
+            },
+            () => {
+                Swal.fire('Cancelled', 'Your Customer List is safe :)', 'error');
+            }
+        );
     };
 
     const DeleteProduct = (row: any) => {
@@ -342,6 +360,10 @@ const CustomerList = () => {
                             withBorder={true}
                             minHeight={200}
                             paginationText={({ from, to, totalRecords }) => ''}
+                            selectedRecords={selectedRecords}
+                            onSelectedRecordsChange={(selectedRecords) => {
+                                setSelectedRecords(selectedRecords);
+                            }}
                         />
                     )}
                 </div>

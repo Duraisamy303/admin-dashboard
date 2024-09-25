@@ -5,7 +5,8 @@ export const setBilling = async (customerAddress: any) => {
             if (customerAddress?.user?.defaultBillingAddress) {
                 const billingId = customerAddress?.user?.defaultBillingAddress?.id;
                 if (customerAddress?.user?.addresses?.length > 0) {
-                    const filter = customerAddress?.user?.addresses?.find((item:any) => item.id == billingId);
+                    const filter = customerAddress?.user?.addresses?.find((item: any) => item.id == billingId);
+                    let updatedPhone = filter.phone.replace('+91', '');
                     billing = {
                         firstName: filter.firstName,
                         lastName: filter.lastName,
@@ -13,10 +14,10 @@ export const setBilling = async (customerAddress: any) => {
                         address_1: filter?.streetAddress1,
                         address_2: filter?.streetAddress2,
                         city: filter?.city,
-                        state: filter?.state?.code,
+                        state: filter.countryArea,
                         country: filter?.country?.code,
                         email: filter.email,
-                        phone: filter.phone,
+                        phone: updatedPhone,
                         paymentMethod: '',
                         transactionId: '',
                         countryArea: '',
@@ -37,7 +38,9 @@ export const setShipping = async (customerAddress: any) => {
         if (customerAddress?.user?.defaultShippingAddress) {
             const billingId = customerAddress?.user?.defaultShippingAddress?.id;
             if (customerAddress?.user?.addresses?.length > 0) {
-                const filter = customerAddress?.user?.addresses?.find((item:any) => item.id == billingId);
+                const filter = customerAddress?.user?.addresses?.find((item: any) => item.id == billingId);
+                let updatedPhone = filter.phone.replace('+91', '');
+
                 shipping = {
                     firstName: filter.firstName,
                     lastName: filter.lastName,
@@ -45,10 +48,10 @@ export const setShipping = async (customerAddress: any) => {
                     address_1: filter?.streetAddress1,
                     address_2: filter?.streetAddress2,
                     city: filter?.city,
-                    state: '',
+                    state: filter.countryArea,
                     country: filter?.country?.code,
                     email: filter.email,
-                    phone: filter.phone,
+                    phone: updatedPhone,
                     paymentMethod: '',
                     transactionId: '',
                     countryArea: '',
@@ -65,7 +68,7 @@ export const setShipping = async (customerAddress: any) => {
 export const productsDropdown = (productData: any) => {
     if (productData) {
         if (productData && productData?.search && productData?.search?.edges?.length > 0) {
-            const list = productData?.search?.edges?.map((item:any) => item?.node);
+            const list = productData?.search?.edges?.map((item: any) => item?.node);
             // const dropdown: any = list.map((item: any) => ({ value: item?.id, label: item?.name }));
             return list;
         }

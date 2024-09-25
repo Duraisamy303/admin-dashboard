@@ -49,6 +49,9 @@ const Index = () => {
     const [endCursor, setEndCursor] = useState(null);
     const [hasNextPage, setHasNextPage] = useState(false);
     const [hasPreviousPage, setHasPreviousPage] = useState(false);
+    const [total, setTotal] = useState(0);
+    const [publish, setPublish] = useState(0);
+    const [draft, setDraft] = useState(0);
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('');
     const [status, setStatus] = useState('');
@@ -181,6 +184,11 @@ const Index = () => {
         tags_list();
     }, [tagsList]);
 
+    useEffect(() => {
+        publishCount();
+        draftCount();
+    }, []);
+
     const { loading: getLoading, refetch: fetchLowStockList } = useQuery(UPDATED_PRODUCT_PAGINATION, {
         variables: {
             channel: 'india-channel',
@@ -196,16 +204,18 @@ const Index = () => {
             setEndCursor(data?.products?.pageInfo?.endCursor || null);
             setHasNextPage(data?.products?.pageInfo?.hasNextPage || false);
             setHasPreviousPage(data?.products?.pageInfo?.hasPreviousPage || false);
+            setTotal(data?.products?.totalCount);
         },
     });
 
-    const refresh = async () => {
+    const refresh = async (msg = false) => {
         try {
             const { data } = await refreshfetch({
                 channel: 'india-channel',
                 first: PAGE_SIZE,
                 after: null,
                 search: '',
+                where: {},
             });
             const products = data?.products?.edges || [];
             setRecordsData(tableFormat(products));
@@ -213,7 +223,47 @@ const Index = () => {
             setEndCursor(data?.products?.pageInfo?.endCursor || null);
             setHasNextPage(data?.products?.pageInfo?.hasNextPage || false);
             setHasPreviousPage(data?.products?.pageInfo?.hasPreviousPage || false);
-            Success('Product updated successfully');
+            if (!msg) {
+                Success('Product updated successfully');
+            }
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
+    const publishCount = async () => {
+        try {
+            const { data } = await refreshfetch({
+                channel: 'india-channel',
+                first: PAGE_SIZE,
+                after: null,
+                search: '',
+                where: {
+                    isPublished: {
+                        eq: true,
+                    },
+                },
+            });
+
+            setPublish(data?.products?.totalCount);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
+    const draftCount = async () => {
+        try {
+            const { data } = await refreshfetch({
+                channel: 'india-channel',
+                first: PAGE_SIZE,
+                after: null,
+                search: '',
+                where: {
+                    isPublished: false,
+                },
+            });
+
+            setDraft(data?.products?.totalCount);
         } catch (error) {
             console.log('error: ', error);
         }
@@ -226,6 +276,7 @@ const Index = () => {
                 first: PAGE_SIZE,
                 after: null,
                 search: '',
+                where: {},
             });
             const products = data?.products?.edges || [];
             setRecordsData(tableFormat(products));
@@ -1036,8 +1087,43 @@ const Index = () => {
             setIsEditOpen(false);
         }
     };
-    const expandedRows = (row) => {
-        setExpandedRow(row.id === expandedRow ? null : row.id);
+
+    const filterByStatus = (type) => {
+        if (type == 'all') {
+            refresh(true);
+        } else if (type == 'publish') {
+            const where = {
+                isPublished: {
+                    eq: true,
+                },
+            };
+            filterByPublish(where);
+        } else {
+            const where = {
+                isPublished: false,
+            };
+            filterByPublish(where);
+        }
+    };
+
+    const filterByPublish = async (where) => {
+        try {
+            const { data } = await refreshfetch({
+                channel: 'india-channel',
+                first: PAGE_SIZE,
+                after: null,
+                search: '',
+                where,
+            });
+            const products = data?.products?.edges || [];
+            setRecordsData(tableFormat(products));
+            setStartCursor(data?.products?.pageInfo?.startCursor || null);
+            setEndCursor(data?.products?.pageInfo?.endCursor || null);
+            setHasNextPage(data?.products?.pageInfo?.hasNextPage || false);
+            setHasPreviousPage(data?.products?.pageInfo?.hasPreviousPage || false);
+        } catch (error) {
+            console.log('error: ', error);
+        }
     };
 
     return (
@@ -1061,9 +1147,61 @@ const Index = () => {
                     </button>
                 </div>
             </div>
-            <div className="mb-5 mt-5 justify-between  md:mt-0 md:flex md:ltr:ml-auto md:rtl:mr-auto">
-                <input type="text" className="w-82 form-input mb-3 mr-2 h-[40px] md:mb-0 md:w-auto" placeholder="Search..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
-                <div className="dropdown mb-3 mr-0 md:mb-0 md:mr-2 ">
+            <div className="mb-4">
+                <span className=" cursor-pointer text-blue-500 dark:text-white-light" onClick={() => filterByStatus('all')}>
+                    All
+                </span>
+                <span className="ml-1 cursor-pointer  text-gray-500" onClick={() => filterByStatus('all')}>
+                    {`(${total})`}
+                </span>{' '}
+                |
+                <span className="ml-2 cursor-pointer text-blue-500 dark:text-white-light" onClick={() => filterByStatus('publish')}>
+                    Published
+                </span>
+                <span className="ml-1 cursor-pointer  text-gray-500" onClick={() => filterByStatus('publish')}>
+                    {`(${publish})`}
+                </span>{' '}
+                |
+                <span className="ml-2 cursor-pointer text-blue-500 dark:text-white-light" onClick={() => filterByStatus('draft')}>
+                    Draft
+                </span>
+                <span className="ml-1 cursor-pointer  text-gray-500" onClick={() => filterByStatus('draft')}>
+                    {`(${draft})`}
+                </span>
+            </div>
+
+            <div className="panel mb-5 mt-5 gap-4 md:mt-0 md:flex md:justify-between">
+                {/* Search Input */}
+                <input type="text" className="form-input mb-3 mr-2 h-[40px] flex-1 md:mb-0 md:w-auto" placeholder="Search..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
+
+                {/* Category Dropdown */}
+                <div className="flex-1">
+                    <select className="form-select w-full" value={selectedCategory} onChange={handleCategoryChange}>
+                        <option value="">Select a Category</option>
+                        {parentLists.map((parent) => (
+                            <React.Fragment key={parent.id}>
+                                <option value={parent.id}>{parent.name}</option>
+                                {parent.children.map((child) => (
+                                    <option key={child.id} value={child.id} style={{ paddingLeft: '20px' }}>
+                                        -- {child.name}
+                                    </option>
+                                ))}
+                            </React.Fragment>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Status Dropdown */}
+                <div className="flex-1">
+                    <select className="form-select w-full" value={status} onChange={(e) => handleStatusChange(e.target.value)}>
+                        <option value="">Select a Status</option>
+                        <option value="IN_STOCK">In Stock</option>
+                        <option value="OUT_OF_STOCK">Out of Stock</option>
+                    </select>
+                </div>
+
+                {/* Bulk Actions Dropdown */}
+                <div className="">
                     <Dropdown
                         btnClassName="btn btn-outline-primary dropdown-toggle  lg:w-auto w-full"
                         button={
@@ -1075,7 +1213,20 @@ const Index = () => {
                             </>
                         }
                     >
-                        <ul className="!min-w-[170px]">
+                        <ul
+                            className="!min-w-[170px]"
+                            style={{
+                                backgroundColor: 'white',
+                                textAlign: 'center',
+                                gap: '12px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                marginTop: '10px',
+                                marginRight: ' 10px',
+                                boxShadow: 'black',
+                                width: '40px !important',
+                            }}
+                        >
                             <li>
                                 <button type="button" onClick={() => bulkEdit()}>
                                     Edit
@@ -1090,26 +1241,7 @@ const Index = () => {
                     </Dropdown>
                 </div>
             </div>
-            <div className="col-4 mx-auto  mb-5 flex items-center gap-4 md:flex-row">
-                <select className="form-select flex-1" value={selectedCategory} onChange={handleCategoryChange}>
-                    <option value="">Select a Category</option>
-                    {parentLists.map((parent) => (
-                        <React.Fragment key={parent.id}>
-                            <option value={parent.id}>{parent.name}</option>
-                            {parent.children.map((child) => (
-                                <option key={child.id} value={child.id} style={{ paddingLeft: '20px' }}>
-                                    -- {child.name}
-                                </option>
-                            ))}
-                        </React.Fragment>
-                    ))}
-                </select>
-                <select className="form-select flex-1" value={status} onChange={(e) => handleStatusChange(e.target.value)}>
-                    <option value="">Select a Status</option>
-                    <option value="IN_STOCK">In Stock</option>
-                    <option value="OUT_OF_STOCK">Out of Stock</option>
-                </select>
-            </div>
+
             <div className="datatables" ref={tableRef}>
                 {getLoading ? (
                     <CommonLoader />

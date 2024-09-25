@@ -313,7 +313,7 @@ const Reports = () => {
 
             const tableColumn = [
                 { accessor: 'date', title: 'Date' },
-                { accessor: 'noOfOrders', title: 'No of orders' },
+                { accessor: 'noOfOrders', title: 'No Of Orders' },
                 { accessor: 'totalItemsSold', title: 'Total Items Sold' },
                 { accessor: 'couponAmount', title: 'Coupon Amount' },
                 { accessor: 'refundAmount', title: 'Refund Amount' },
@@ -331,8 +331,8 @@ const Reports = () => {
                     { name: 'No Of Orders', type: 'line', data: tableData.map((item) => item?.noOfOrders) },
                     { name: 'Coupon Amount', type: 'line', data: tableData.map((item) => item?.couponAmount) },
                     { name: 'Products Total Amount', type: 'line', data: tableData.map((item) => item?.productsTotalAmount) },
-                    { name: 'COD Amount List', type: 'line', data: tableData.map((item) => item?.codAmountList) },
-                    { name: 'Giftwrap Amount List', type: 'line', data: tableData.map((item) => item?.giftwrapAmountList) },
+                    { name: 'COD Amount ', type: 'line', data: tableData.map((item) => item?.codAmountList) },
+                    { name: 'Gift Wrap Amount ', type: 'line', data: tableData.map((item) => item?.giftwrapAmountList) },
                 ],
                 options: {
                     chart: {

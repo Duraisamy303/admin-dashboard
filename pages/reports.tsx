@@ -236,6 +236,22 @@ const Reports = () => {
         }
     };
 
+
+    const getProductSearch = async (val) => {
+        try {
+            const res = await productSearchRefetch({
+                name: val,
+            });
+            const response = res?.data?.products?.edges;
+            const dropdownData = response?.map((item: any) => ({ value: item?.node?.id, label: item?.node?.name }));
+            setState({ productList: dropdownData });
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+    console.log("state.productSearch: ", state.productSearch);
+
+
     const getSalesByDate = async () => {
         try {
             let startDate: any, endDate: any;
@@ -405,6 +421,7 @@ const Reports = () => {
                 },
             });
             const structuredData = res?.data?.salesByProduct?.topProducts?.map(cleanAndParseJSON);
+            console.log("structuredData: ", structuredData);
 
             const dropdownData = structuredData?.map((item: any) => {
                 return { value: item.variant__product__id, label: item.variant__product__name };
@@ -416,6 +433,7 @@ const Reports = () => {
     };
 
     const getSalesBySingleProduct = async (type: string, productId: any) => {
+        console.log("productId: ", productId);
         try {
             if (type == 'search' && state.productSearch == '') {
                 Failure('Please select product ');
@@ -1631,9 +1649,7 @@ const Reports = () => {
 
                                 <div className="flex cursor-pointer gap-2 border p-3" onClick={() => downloadCSV('Orders')}>
                                     <IconDownload />
-                                    <div onClick={() => downloadCSV('Orders')} className="cursor-pointer">
-                                        Export CSV
-                                    </div>
+                                    <div className="cursor-pointer">Export CSV</div>
                                 </div>
                             </div>
                             {state.orderDateFilter == 'Custom' && (
@@ -1713,7 +1729,13 @@ const Reports = () => {
                                                                     setState({ productSearch: e });
                                                                 }}
                                                                 isSearchable={true}
+                                                                onInputChange={(inputValue, { action }) => {
+                                                                    if (action === 'input-change') {
+                                                                        getProductSearch(inputValue); // Only pass the actual input value
+                                                                    }
+                                                                }}
                                                             />
+                                                           
                                                         </div>
                                                         <div className="flex items-center justify-between">
                                                             <button type="button" className="btn btn-primary mt-3 h-9" onClick={() => getSalesBySingleProduct('search', state.productSearch?.value)}>
@@ -1871,9 +1893,7 @@ const Reports = () => {
                                 )}
                                 <div className="flex cursor-pointer gap-2 border p-3" onClick={() => downloadCSV('Customers')}>
                                     <IconDownload />
-                                    <div onClick={() => downloadCSV('Customers')} className="cursor-pointer">
-                                        Export CSV
-                                    </div>
+                                    <div className="cursor-pointer">Export CSV</div>
                                 </div>
                             </div>
 
@@ -1970,9 +1990,7 @@ const Reports = () => {
                                 </div>
                                 <div className="flex cursor-pointer gap-2 border p-3" onClick={() => downloadCSV('Analysis')}>
                                     <IconDownload />
-                                    <div className="cursor-pointer" onClick={() => downloadCSV('Analysis')}>
-                                        Export CSV
-                                    </div>
+                                    <div className="cursor-pointer">Export CSV</div>
                                 </div>
                             </div>
                             {state.analysisDateFilter == 'Custome' && (

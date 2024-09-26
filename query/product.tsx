@@ -156,8 +156,8 @@ export const DELETE_PRODUCT = gql`
 `;
 
 export const UPDATED_PRODUCT_PAGINATION = gql`
-    query ProductListPaginatedInitialandNext($channel: String!, $first: Int!, $after: String, $search: String!, $filter: ProductFilterInput) {
-        products(first: $first, after: $after, channel: $channel, filter: $filter, search: $search, sortBy: { direction: DESC, field: CREATED_AT }) {
+    query ProductListPaginatedInitialandNext($channel: String!, $first: Int!, $after: String, $search: String!, $filter: ProductFilterInput, $where: ProductWhereInput) {
+        products(first: $first, after: $after, channel: $channel, filter: $filter, search: $search, sortBy: { direction: DESC, field: CREATED_AT }, where: $where) {
             totalCount
             edges {
                 node {
@@ -2166,6 +2166,7 @@ export const PRODUCT_EXPORT = gql`
 export const ORDER_LIST = gql`
     query OrderList($first: Int, $after: String, $last: Int, $before: String, $filter: OrderFilterInput, $sort: OrderSortingInput) {
         orders(before: $before, after: $after, first: $first, last: $last, filter: $filter, sortBy: $sort) {
+            totalCount
             edges {
                 node {
                     __typename
@@ -11095,7 +11096,7 @@ export const ANALYSIS_BY_PRODUCT_REVENUE = gql`
 
 export const PRODUCT_BY_NAME = gql`
     query ProductSearch($name: String!) {
-        products(search: $name, channel: "india-channel", first: 500, sortBy: { direction: ASC, field: NAME }) {
+        products(search: $name, channel: "india-channel", first: 20, sortBy: { direction: ASC, field: NAME }) {
             edges {
                 node {
                     id
@@ -18346,6 +18347,13 @@ export const REFUND_DATA = gql`
                 ...RefundOrderLine
                 quantityToFulfill
                 __typename
+                variant {
+                    product {
+                        thumbnail {
+                            url
+                        }
+                    }
+                }
             }
             fulfillments {
                 id
@@ -18359,6 +18367,13 @@ export const REFUND_DATA = gql`
                         __typename
                         productName
                         productSku
+                        variant {
+                            product {
+                                thumbnail {
+                                    url
+                                }
+                            }
+                        }
                     }
                     __typename
                 }

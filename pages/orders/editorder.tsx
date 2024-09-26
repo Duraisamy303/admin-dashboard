@@ -1225,6 +1225,26 @@ const Editorder = () => {
         return show;
     };
 
+    const refundedAmount = () => {
+        let refund;
+        if (freeShipping?.includes(orderData?.shippingMethod?.id) && refundStatus == 'FULLY_REFUNDED') {
+            refund = orderData?.total?.gross?.amount;
+        } else {
+            refund = orderData?.totalRefunded?.amount;
+        }
+        return refund;
+    };
+
+    const netAmount = () => {
+        let net;
+        if (freeShipping?.includes(orderData?.shippingMethod?.id) && refundStatus == 'FULLY_REFUNDED') {
+            net = 0;
+        } else {
+            net = orderData?.total?.gross?.amount - orderData?.totalRefunded?.amount;
+        }
+        return net;
+    };
+
     return (
         <>
             <>
@@ -2022,18 +2042,14 @@ const Editorder = () => {
                                             <div className="mt-4 flex items-center justify-between font-semibold">
                                                 <div>Refunded Amount</div>
                                                 <div>
-                                                    <div className="ml-[50px] justify-end">{`${formatCurrency(orderData?.totalRefunded?.currency)}${addCommasToNumber(
-                                                        orderData?.totalRefunded?.amount
-                                                    )}`}</div>
+                                                    <div className="ml-[50px] justify-end">{`${formatCurrency(orderData?.totalRefunded?.currency)}${addCommasToNumber(refundedAmount())}`}</div>
                                                 </div>
                                             </div>
 
                                             <div className="mt-4 flex items-center justify-between font-semibold">
                                                 <div>Net Amount</div>
                                                 <div>
-                                                    <div className="pl-3 text-sm">{`${formatCurrency(orderData?.totalRefunded?.currency)}${addCommasToNumber(
-                                                        orderData?.total?.gross?.amount - orderData?.totalRefunded?.amount
-                                                    )}`}</div>
+                                                    <div className="pl-3 text-sm">{`${formatCurrency(orderData?.totalRefunded?.currency)}${addCommasToNumber(netAmount())}`}</div>
                                                 </div>
                                             </div>
                                         </>
@@ -2670,7 +2686,7 @@ const Editorder = () => {
                                                 {refundProduct?.lines?.map((item: any, index: any) => (
                                                     <tr className="panel align-top" key={index}>
                                                         <td className="flex ">
-                                                            <img src={item?.orderLine?.thumbnail?.url} height={50} width={50} alt="Selected" className="object-cover" />
+                                                            <img src={item?.orderLine?.variant?.product?.thumbnail?.url} height={50} width={50} alt="Selected" className="object-cover" />
                                                             <div>
                                                                 <div className="pl-5">{item?.orderLine?.productName}</div>
                                                                 <div className="pl-5">{item?.orderLine?.productSku}</div>

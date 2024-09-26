@@ -45,6 +45,8 @@ const Category = () => {
         direction: 'asc',
     });
 
+    const [totalCount, setTotalCount] = useState(0);
+
     useEffect(() => {
         dispatch(setPageTitle('Category'));
     });
@@ -62,6 +64,7 @@ const Category = () => {
         },
         onCompleted: (data) => {
             console.log('data: ', data);
+            setTotalCount(data?.categories?.totalCount);
             commonPagination(data);
         },
     });
@@ -237,7 +240,7 @@ const Category = () => {
         <div>
             <div className="panel mt-6">
                 <div className="mb-5 flex-col gap-5 md:flex md:flex-row md:items-center">
-                    <h5 className="text-lg font-semibold dark:text-white-light">Category</h5>
+                    <h5 className="text-lg font-semibold dark:text-white-light">Categories ({totalCount})</h5>
 
                     <div className="mt-5 md:mt-0 md:flex  md:ltr:ml-auto md:rtl:mr-auto">
                         <input type="text" className="form-input mb-3 mr-2 w-full md:mb-0 md:w-auto" placeholder="Search..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
@@ -296,7 +299,7 @@ const Category = () => {
                                     accessor: 'menuOrder',
                                     sortable: true,
                                 },
-                                
+
                                 {
                                     accessor: 'product',
                                     sortable: true,

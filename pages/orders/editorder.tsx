@@ -2319,7 +2319,7 @@ const Editorder = () => {
                                     </div>
                                 </div>
                             ) : (
-                                orderStatus == 'FULFILLED' && (
+                                (orderStatus == 'FULFILLED' || orderStatus == 'CANCELED') && (
                                     <div className="flex justify-end pt-5">
                                         <button type="submit" className="btn btn-primary" onClick={() => generateInvoice()}>
                                             {invoiceLoading ? <IconLoader /> : 'Generate'}

@@ -120,13 +120,11 @@ const Category = () => {
             name: '',
         },
         onCompleted: (data) => {
-            console.log('data: ', data);
             commonPagination(data);
         },
     });
 
     const commonPagination = (data) => {
-        console.log('data: ', data);
         setMediaImages(data.files.edges);
         setMediaStartCussor(data.files.pageInfo.startCursor);
         setMediaEndCursor(data.files.pageInfo.endCursor);
@@ -264,7 +262,12 @@ const Category = () => {
                 input: body,
             },
         });
-
+        const bodys = {
+            node: {
+                fileUrl: response.data?.fileCreate?.file?.fileUrl,
+            },
+        };
+        handleClickImage(bodys);
         const res = await mediaRefetch({
             first: PAGE_SIZE,
             after: null,

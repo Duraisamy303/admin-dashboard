@@ -63,7 +63,6 @@ const EditCategory = () => {
     const PAGE_SIZE = 24;
 
     const catId = router?.query?.id;
-    console.log('catId: ', catId);
 
     const dispatch = useDispatch();
 
@@ -297,6 +296,12 @@ const EditCategory = () => {
                 input: body,
             },
         });
+        const bodys = {
+            node: {
+                fileUrl: response.data?.fileCreate?.file?.fileUrl,
+            },
+        };
+        handleClickImage(bodys);
 
         const res = await mediaRefetch({
             first: PAGE_SIZE,

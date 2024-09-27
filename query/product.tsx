@@ -12191,14 +12191,24 @@ export const PRODUCT_DETAILS = gql`
 `;
 
 export const PRODUCT_LIST_TAGS = gql`
-    query TagList {
-        tags(first: 500) {
+    query TagList($first: Int, $last: Int, $before: String, $after: String) {
+        tags(first: $first, last: $last, before: $before, after: $after) {
             edges {
                 node {
                     id
                     name
+                    __typename
                 }
+                __typename
             }
+            __typename
+            pageInfo {
+                endCursor
+                hasNextPage
+                hasPreviousPage
+                startCursor
+            }
+            totalCount
         }
     }
 `;

@@ -549,6 +549,7 @@ const EditCategory = () => {
                                         </button>
                                     </div>
                                     <div className="m-5">
+                                        <div className="flex justify-between">
                                         <div className="flex gap-5">
                                             <button
                                                 onClick={() => {
@@ -570,6 +571,23 @@ const EditCategory = () => {
                                             >
                                                 Media Library
                                             </button>
+                                        </div>
+
+                                            <button
+                                                        type="button"
+                                                        className="btn btn-primary"
+                                                        onClick={() => {
+                                                            if (selectedImg == null) {
+                                                                Failure('Please select an image');
+                                                            } else {
+                                                                setPreviewUrl(selectedImg);
+                                                                setMediaOpen(false);
+                                                                setSelectedImg(null);
+                                                            }
+                                                        }}
+                                                    >
+                                                        Set Product Image
+                                                    </button>
                                         </div>
 
                                         {mediaTab == 0 ? (
@@ -740,23 +758,6 @@ const EditCategory = () => {
                                                             </div>
                                                         </div>
                                                     )}
-                                                </div>
-                                                <div className="mt-5 flex justify-end border-t border-gray-200 pt-5">
-                                                    <button
-                                                        type="button"
-                                                        className="btn btn-primary"
-                                                        onClick={() => {
-                                                            if (selectedImg == null) {
-                                                                Failure('Please select an image');
-                                                            } else {
-                                                                setPreviewUrl(selectedImg);
-                                                                setMediaOpen(false);
-                                                                setSelectedImg(null);
-                                                            }
-                                                        }}
-                                                    >
-                                                        Set Product Image
-                                                    </button>
                                                 </div>
                                             </>
                                         )}

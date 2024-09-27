@@ -1268,10 +1268,24 @@ const ProductAdd = () => {
     const deleteImage = async () => {
         try {
             const key = getFileNameFromUrl(selectedImg);
+            // Delete image from S3
             await deleteImagesFromS3(key);
+            // Delete image record in the database
             await deleteImages({ variables: { file_url: selectedImg } });
+            // Refresh the data
             await refresh();
+
+            // Clear the selected image
             setSelectedImg(null);
+
+            // Update the selectedImages array by removing the deleted image
+            if (selectedImages?.length > 0) {
+                const updatedSelectedImages = selectedImages.filter((item) => item.node.fileUrl !== selectedImg);
+                // Update state with the remaining images
+                setSelectedImages(updatedSelectedImages);
+            }
+
+            // Show success message
             Swal.fire('Deleted!', 'Your files have been deleted.', 'success');
         } catch (error) {
             console.error('Error deleting file:', error);
@@ -1322,7 +1336,7 @@ const ProductAdd = () => {
         longPressTimeout.current = setTimeout(() => {
             setIsLongPress(true);
             handleImageSelect(item);
-        }, 10); // 100ms for long press
+        }, 1); // 100ms for long press
     };
 
     const handleMouseUp = () => {
@@ -1474,6 +1488,17 @@ const ProductAdd = () => {
                 input: body,
             },
         });
+        const bodys = {
+            node: {
+                fileUrl: response.data?.fileCreate?.file?.fileUrl,
+            },
+        };
+        handleClickImage(bodys);
+        if (imageUrl?.length > 0) {
+            setImageUrl([...imageUrl, response.data?.fileCreate?.file?.fileUrl]);
+        } else {
+            setImageUrl([response.data?.fileCreate?.file?.fileUrl]);
+        }
 
         await refresh();
         setMediaTab(1);
@@ -2039,29 +2064,45 @@ const ProductAdd = () => {
                                         </button>
                                     </div>
                                     <div className="m-5">
-                                        <div className="flex gap-5">
+                                        <div className="flex justify-between">
+                                            <div className="flex gap-5">
+                                                <button
+                                                    onClick={() => {
+                                                        setMediaTab(0);
+                                                        setMediaType('all');
+                                                        setMediaMonth('all'), setMediaSearch('');
+                                                        setSelectedImages([]);
+                                                    }}
+                                                    className={`${mediaTab == 0 ? 'bg-primary text-white !outline-none' : ''}
+                                                    -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block `}
+                                                >
+                                                    Upload Files
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setMediaTab(1);
+                                                        setMediaType('all');
+                                                        setMediaMonth('all'), setMediaSearch('');
+                                                    }}
+                                                    className={`${mediaTab == 1 ? 'bg-primary text-white !outline-none' : ''}
+                                                    -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block `}
+                                                >
+                                                    Media Library
+                                                </button>
+                                            </div>
+
                                             <button
+                                                className="btn btn-primary"
                                                 onClick={() => {
-                                                    setMediaTab(0);
-                                                    setMediaType('all');
-                                                    setMediaMonth('all'), setMediaSearch('');
+                                                    const urls = selectedImages?.map((item) => item?.node?.fileUrl);
+                                                    // const updatedUrls = urls.map((url) => url?.replace('.cdn', ''));
+                                                    setImageUrl([...urls, ...imageUrl]);
+                                                    setModal2(false);
                                                     setSelectedImages([]);
+                                                    setSelectedImg(null);
                                                 }}
-                                                className={`${mediaTab == 0 ? 'bg-primary text-white !outline-none' : ''}
-                                                    -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block `}
                                             >
-                                                Upload Files
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setMediaTab(1);
-                                                    setMediaType('all');
-                                                    setMediaMonth('all'), setMediaSearch('');
-                                                }}
-                                                className={`${mediaTab == 1 ? 'bg-primary text-white !outline-none' : ''}
-                                                    -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block `}
-                                            >
-                                                Media Library
+                                                Set Product Image
                                             </button>
                                         </div>
 
@@ -2262,21 +2303,6 @@ const ProductAdd = () => {
                                                             </div>
                                                         </div>
                                                     )}
-                                                </div>
-                                                <div className="mt-5 flex justify-end border-t border-gray-200 pt-5">
-                                                    <button
-                                                        className="btn btn-primary"
-                                                        onClick={() => {
-                                                            const urls = selectedImages?.map((item) => item?.node?.fileUrl);
-                                                            // const updatedUrls = urls.map((url) => url?.replace('.cdn', ''));
-                                                            setImageUrl([...urls, ...imageUrl]);
-                                                            setModal2(false);
-                                                            setSelectedImages([]);
-                                                            setSelectedImg(null);
-                                                        }}
-                                                    >
-                                                        Set Product Image
-                                                    </button>
                                                 </div>
                                             </>
                                         )}

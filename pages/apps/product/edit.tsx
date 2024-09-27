@@ -796,6 +796,18 @@ const ProductEdit = (props: any) => {
                 input: body,
             },
         });
+        setSelectedImages([...selectedImages, { node: response?.data?.fileCreate?.file }]);
+        const bodys = {
+            node: {
+                fileUrl: response.data?.fileCreate?.file?.fileUrl,
+            },
+        };
+        handleClickImage(bodys);
+        if (imageUrl?.length > 0) {
+            setImageUrl([...imageUrl, response.data?.fileCreate?.file?.fileUrl]);
+        } else {
+            setImageUrl([response.data?.fileCreate?.file?.fileUrl]);
+        }
 
         await refresh();
         setMediaTab(1);
@@ -1471,7 +1483,7 @@ const ProductEdit = (props: any) => {
         longPressTimeout.current = setTimeout(() => {
             setIsLongPress(true);
             handleImageSelect(item);
-        }, 100); // 100ms for long press
+        }, 1); // 100ms for long press
     };
 
     const handleMouseUp = () => {
@@ -2596,28 +2608,34 @@ const ProductEdit = (props: any) => {
                                         </button>
                                     </div>
                                     <div className="m-5">
-                                        <div className="flex gap-5">
-                                            <button
-                                                onClick={() => {
-                                                    setMediaTab(0);
-                                                    setMediaType('all');
-                                                    setMediaMonth('all'), setMediaSearch('');
-                                                }}
-                                                className={`${mediaTab == 0 ? 'bg-primary text-white !outline-none' : ''}
+                                        <div className="flex justify-between">
+                                            <div className="flex gap-5">
+                                                <button
+                                                    onClick={() => {
+                                                        setMediaTab(0);
+                                                        setMediaType('all');
+                                                        setMediaMonth('all'), setMediaSearch('');
+                                                    }}
+                                                    className={`${mediaTab == 0 ? 'bg-primary text-white !outline-none' : ''}
                                                     -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block `}
-                                            >
-                                                Upload Files
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setMediaTab(1);
-                                                    setMediaType('all');
-                                                    setMediaMonth('all'), setMediaSearch('');
-                                                }}
-                                                className={`${mediaTab == 1 ? 'bg-primary text-white !outline-none' : ''}
+                                                >
+                                                    Upload Files
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setMediaTab(1);
+                                                        setMediaType('all');
+                                                        setMediaMonth('all'), setMediaSearch('');
+                                                    }}
+                                                    className={`${mediaTab == 1 ? 'bg-primary text-white !outline-none' : ''}
                                                     -mb-[1px] flex items-center rounded p-3.5 py-2 before:inline-block `}
-                                            >
-                                                Media Library
+                                                >
+                                                    Media Library
+                                                </button>
+                                            </div>
+
+                                            <button className="btn btn-primary" onClick={() => newImageAdded()}>
+                                                Set Product Image
                                             </button>
                                         </div>
 
@@ -2814,11 +2832,6 @@ const ProductEdit = (props: any) => {
                                                             </div>
                                                         </div>
                                                     )}
-                                                </div>
-                                                <div className="mt-5 flex justify-end border-t border-gray-200 pt-5">
-                                                    <button className="btn btn-primary" onClick={() => newImageAdded()}>
-                                                        Set Product Image
-                                                    </button>
                                                 </div>
                                             </>
                                         )}

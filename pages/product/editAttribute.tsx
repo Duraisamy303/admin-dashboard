@@ -26,6 +26,8 @@ export default function createAttribute() {
         values: [],
         visibleInStorefront: false,
         deleteRowId: '',
+        slug: '',
+        slugError: '',
     });
 
     const [updateAttributes, { loading: createLoading }] = useMutation(UPDATE_ATTRIBUTE);
@@ -76,7 +78,7 @@ export default function createAttribute() {
                 value = choice?.map((item) => ({ id: item.node?.id, name: item.node.name }));
             }
 
-            setState({ attributeName: data.name, values: value, visibleInStorefront: data.visibleInStorefront });
+            setState({ attributeName: data.name, values: value, visibleInStorefront: data.visibleInStorefront, slug: data.slug });
         } catch (error) {
             console.log('error: ', error);
         }
@@ -130,7 +132,9 @@ export default function createAttribute() {
 
     const updateAttribute = async () => {
         if (state.attributeName == '') {
-            setState({ nameError: 'Attribute name required' });
+            setState({ nameError: 'Attribute name is required' });
+        } else if (state.slug == '') {
+            setState({ slugError: 'Slug is required' });
         } else {
             const res = await updateAttributes({
                 variables: {
@@ -140,7 +144,7 @@ export default function createAttribute() {
                         filterableInDashboard: true,
                         filterableInStorefront: true,
                         name: state.attributeName,
-                        slug: state.attributeName.trim(),
+                        slug: state.slug.trim(),
                         storefrontSearchPosition: 0,
                         valueRequired: false,
                         visibleInStorefront: state.visibleInStorefront,
@@ -153,6 +157,7 @@ export default function createAttribute() {
             } else {
                 Success('Attribute updated successfully');
                 getDetails();
+                setState({ nameError: '', slugError: '' });
             }
         }
     };
@@ -178,6 +183,22 @@ export default function createAttribute() {
                     required
                 />
                 {state?.nameError && <p className="mt-[4px] text-[14px] text-red-600">{state?.nameError}</p>}
+
+                <div className="mt-5">
+                    <label htmlFor="name" className="block text-lg font-medium text-gray-700">
+                        Slug
+                    </label>
+                    <input
+                        type="text"
+                        value={state.slug}
+                        onChange={(e) => setState({ slug: e.target.value, errors: { slugError: '' } })}
+                        placeholder="Enter Slug"
+                        name="name"
+                        className="form-input"
+                        required
+                    />
+                    {state?.slugError && <p className="mt-[4px] text-[14px] text-red-600">{state?.slugError}</p>}
+                </div>
             </div>
             <div className=" w-full flex-wrap  items-center">
                 <div className="panel ">

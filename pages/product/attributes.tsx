@@ -45,6 +45,8 @@ const Category = () => {
     const [isOpenCreate, setIsOpenCreate] = useState(false);
     const [attributeName, setAttributeName] = useState('');
     const [attributeNameError, setAttributeNameError] = useState('');
+    const [slug, setSlug] = useState('');
+    const [slugError, setSlugError] = useState('');
 
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
         columnAccessor: 'id',
@@ -64,7 +66,11 @@ const Category = () => {
     } = useQuery(ATTRIBUTE_LIST, {
         variables: {
             first: PAGE_SIZE,
-            filter: {},
+            after: null,
+            filter: {
+                search: search ? search : '',
+            },
+            sort: { direction: 'DESC', field: 'CREATED_aT' },
         },
         onCompleted: (data) => {
             setTotalCount(data?.attributes?.totalCount);
@@ -96,12 +102,6 @@ const Category = () => {
             return {
                 ...item.node,
                 name: item.node.name,
-                // parent: item.node.parent?.name || '',
-                // parentId: item.node.parent?.id,
-                // product: item.node.products?.totalCount,
-                // textdescription: textValue || '',
-                // menuOrder: item.node?.menuOrder,
-                // image: item.node?.backgroundImageUrl, // Set textValue or empty string if it doesn't exist
             };
         });
         setRecordsData(newData);
@@ -118,6 +118,10 @@ const Category = () => {
                 first: PAGE_SIZE,
                 after: endCursor,
                 before: null,
+                filter: {
+                    search: search ? search : '',
+                },
+                sort: { direction: 'DESC', field: 'CREATED_aT' },
             },
         });
     };
@@ -128,6 +132,10 @@ const Category = () => {
                 channel: 'india-channel',
                 last: PAGE_SIZE,
                 before: startCursor,
+                filter: {
+                    search: search ? search : '',
+                },
+                sort: { direction: 'DESC', field: 'CREATED_aT' },
             },
         });
     };
@@ -136,7 +144,10 @@ const Category = () => {
         try {
             const { data } = await refetch({
                 first: PAGE_SIZE,
-                filter: {},
+                after: null,
+                filter: {
+                    search: '',
+                },
             });
             commonPagination(data);
         } catch (error) {
@@ -154,10 +165,10 @@ const Category = () => {
                     search: e,
                     last: PAGE_SIZE,
                     before: startCursor,
-                    sort: {
-                        direction: 'ASC',
-                        field: 'NAME',
+                    filter: {
+                        search: e,
                     },
+                    sort: { direction: 'DESC', field: 'CREATED_aT' },
                 },
             });
             commonPagination(res?.data);
@@ -219,6 +230,8 @@ const Category = () => {
         try {
             if (attributeName == '') {
                 setAttributeNameError('Attribute Name is required');
+            } else if (slug == '') {
+                setSlugError('Slug is required');
             } else {
                 const body = {
                     availableInGrid: true,
@@ -227,7 +240,7 @@ const Category = () => {
                     filterableInStorefront: true,
                     inputType: 'MULTISELECT',
                     name: attributeName,
-                    slug: attributeName.trim(),
+                    slug: slug.trim(),
                     storefrontSearchPosition: null,
                     type: 'PRODUCT_TYPE',
                     valueRequired: false,
@@ -248,6 +261,8 @@ const Category = () => {
                     Success('Attribute created successfully');
                     setIsOpenCreate(false);
                     setAttributeName('');
+                    setSlug('');
+                    setSlugError('');
                     setAttributeNameError('');
                     setTotalCount(totalCount + 1);
                 }
@@ -317,7 +332,6 @@ const Category = () => {
                             withBorder={true}
                             sortStatus={sortStatus}
                             onSortStatusChange={setSortStatus}
-                           
                         />
                     </div>
                 )}
@@ -337,12 +351,17 @@ const Category = () => {
                     setIsOpenCreate(false);
                     setAttributeName('');
                     setAttributeNameError('');
+                    setSlugError('');
+                    setAttributeNameError('');
                 }}
                 renderComponent={() => (
-                    <div className=" p-5">
+                    <div className=" p-5 ">
                         <input type="text" value={attributeName} onChange={(e) => setAttributeName(e.target.value)} placeholder="Enter Attribute Name" name="name" className="form-input" required />
                         {attributeNameError && <p className="error-message mt-1 text-red-500">{attributeNameError}</p>}
-
+                        <div className="mt-5">
+                            <input type="text" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="Enter Slug" name="name" className="form-input" required />
+                            {slugError && <p className="error-message mt-1 text-red-500">{slugError}</p>}
+                        </div>
                         <div className="flex items-center justify-end gap-5 pt-5">
                             <button
                                 type="button"
@@ -350,6 +369,8 @@ const Category = () => {
                                 onClick={() => {
                                     setIsOpenCreate(false);
                                     setAttributeName('');
+                                    setAttributeNameError('');
+                                    setSlugError('');
                                     setAttributeNameError('');
                                 }}
                             >

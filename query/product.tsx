@@ -12213,6 +12213,424 @@ export const PRODUCT_LIST_TAGS = gql`
     }
 `;
 
+export const ATTRIBUTE_LIST = gql`
+    query AttributeList($filter: AttributeFilterInput, $before: String, $after: String, $first: Int, $last: Int, $sort: AttributeSortingInput) {
+        attributes(filter: $filter, before: $before, after: $after, first: $first, last: $last, sortBy: $sort) {
+            edges {
+                node {
+                    ...Attribute
+                    __typename
+                }
+                __typename
+            }
+            pageInfo {
+                ...PageInfo
+                __typename
+            }
+            __typename
+             totalCount
+        }
+    }
+
+    fragment Attribute on Attribute {
+        id
+        name
+        slug
+        type
+        visibleInStorefront
+        filterableInDashboard
+        filterableInStorefront
+        unit
+        inputType
+        __typename
+    }
+
+    fragment PageInfo on PageInfo {
+        endCursor
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        __typename
+    }
+`;
+
+export const CREATE_ATTRIBUTE = gql`
+    mutation AttributeCreate($input: AttributeCreateInput!) {
+        attributeCreate(input: $input) {
+            attribute {
+                id
+                __typename
+            }
+            errors {
+                ...AttributeError
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment AttributeError on AttributeError {
+        code
+        field
+        message
+        __typename
+    }
+`;
+
+export const DELETE_ATTRIBUTE = gql`
+    mutation AttributeDelete($id: ID!) {
+        attributeDelete(id: $id) {
+            errors {
+                ...AttributeError
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment AttributeError on AttributeError {
+        code
+        field
+        message
+        __typename
+    }
+`;
+
+export const UPDATE_ATTRIBUTE = gql`
+    mutation AttributeUpdate($id: ID!, $input: AttributeUpdateInput!) {
+        attributeUpdate(id: $id, input: $input) {
+            attribute {
+                ...AttributeDetails
+                __typename
+            }
+            errors {
+                ...AttributeError
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment AttributeDetails on Attribute {
+        ...Attribute
+        ...Metadata
+        availableInGrid
+        inputType
+        entityType
+        unit
+        storefrontSearchPosition
+        valueRequired
+        __typename
+    }
+
+    fragment Attribute on Attribute {
+        id
+        name
+        slug
+        type
+        visibleInStorefront
+        filterableInDashboard
+        filterableInStorefront
+        unit
+        inputType
+        __typename
+    }
+
+    fragment Metadata on ObjectWithMetadata {
+        metadata {
+            ...MetadataItem
+            __typename
+        }
+        privateMetadata {
+            ...MetadataItem
+            __typename
+        }
+        __typename
+    }
+
+    fragment MetadataItem on MetadataItem {
+        key
+        value
+        __typename
+    }
+
+    fragment AttributeError on AttributeError {
+        code
+        field
+        message
+        __typename
+    }
+`;
+
+export const CREATE_ATTRIBUTE_VALUE = gql`
+    mutation AttributeValueCreate($id: ID!, $input: AttributeValueCreateInput!, $firstValues: Int, $afterValues: String, $lastValues: Int, $beforeValues: String) {
+        attributeValueCreate(attribute: $id, input: $input) {
+            attribute {
+                id
+                choices(first: $firstValues, after: $afterValues, last: $lastValues, before: $beforeValues) {
+                    ...AttributeValueList
+                    __typename
+                }
+                __typename
+            }
+            errors {
+                ...AttributeError
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment AttributeValueList on AttributeValueCountableConnection {
+        pageInfo {
+            ...PageInfo
+            __typename
+        }
+        edges {
+            cursor
+            node {
+                ...AttributeValueDetails
+                __typename
+            }
+            __typename
+        }
+        __typename
+    }
+
+    fragment PageInfo on PageInfo {
+        endCursor
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        __typename
+    }
+
+    fragment AttributeValueDetails on AttributeValue {
+        ...AttributeValue
+        plainText
+        richText
+        __typename
+    }
+
+    fragment AttributeValue on AttributeValue {
+        id
+        name
+        slug
+        file {
+            ...File
+            __typename
+        }
+        reference
+        boolean
+        date
+        dateTime
+        value
+        __typename
+    }
+
+    fragment File on File {
+        url
+        contentType
+        __typename
+    }
+
+    fragment AttributeError on AttributeError {
+        code
+        field
+        message
+        __typename
+    }
+`;
+
+export const DELETE_ATTRIBUTE_VALUE = gql`
+    mutation AttributeValueDelete($id: ID!, $firstValues: Int, $afterValues: String, $lastValues: Int, $beforeValues: String) {
+        attributeValueDelete(id: $id) {
+            attribute {
+                id
+                choices(first: $firstValues, after: $afterValues, last: $lastValues, before: $beforeValues) {
+                    ...AttributeValueList
+                    __typename
+                }
+                __typename
+            }
+            errors {
+                ...AttributeError
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment AttributeValueList on AttributeValueCountableConnection {
+        pageInfo {
+            ...PageInfo
+            __typename
+        }
+        edges {
+            cursor
+            node {
+                ...AttributeValueDetails
+                __typename
+            }
+            __typename
+        }
+        __typename
+    }
+
+    fragment PageInfo on PageInfo {
+        endCursor
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        __typename
+    }
+
+    fragment AttributeValueDetails on AttributeValue {
+        ...AttributeValue
+        plainText
+        richText
+        __typename
+    }
+
+    fragment AttributeValue on AttributeValue {
+        id
+        name
+        slug
+        file {
+            ...File
+            __typename
+        }
+        reference
+        boolean
+        date
+        dateTime
+        value
+        __typename
+    }
+
+    fragment File on File {
+        url
+        contentType
+        __typename
+    }
+
+    fragment AttributeError on AttributeError {
+        code
+        field
+        message
+        __typename
+    }
+`;
+
+export const ATTRIBUTE_DETAILS = gql`
+    query AttributeDetails($id: ID!, $firstValues: Int, $afterValues: String, $lastValues: Int, $beforeValues: String) {
+        attribute(id: $id) {
+            ...AttributeDetails
+            choices(first: $firstValues, after: $afterValues, last: $lastValues, before: $beforeValues) {
+                ...AttributeValueList
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment AttributeDetails on Attribute {
+        ...Attribute
+        ...Metadata
+        availableInGrid
+        inputType
+        entityType
+        unit
+        storefrontSearchPosition
+        valueRequired
+        __typename
+    }
+
+    fragment Attribute on Attribute {
+        id
+        name
+        slug
+        type
+        visibleInStorefront
+        filterableInDashboard
+        filterableInStorefront
+        unit
+        inputType
+        __typename
+    }
+
+    fragment Metadata on ObjectWithMetadata {
+        metadata {
+            ...MetadataItem
+            __typename
+        }
+        privateMetadata {
+            ...MetadataItem
+            __typename
+        }
+        __typename
+    }
+
+    fragment MetadataItem on MetadataItem {
+        key
+        value
+        __typename
+    }
+
+    fragment AttributeValueList on AttributeValueCountableConnection {
+        pageInfo {
+            ...PageInfo
+            __typename
+        }
+        edges {
+            cursor
+            node {
+                ...AttributeValueDetails
+                __typename
+            }
+            __typename
+        }
+        __typename
+    }
+
+    fragment PageInfo on PageInfo {
+        endCursor
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        __typename
+    }
+
+    fragment AttributeValueDetails on AttributeValue {
+        ...AttributeValue
+        plainText
+        richText
+        __typename
+    }
+
+    fragment AttributeValue on AttributeValue {
+        id
+        name
+        slug
+        file {
+            ...File
+            __typename
+        }
+        reference
+        boolean
+        date
+        dateTime
+        value
+        __typename
+    }
+
+    fragment File on File {
+        url
+        contentType
+        __typename
+    }
+`;
+
 export const CUSTOMER_UPDATE_ADDRESS = gql`
     mutation UpdateCustomerAddress($id: ID!, $input: AddressInput!) {
         addressUpdate(id: $id, input: $input) {

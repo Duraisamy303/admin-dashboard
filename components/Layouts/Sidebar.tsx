@@ -235,20 +235,22 @@ const Sidebar = () => {
                                                     <Link href="/product/tags">{t('Tags')}</Link>
                                                 </li>
                                                 <li>
+                                                    <Link href="/product/attributes">{t('Attributes')}</Link>
+                                                </li>
+                                                {/* <li>
                                                     <button type="button" onClick={() => setMenuOpen(!menuOpen)}>
                                                         <div className="flex items-center">
-                                                            {/* <IconMenuDashboard className="shrink-0 group-hover:!text-primary" /> */}
                                                             <span className="pr-5 text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">{t('Attributes')}</span>
                                                         </div>
 
                                                         <div className={menuOpen !== true ? '-rotate-90 rtl:rotate-90' : ''}>
                                                             <IconCaretDown />
                                                         </div>
-                                                    </button>
+                                                    </button> */}
                                                     {/* <Link href="#" onClick={() => setMenuOpen(!menuOpen)}>
                                                         {t('Attributes')}
                                                     </Link> */}
-                                                    {menuOpen && (
+                                                    {/* {menuOpen && (
                                                         <ul>
                                                             <li>
                                                                 <Link href="/product/finish">{t('Finishes')}</Link>
@@ -272,8 +274,8 @@ const Sidebar = () => {
                                                                 <Link href="/product/size">{t('Sizes')}</Link>
                                                             </li>
                                                         </ul>
-                                                    )}
-                                                </li>
+                                                    )} */}
+                                                {/* </li> */}
                                             </ul>
                                         </AnimateHeight>
                                     </li>

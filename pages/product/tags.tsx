@@ -21,111 +21,159 @@ import { Field, Form, Formik } from 'formik';
 import * as Yup from 'yup';
 import Swal from 'sweetalert2';
 import IconEye from '@/components/Icon/IconEye';
-import { useMutation, useQuery } from '@apollo/client';
+import { useLazyQuery, useMutation, useQuery } from '@apollo/client';
 import { CATEGORY_LIST, CREATE_CATEGORY, DELETE_CATEGORY, PRODUCT_LIST, UPDATE_CATEGORY, PRODUCT_LIST_TAGS, CREATE_TAG, UPDATE_TAG, DELETE_TAG } from '@/query/product';
 import ReactQuill from 'react-quill';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import { Success } from '@/utils/functions';
 import IconLoader from '@/components/Icon/IconLoader';
+import { useRouter } from 'next/router';
+import IconArrowBackward from '@/components/Icon/IconArrowBackward';
+import IconArrowForward from '@/components/Icon/IconArrowForward';
+import CommonLoader from '../elements/commonLoader';
 
 const Tags = () => {
     const isRtl = useSelector((state: any) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
 
+    const [addTag, { loading: addLoading }] = useMutation(CREATE_TAG);
+    const [updateTag, { loading: updateLoading }] = useMutation(UPDATE_TAG);
+    const [deleteCategory] = useMutation(DELETE_TAG);
+    const [bulkDelete] = useMutation(DELETE_TAG);
+
     const dispatch = useDispatch();
-    useEffect(() => {
-        dispatch(setPageTitle('Tags'));
-    });
 
-    const { error, data: tagData, refetch: tagListRefetch } = useQuery(PRODUCT_LIST_TAGS);
+    const PAGE_SIZE = 10;
 
-    const [tagList, setTagList] = useState([]);
-    const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        getTagList();
-    }, [tagData]);
-
-    const getTagList = () => {
-        setLoading(true);
-        if (tagData) {
-            if (tagData.tags && tagData.tags.edges?.length > 0) {
-                const newData = tagData.tags?.edges?.map((item: any) => {
-                    return {
-                        name: item.node?.name,
-                        id: item.node?.id,
-                    };
-                });
-                setTagList(newData);
-                setLoading(false);
-            }
-        } else {
-            setLoading(false);
-        }
-    };
-
-    const [page, setPage] = useState(1);
-    const PAGE_SIZES = [10, 20, 30, 50, 100];
-    const [pageSize, setPageSize] = useState(PAGE_SIZES[0]);
-    const [initialRecords, setInitialRecords] = useState([]); // Initialize initialRecords with an empty array
-    const [recordsData, setRecordsData] = useState([]);
-
-    // Update initialRecords whenever finishList changes
-    useEffect(() => {
-        // Sort finishList by 'id' and update initialRecords
-        setInitialRecords(tagList);
-    }, [tagList]);
+    const router = useRouter();
 
     const [selectedRecords, setSelectedRecords] = useState<any>([]);
 
+    const [recordsData, setRecordsData] = useState([]);
+    const [startCursor, setStartCursor] = useState(null);
+    const [endCursor, setEndCursor] = useState(null);
+    const [hasNextPage, setHasNextPage] = useState(false);
+    const [hasPreviousPage, setHasPreviousPage] = useState(false);
     const [search, setSearch] = useState('');
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
         columnAccessor: 'id',
         direction: 'asc',
     });
-
     const [modal1, setModal1] = useState(false);
     const [modalTitle, setModalTitle] = useState(null);
     const [modalContant, setModalContant] = useState<any>(null);
+    const [totalCount, setTotalCount] = useState(0);
 
-    // const [viewModal, setViewModal] = useState(false);
+    const {
+        data: customerData,
+        loading: getLoading,
+        refetch: categoryListRefetch,
+    } = useQuery(PRODUCT_LIST_TAGS, {
+        variables: {
+            channel: 'india-channel',
+            first: PAGE_SIZE,
+            after: null,
+            search: search !== '' ? search : '',
+        },
+        onCompleted: (data) => {
+            console.log('data: ', data);
+            setTotalCount(data?.categories?.totalCount);
+            commonPagination(data);
+        },
+    });
 
-    //Mutation
-    const [addTag] = useMutation(CREATE_TAG);
-    const [updateTag] = useMutation(UPDATE_TAG);
-    const [deleteCategory] = useMutation(DELETE_TAG);
-    const [bulkDelete] = useMutation(DELETE_TAG);
+    const { data, refetch: refetch } = useQuery(PRODUCT_LIST_TAGS, {
+        variables: {
+            channel: 'india-channel',
+            first: PAGE_SIZE,
+            after: null,
+        },
+    });
 
-    useEffect(() => {
-        setPage(1);
-    }, [pageSize]);
+    const [fetchNextPage] = useLazyQuery(PRODUCT_LIST_TAGS, {
+        onCompleted: (data) => {
+            commonPagination(data);
+        },
+    });
 
-    useEffect(() => {
-        const from = (page - 1) * pageSize;
-        const to = from + pageSize;
-        setRecordsData([...initialRecords.slice(from, to)]);
-    }, [page, pageSize, initialRecords]);
+    const [fetchPreviousPage] = useLazyQuery(PRODUCT_LIST_TAGS, {
+        onCompleted: (data) => {
+            commonPagination(data);
+        },
+    });
 
-    useEffect(() => {
-        setInitialRecords(() => {
-            return tagList.filter((item: any) => {
-                return (
-                    item.id.toString().includes(search.toLowerCase()) ||
-                    // item.image.toLowerCase().includes(search.toLowerCase()) ||
-                    item.name.toLowerCase().includes(search.toLowerCase())
-                    // item.description.toLowerCase().includes(search.toLowerCase()) ||
-                    // item.slug.toLowerCase().includes(search.toLowerCase()) ||
-                    // item.count.toString().includes(search.toLowerCase())
-                );
-            });
+    const commonPagination = (data) => {
+        const customers = data.tags.edges;
+        const pageInfo = data.tags?.pageInfo;
+
+        const newData = customers?.map((item: any) => {
+            return {
+                name: item.node?.name,
+                id: item.node?.id,
+            };
         });
-    }, [search]);
+        setRecordsData(newData);
+        setStartCursor(pageInfo?.startCursor || null);
+        setEndCursor(pageInfo?.endCursor || null);
+        setHasNextPage(pageInfo?.hasNextPage || false);
+        setHasPreviousPage(pageInfo?.hasPreviousPage || false);
+        setTotalCount(data.tags?.totalCount)
+    };
 
-    useEffect(() => {
-        const data = sortBy(initialRecords, sortStatus.columnAccessor);
-        setInitialRecords(initialRecords);
-    }, [sortStatus]);
+    const handleNextPage = () => {
+        fetchNextPage({
+            variables: {
+                channel: 'india-channel',
+                first: PAGE_SIZE,
+                after: endCursor,
+                before: null,
+            },
+        });
+    };
 
-    // FORM VALIDATION
+    const handlePreviousPage = () => {
+        fetchPreviousPage({
+            variables: {
+                channel: 'india-channel',
+                last: PAGE_SIZE,
+                before: startCursor,
+            },
+        });
+    };
+    // Statement Earrings necklaces
+    const refresh = async () => {
+        try {
+            const { data } = await refetch({
+                channel: 'india-channel',
+                first: PAGE_SIZE,
+                after: null,
+                search: '',
+            });
+            console.log('data: ', data);
+            commonPagination(data);
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+    const handleSearchChange = async (e) => {
+        console.log('e: ', e);
+        setSearch(e);
+        if (e == '') {
+            console.log('if: ');
+            refresh();
+        } else {
+            console.log('else: ');
+            const res = await categoryListRefetch({
+                variables: {
+                    channel: 'india-channel',
+                    search: e,
+                    last: PAGE_SIZE,
+                    before: startCursor,
+                },
+            });
+            commonPagination(res?.data);
+        }
+    };
+
     const SubmittedForm = Yup.object().shape({
         name: Yup.string().required('Please fill the Name'),
     });
@@ -133,7 +181,6 @@ const Tags = () => {
     // form submit
     const onSubmit = async (record: any, { resetForm }: any) => {
         try {
-            setLoading(true);
             const variables = {
                 input: {
                     name: record.name,
@@ -142,13 +189,10 @@ const Tags = () => {
 
             const { data } = await (modalTitle ? updateTag({ variables: { ...variables, id: modalContant.id } }) : addTag({ variables }));
             Success('Tag created successfully');
-            await tagListRefetch();
+            refresh();
             setModal1(false);
             resetForm();
-            setLoading(false);
         } catch (error) {
-            setLoading(false);
-
             console.log('error: ', error);
         }
     };
@@ -214,11 +258,8 @@ const Tags = () => {
                     await bulkDelete({ variables: { id: item.id } });
                 });
                 Swal.fire('Deleted!', 'Your files have been deleted.', 'success');
-                const updatedRecordsData = tagList.filter((record) => !selectedRecords.includes(record));
-                setTagList(updatedRecordsData);
-                await tagListRefetch();
+                refresh();
                 setSelectedRecords([]);
-
             },
             () => {
                 Swal.fire('Cancelled', 'Your List is safe :)', 'error');
@@ -231,11 +272,8 @@ const Tags = () => {
             async () => {
                 const { data } = await deleteCategory({ variables: { id: record.id } });
                 Swal.fire('Deleted!', 'Your file has been deleted.', 'success');
-                const updatedRecordsData = tagList.filter((dataRecord: any) => dataRecord.id !== record.id);
-                setRecordsData(updatedRecordsData);
-                setTagList(updatedRecordsData);
+                refresh();
                 setSelectedRecords([]);
-                await tagListRefetch();
             },
             () => {
                 Swal.fire('Cancelled', 'Your Tag List is safe :)', 'error');
@@ -247,10 +285,10 @@ const Tags = () => {
         <div>
             <div className="panel mt-6">
                 <div className="mb-5 flex flex-col gap-5 md:flex-row md:items-center">
-                    <h5 className="text-lg font-semibold dark:text-white-light">Tags</h5>
+                    <h5 className="text-lg font-semibold dark:text-white-light">Tags ({totalCount})</h5>
 
                     <div className="flex ltr:ml-auto rtl:mr-auto">
-                        <input type="text" className="form-input mr-2 w-auto" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                        {/* <input type="text" className="form-input mr-2 w-auto" placeholder="Search..." value={search} onChange={(e) => handleSearchChange(e.target.value)} /> */}
                         <div className="dropdown  mr-2 ">
                             <Dropdown
                                 placement={`${isRtl ? 'bottom-start' : 'bottom-end'}`}
@@ -278,16 +316,17 @@ const Tags = () => {
                         </button>
                     </div>
                 </div>
-             
+                {getLoading ? (
+                    <CommonLoader />
+                ) : (
                     <div className="datatables">
                         <DataTable
                             className="table-hover whitespace-nowrap"
                             records={recordsData}
                             columns={[
                                 { accessor: 'name', sortable: true },
-
                                 {
-                                    accessor: 'actions', // You can use any accessor name you want
+                                    accessor: 'actions',
                                     title: 'Actions',
                                     render: (row: any) => (
                                         <>
@@ -306,22 +345,30 @@ const Tags = () => {
                                 },
                             ]}
                             highlightOnHover
-                            totalRecords={initialRecords.length}
-                            recordsPerPage={pageSize}
-                            page={page}
-                            onPageChange={(p) => setPage(p)}
-                            recordsPerPageOptions={PAGE_SIZES}
-                            onRecordsPerPageChange={setPageSize}
+                            totalRecords={recordsData?.length}
+                            recordsPerPage={PAGE_SIZE}
+                            minHeight={200}
+                            page={null}
+                            onPageChange={(p) => {}}
+                            withBorder={true}
                             sortStatus={sortStatus}
                             onSortStatusChange={setSortStatus}
                             selectedRecords={selectedRecords}
-                            onSelectedRecordsChange={(selectedRecords) => {
-                                setSelectedRecords(selectedRecords);
+                            onSelectedRecordsChange={(val) => {
+                                setSelectedRecords(val);
                             }}
-                            minHeight={200}
-                            paginationText={({ from, to, totalRecords }) => `Showing  ${from} to ${to} of ${totalRecords} entries`}
                         />
                     </div>
+                )}
+
+                <div className="mt-5 flex justify-end gap-3">
+                    <button disabled={!hasPreviousPage} onClick={handlePreviousPage} className={`btn ${!hasPreviousPage ? 'btn-disabled' : 'btn-primary'}`}>
+                        <IconArrowBackward />
+                    </button>
+                    <button disabled={!hasNextPage} onClick={handleNextPage} className={`btn ${!hasNextPage ? 'btn-disabled' : 'btn-primary'}`}>
+                        <IconArrowForward />
+                    </button>
+                </div>
             </div>
 
             {/* CREATE AND EDIT Tags FORM */}
@@ -350,13 +397,7 @@ const Tags = () => {
                                     </div>
                                     <div className="mb-5 p-5">
                                         <Formik
-                                            initialValues={
-                                                modalContant === null
-                                                    ? { name: '' }
-                                                    : {
-                                                          name: modalContant?.name,
-                                                      }
-                                            }
+                                            initialValues={modalContant === null ? { name: '' } : { name: modalContant?.name }}
                                             validationSchema={SubmittedForm}
                                             onSubmit={(values, { resetForm }) => {
                                                 onSubmit(values, { resetForm }); // Call the onSubmit function with form values and resetForm method
@@ -365,14 +406,13 @@ const Tags = () => {
                                             {({ errors, submitCount, touched, setFieldValue, values }: any) => (
                                                 <Form className="space-y-5">
                                                     <div className={submitCount ? (errors.name ? 'has-error' : 'has-success') : ''}>
-                                                        <label htmlFor="fullName">Name </label>
+                                                        <label htmlFor="fullName">Name</label>
                                                         <Field name="name" type="text" id="fullName" placeholder="Enter Name" className="form-input" />
-
                                                         {submitCount ? errors.name ? <div className="mt-1 text-danger">{errors.name}</div> : <div className="mt-1 text-success"></div> : ''}
                                                     </div>
 
                                                     <button type="submit" className="btn btn-primary !mt-6">
-                                                        {loading ? <IconLoader /> : 'Submit'}
+                                                        {addLoading || updateLoading ? <IconLoader /> : 'Submit'}
                                                     </button>
                                                 </Form>
                                             )}

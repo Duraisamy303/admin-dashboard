@@ -1368,7 +1368,11 @@ const Editorder = () => {
                                                 <p>
                                                     {formData?.billing?.address_1}
                                                     <br /> {formData?.billing?.city}
-                                                    <br /> {formData?.billing?.state}
+                                                    {formData?.billing?.state && (
+                                                        <>
+                                                            <br /> {formData?.billing?.state}
+                                                        </>
+                                                    )}
                                                     <br /> {formData?.billing?.countryArea}
                                                     <br /> {formData?.billing?.pincode}
                                                 </p>
@@ -1631,7 +1635,11 @@ const Editorder = () => {
                                                 <p>
                                                     {formData?.shipping?.address_1}
                                                     <br /> {formData?.shipping?.city}
-                                                    <br /> {formData?.shipping?.state}
+                                                    {formData?.shipping?.state && (
+                                                        <>
+                                                            <br /> {formData?.shipping?.state}
+                                                        </>
+                                                    )}
                                                     <br /> {formData?.shipping?.countryArea}
                                                     <br /> {formData?.shipping?.pincode}
                                                 </p>

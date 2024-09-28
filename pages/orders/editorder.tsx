@@ -1872,11 +1872,11 @@ const Editorder = () => {
                                     <thead>
                                         <tr>
                                             <th>Item</th>
-                                            <th className="w-1">Qty</th>
                                             <th className="w-1">Cost</th>
-                                            <th className="w-1">GST</th>
+                                            <th className="w-1">Qty</th>
+                                            <th className="w-1">Total</th>
 
-                                            <th>Total</th>
+                                            <th className="w-1">GST</th>
 
                                             {/* <th>Action</th> */}
                                             <th className="w-1"></th>
@@ -1890,17 +1890,28 @@ const Editorder = () => {
                                                         <img src={item?.variant?.product?.thumbnail?.url} height={50} width={50} alt="Selected" className="object-cover" />
                                                         <div>
                                                             <div className="pl-5">{item?.productName}</div>
-                                                            <div className="pl-5">{item?.productSku}</div>
+                                                            {item?.productSku && (
+                                                                <div className="flex items-center">
+                                                                    <h4 className="pl-5">SKU:</h4>
+                                                                    <div className="pl-1 text-gray-500">{'item?.productSku'}</div>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </td>
+                                                    {item?.unitPrice?.net?.currency == 'USD' ? (
+                                                        <td>{`${formatCurrency(item?.unitPrice?.net?.currency)}${addCommasToNumber(item?.unitPrice?.net?.amount)}`} </td>
+                                                    ) : (
+                                                        <td>{`${formatCurrency(item?.unitPrice?.net?.currency)}${roundOff(item?.unitPrice?.net?.amount)}`} </td>
+                                                    )}
                                                     <td>
-                                                        <div>{item?.quantity}</div>
+                                                        <div>× {item?.quantity}</div>
                                                     </td>
                                                     {/* <td>{`${formatCurrency(item?.unitPrice?.gross?.currency)}${addCommasToNumber(item?.unitPrice?.gross?.amount)}`} </td> */}
-                                                    <td>{`${formatCurrency(item?.unitPrice?.net?.currency)}${addCommasToNumber(item?.unitPrice?.net?.amount)}`} </td>
-
+                                                    <td>
+                                                        <div> {`${formatCurrency(item?.totalPrice?.gross?.currency)}${addCommasToNumber(item?.totalPrice?.gross?.amount)}`}</div>{' '}
+                                                    </td>
                                                     {formData?.billing?.state !== '' && formData?.shipping?.state == 'Tamil Nadu' ? (
-                                                        <td style={{ width: '250px' }}>
+                                                        <td>
                                                             <div>{`SGST: ${formatCurrency(item?.unitPrice?.tax?.currency)}${addCommasToNumber(item?.unitPrice?.tax?.amount / 2)}`}</div>
 
                                                             <div>{`CSGT: ${formatCurrency(item?.unitPrice?.tax?.currency)}${addCommasToNumber(item?.unitPrice?.tax?.amount / 2)}`}</div>
@@ -1910,9 +1921,6 @@ const Editorder = () => {
                                                             <div>{`IGST: ${formatCurrency(item?.unitPrice?.tax?.currency)}${addCommasToNumber(item?.unitPrice?.tax?.amount)}`}</div>
                                                         </td>
                                                     )}
-                                                    <td>
-                                                        <div> {`${formatCurrency(item?.totalPrice?.gross?.currency)}${addCommasToNumber(item?.totalPrice?.gross?.amount)}`}</div>{' '}
-                                                    </td>
                                                     {/* <td>
                                                             <button
                                                                 type="button"

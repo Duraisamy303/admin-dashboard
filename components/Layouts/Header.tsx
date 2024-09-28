@@ -169,7 +169,7 @@ const Header = () => {
     const signOutClick = () => {
         localStorage.removeItem('token');
 
-        router.replace('/auth/boxed-signin');
+        router.replace('/auth/signin');
     };
     return (
         <header className={`z-40 ${themeConfig.semidark && themeConfig.menu === 'horizontal' ? 'dark' : ''}`}>
@@ -493,7 +493,7 @@ const Header = () => {
                                         </li>
                                     ) : (
                                         <li className="border-t border-white-light dark:border-white-light/10">
-                                            <Link href="/auth/boxed-signin" className="!py-3 text-danger">
+                                            <Link href="/auth/signin" className="!py-3 text-danger">
                                                 <IconUserPlus className="h-4.5 w-4.5 shrink-0  ltr:mr-2 rtl:ml-2" />
                                                 Login / Register
                                             </Link>
@@ -924,7 +924,7 @@ const Header = () => {
                                         </Link>
                                     </li>
                                     <li>
-                                        <Link href="/auth/boxed-signin" target="_blank">
+                                        <Link href="/auth/signin" target="_blank">
                                             {t('login_boxed')}
                                         </Link>
                                     </li>

@@ -103,7 +103,7 @@ export default function createAttribute() {
     const createValue = async () => {
         try {
             if (state.manualCode == '') {
-                setState({ manualCodeErr: 'Please enter name' });
+                setState({ manualCodeErr: 'Name is required' });
             } else {
                 const body = {
                     name: state.manualCode,
@@ -297,7 +297,7 @@ export default function createAttribute() {
                             type="text"
                             value={state.manualCode}
                             onChange={(e) => setState({ manualCode: e.target.value })}
-                            placeholder="Enter Value Name"
+                            placeholder="Enter Name"
                             name="name"
                             className="form-input"
                             required

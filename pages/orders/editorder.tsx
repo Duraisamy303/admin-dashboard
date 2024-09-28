@@ -1893,7 +1893,7 @@ const Editorder = () => {
                                                             {item?.productSku && (
                                                                 <div className="flex items-center">
                                                                     <h4 className="pl-5">SKU:</h4>
-                                                                    <div className="pl-1 text-gray-500">{'item?.productSku'}</div>
+                                                                    <div className="pl-1 text-gray-500">{item?.productSku}</div>
                                                                 </div>
                                                             )}
                                                         </div>

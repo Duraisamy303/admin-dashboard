@@ -56,6 +56,7 @@ import Swal from 'sweetalert2';
 import * as Yup from 'yup';
 import Select from 'react-select';
 import CommonLoader from '../elements/commonLoader';
+import useDebounce from '@/utils/useDebounce';
 
 const NewOrder = () => {
     const router = useRouter();
@@ -325,13 +326,23 @@ const NewOrder = () => {
         getProductList();
     }, [productData]);
 
-    useEffect(() => {
-        handleSearch();
-    }, [state.search]);
+    const debouncedSearchTerm = useDebounce(state.search, 500); // Debounce with a 500ms delay
 
-    const handleSearch = async () => {
+    useEffect(() => {
+        if (debouncedSearchTerm) {
+            handleSearch(debouncedSearchTerm);
+        } else {
+            getProductList();
+        }
+    }, [debouncedSearchTerm]);
+
+    // useEffect(() => {
+    //     handleSearch();
+    // }, [state.search]);
+
+    const handleSearch = async (searchTerm: string) => {
         try {
-            if (state.search !== '' && state.search !== undefined && state.search !== null) {
+            if (searchTerm) {
                 let channel = '';
                 if (channels() == 'INR') {
                     channel = 'india-channel';
@@ -341,9 +352,12 @@ const NewOrder = () => {
                 const res = await searchProductRefetch({
                     channel,
                     query: state.search,
+                    first: 20,
+                    after: null,
                 });
+                const pageInfo = res?.data?.products?.pageInfo;
 
-                setState({ productList: res?.data?.products?.edges?.map((item: any) => item.node) });
+                setState({ productList: res?.data?.products?.edges?.map((item: any) => item.node), endCursor: pageInfo?.endCursor, hasNextPage: pageInfo?.hasNextPage });
             } else {
                 getProductList();
             }
@@ -456,7 +470,7 @@ const NewOrder = () => {
                         shippingMethod,
                     },
                 },
-            });  
+            });
             getOrderData();
         } catch (error) {
             console.error(error);
@@ -905,6 +919,30 @@ const NewOrder = () => {
                 setState({ endCursor: newProducts?.data?.search?.pageInfo?.endCursor, hasNextPage: newProducts?.data?.search?.pageInfo?.hasNextPage });
                 const funRes = await productsDropdown(newProducts?.data?.search?.edges);
                 setState({ productList: [...state.productList, ...funRes], loading: false });
+            }
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
+    const loadMoreSearchProduct = async () => {
+        try {
+            if (state.hasNextPage) {
+                let channel = '';
+                if (channels() == 'INR') {
+                    channel = 'india-channel';
+                } else {
+                    channel = 'default-channel';
+                }
+                const res = await searchProductRefetch({
+                    channel,
+                    query: state.search,
+                    first: 20,
+                    after: state.endCursor,
+                });
+
+                const funRes = await productsDropdown(res?.data?.products?.edges);
+                setState({ productList: [...state.productList, ...funRes], endCursor: res?.data?.products?.pageInfo?.endCursor, hasNextPage: res?.data?.products?.pageInfo?.hasNextPage });
             }
         } catch (error) {
             console.log('error: ', error);
@@ -1874,7 +1912,7 @@ const NewOrder = () => {
                                         {state.hasNextPage && (
                                             <div className="flex w-full justify-center">
                                                 <button
-                                                    onClick={loadMoreProducts}
+                                                    onClick={state.search == '' ? loadMoreProducts : loadMoreSearchProduct}
                                                     className="rounded border border-blue-500 bg-transparent px-4 py-2 font-semibold text-blue-500 hover:border-transparent hover:bg-blue-500 hover:text-white"
                                                 >
                                                     {productLoadMoreLoading ? <IconLoader /> : 'Load More'}

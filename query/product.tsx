@@ -12909,8 +12909,8 @@ export const CREATE_CUSTOMER_ADDRESS = gql`
 `;
 
 export const PRODUCT_SEARCH = gql`
-    query ProductSearchbyName($query: String!, $channel: String!) {
-        products(first: 100, channel: $channel, search: $query, sortBy: { direction: DESC, field: NAME }) {
+    query ProductSearchbyName($query: String!, $channel: String!, $first: Int, $after: String = "") {
+        products(first: $first, channel: $channel, search: $query, sortBy: { direction: DESC, field: NAME }, after: $after) {
             edges {
                 node {
                     id
@@ -12968,6 +12968,13 @@ export const PRODUCT_SEARCH = gql`
                 __typename
             }
             __typename
+            pageInfo {
+                endCursor
+                hasNextPage
+                hasPreviousPage
+                startCursor
+            }
+            totalCount
         }
     }
 `;

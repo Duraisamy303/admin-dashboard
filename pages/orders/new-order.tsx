@@ -109,6 +109,9 @@ const NewOrder = () => {
         productLoading: false,
         updateProductLoad: false,
         isFreeShipping: false,
+        endCursor: '',
+        hasNextPage: false,
+        search: '',
         // error messages
     });
 
@@ -149,6 +152,7 @@ const NewOrder = () => {
     const { data: countryData } = useQuery(COUNTRY_LIST);
 
     const { data: customerAddress, refetch: addressRefetch } = useQuery(CUSTOMER_ADDRESS);
+
     const { data: searchProduct, refetch: searchProductRefetch } = useQuery(PRODUCT_SEARCH);
 
     const { data: stateData, refetch: stateRefetch } = useQuery(STATES_LIST, {
@@ -179,10 +183,10 @@ const NewOrder = () => {
         return channel;
     };
 
-    const { data: productData, refetch: productRefetch } = useQuery(FILTER_PRODUCT_LIST, {
+    const { data: productData, refetch: productRefetch , loading: refetchLoading } = useQuery(FILTER_PRODUCT_LIST, {
         variables: {
             after: null,
-            first: 100,
+            first: 20,
             query: '',
             channel: channels() == 'INR' ? 'india-channel' : 'default-channel',
             address: {
@@ -320,7 +324,7 @@ const NewOrder = () => {
 
     const handleSearch = async () => {
         try {
-            if (state.search !== '') {
+            if (state.search !== '' && state.search !== undefined && state.search !== null) {
                 let channel = '';
                 if (channels() == 'INR') {
                     channel = 'india-channel';
@@ -334,8 +338,7 @@ const NewOrder = () => {
 
                 setState({ productList: res?.data?.products?.edges?.map((item: any) => item.node) });
             } else {
-                const funRes = await productsDropdown(productData);
-                setState({ productList: funRes, loading: false });
+                getProductList();
             }
         } catch (error) {
             console.log('error: ', error);
@@ -345,7 +348,8 @@ const NewOrder = () => {
     const getProductList = async () => {
         try {
             setState({ loading: true });
-            const funRes = await productsDropdown(productData);
+            setState({ endCursor: productData?.search?.pageInfo?.endCursor, hasNextPage: productData?.search?.pageInfo?.hasNextPage });
+            const funRes = await productsDropdown(productData?.search?.edges);
             setState({ productList: funRes, loading: false });
         } catch (error) {
             setState({ loading: false });
@@ -873,6 +877,29 @@ const NewOrder = () => {
         } catch (error) {
             setState({ setUpdateAddressLoading: false });
             Failure(error);
+            console.log('error: ', error);
+        }
+    };
+
+    const loadMoreProducts = async () => {
+        try {
+            if (state.hasNextPage) {
+                const newProducts = await productRefetch({
+                    after: state.endCursor,
+                    first: 20,
+                    query: '',
+                    channel: channels() == 'INR' ? 'india-channel' : 'default-channel',
+                    address: {
+                        country: 'IN',
+                    },
+                    isPublished: true,
+                    stockAvailability: 'IN_STOCK',
+                }); // Your logic to fetch more products
+                setState({ endCursor: newProducts?.data?.search?.pageInfo?.endCursor, hasNextPage: newProducts?.data?.search?.pageInfo?.hasNextPage });
+                const funRes = await productsDropdown(newProducts?.data?.search?.edges);
+                setState({ productList: [...state.productList, ...funRes], loading: false });
+            }
+        } catch (error) {
             console.log('error: ', error);
         }
     };
@@ -1837,6 +1864,16 @@ const NewOrder = () => {
                                         </div>
                                     ))}
                                 </div>
+                                {state.hasNextPage && (
+                                    <div className="mt-4 flex justify-center">
+                                        <button
+                                            onClick={loadMoreProducts}
+                                            className="rounded border border-blue-500 bg-transparent px-4 py-2 font-semibold text-blue-500 hover:border-transparent hover:bg-blue-500 hover:text-white"
+                                        >
+                                            {refetchLoading ? <IconLoader /> : 'Load More'}
+                                        </button>
+                                    </div>
+                                )}
                                 <div className="flex justify-end gap-5 pt-2">
                                     <button
                                         onClick={() => {

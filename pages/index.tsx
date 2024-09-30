@@ -613,10 +613,20 @@ const Index = () => {
                 crosssells = row?.getCrosssells?.map((item: any) => item?.productId);
             }
 
+            const finalArray = row?.attributes?.reduce((acc, attr) => {
+                if (attr?.values?.length > 0) {
+                    acc.push({
+                        id: attr?.attribute?.id,
+                        values: attr?.values?.map((value) => value?.slug), // extracting the slug of each value
+                    });
+                }
+                return acc;
+            }, []);
+
             const { data } = await addFormData({
                 variables: {
                     input: {
-                        attributes: [],
+                        attributes: finalArray,
                         category: row?.category?.map((item) => item.id),
                         collections: [],
                         description: row.description,

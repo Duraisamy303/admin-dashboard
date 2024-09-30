@@ -60,6 +60,7 @@ import {
     addCommasToNumber,
     addNewFile,
     addNewMediaFile,
+    capitalizeFLetter,
     deleteImagesFromS3,
     docFilter,
     fetchImagesFromS3,
@@ -129,6 +130,8 @@ const ProductEdit = (props: any) => {
     const [selectedCrosssell, setSelectedCrosssell] = useState([]);
     const [mediaDate, setMediaDate] = useState('all');
     const [keyword, setKeyword] = useState('');
+    const [selectedAttributes, setSelectedAttributes] = useState({});
+    const [attributesData, setAttributesData] = useState([]);
     // ------------------------------------------New Data--------------------------------------------
 
     const [productName, setProductName] = useState('');
@@ -469,6 +472,7 @@ const ProductEdit = (props: any) => {
                     }
 
                     Attributes(data);
+                    setAttributesData(productDetails?.product?.attributes);
                     if (data?.variants?.length > 0) {
                         const variant = data?.variants?.map((item: any) => ({
                             sku: item.sku,
@@ -493,7 +497,30 @@ const ProductEdit = (props: any) => {
         }
     };
 
+    const handleSelectChange = (attributeId, selectedOptions) => {
+        // Ensure slug is used in place of value or label for state
+        const selectedValues = selectedOptions.map((option) => option.slug); // Access slug here
+        setSelectedAttributes((prev) => ({
+            ...prev,
+            [attributeId]: selectedValues, // Store slugs in the state
+        }));
+    };
+
     const Attributes = async (data) => {
+        const selectedAttributes = data?.attributes?.reduce((acc, attr) => {
+            if (attr.values && attr.values.length > 0) {
+                const selectedValues = attr.values.map((val) => val.slug);
+                acc[attr.attribute.id] = selectedValues;
+            }
+            return acc;
+        }, {});
+
+        // Update state with the selected attributes
+        setSelectedAttributes((prev) => ({
+            ...prev,
+            ...selectedAttributes,
+        }));
+
         const styleRes = await styleRefetch({
             sampleParams,
         });
@@ -564,19 +591,10 @@ const ProductEdit = (props: any) => {
                 selectedAccValue[attribute.type] = data?.[attribute.key].map((item: any) => item.id);
             }
         });
-        // if (data?.prouctDesign?.length > 0) {
-        //     const obj = {
-        //         type: 'design',
-        //         designName: dropdowndata?.design,
-        //     };
-        //     arr.push(obj);
-        //     type.push('design');
-        //     selectedAccValue.design = data?.prouctDesign?.map((item: any) => item.id);
-        // }
 
         setAccordions(arr.flat());
         setSelectedArr(type);
-        setSelectedValues(selectedAccValue);
+        // setSelectedValues(selectedAccValue);
     };
 
     const DescriptionEditor = async (Description) => {
@@ -899,6 +917,18 @@ const ProductEdit = (props: any) => {
         try {
             const savedContent = await editorInstance.save();
             const descr = JSON.stringify(savedContent, null, 2);
+            const att = attributesData
+                .map((attr) => {
+                    const selectedValues = selectedAttributes[attr.attribute.id] || [];
+
+                    return selectedValues.length > 0
+                        ? {
+                              id: attr.attribute.id,
+                              values: selectedValues,
+                          }
+                        : null;
+                })
+                .filter(Boolean); // Filters out any null values where no selections were made
 
             // Reset error messages
             setProductNameErrMsg('');
@@ -917,8 +947,8 @@ const ProductEdit = (props: any) => {
             console.log('errors: ', errors);
             const variantErrors = validateVariants();
             console.log('variantErrors: ', variantErrors);
-            const attributeErrors: any = validateAttributes();
-            console.log('attributeErrors: ', attributeErrors);
+            // const attributeErrors: any = validateAttributes();
+            // console.log('attributeErrors: ', attributeErrors);
 
             // Set errors
             if (publish !== 'draft') {
@@ -931,12 +961,12 @@ const ProductEdit = (props: any) => {
                 setCategoryErrMsg(errors.category);
                 setVariantErrors(variantErrors);
 
-                if (Object.keys(attributeErrors).length > 0) {
-                    setAttributeError(attributeErrors);
-                }
+                // if (Object.keys(attributeErrors).length > 0) {
+                //     setAttributeError(attributeErrors);
+                // }
 
                 // Check if any error exists
-                if (Object.values(errors).some((msg) => msg !== '') || variantErrors.some((err) => Object.keys(err).length > 0) || Object.keys(attributeErrors).length > 0) {
+                if (Object.values(errors).some((msg) => msg !== '') || variantErrors.some((err) => Object.keys(err).length > 0) ) {
                     // setCreateLoading(false);
                     Failure('Please fill in all required fields');
                     return; // Exit if any error exists
@@ -958,7 +988,6 @@ const ProductEdit = (props: any) => {
                         variables: {
                             id: id,
                             input: {
-                                attributes: [],
                                 category: selectedCat?.map((item) => item?.value),
                                 collections: [],
                                 tags: tagId,
@@ -973,13 +1002,14 @@ const ProductEdit = (props: any) => {
                                 crosssells,
                                 slug: slug,
                                 order_no: menuOrder,
-                                ...(selectedValues && selectedValues.design && { prouctDesign: selectedValues.design }),
-                                ...(selectedValues && selectedValues.style && { productstyle: selectedValues.style }),
-                                ...(selectedValues && selectedValues.finish && { productFinish: selectedValues.finish }),
-                                ...(selectedValues && selectedValues.stone && { productStoneType: selectedValues.stone }),
-                                ...(selectedValues && selectedValues.type && { productItemtype: selectedValues.type }),
-                                ...(selectedValues && selectedValues.size && { productSize: selectedValues.size }),
-                                ...(selectedValues && selectedValues.stoneColor && { productStonecolor: selectedValues.stoneColor }),
+                                attributes: att,
+                                // ...(selectedValues && selectedValues.design && { prouctDesign: selectedValues.design }),
+                                // ...(selectedValues && selectedValues.style && { productstyle: selectedValues.style }),
+                                // ...(selectedValues && selectedValues.finish && { productFinish: selectedValues.finish }),
+                                // ...(selectedValues && selectedValues.stone && { productStoneType: selectedValues.stone }),
+                                // ...(selectedValues && selectedValues.type && { productItemtype: selectedValues.type }),
+                                // ...(selectedValues && selectedValues.size && { productSize: selectedValues.size }),
+                                // ...(selectedValues && selectedValues.stoneColor && { productStonecolor: selectedValues.stoneColor }),
                             },
                             firstValues: 10,
                         },
@@ -1015,7 +1045,7 @@ const ProductEdit = (props: any) => {
                         variables: {
                             id: id,
                             input: {
-                                attributes: [],
+                                attributes: att,
                                 category: selectedCat?.map((item) => item?.value),
                                 collections: [],
                                 tags: tagId,
@@ -2129,7 +2159,7 @@ const ProductEdit = (props: any) => {
                                             </Tab.Panel>
 
                                             <Tab.Panel>
-                                                <div className="active flex ">
+                                                {/* <div className="active flex ">
                                                     <div className="mb-5 pr-3" style={{ width: '50%' }}>
                                                         <Select
                                                             placeholder="Select Type"
@@ -2146,34 +2176,34 @@ const ProductEdit = (props: any) => {
                                                             Add
                                                         </button>
                                                     </div>
-                                                </div>
+                                                </div> */}
 
                                                 <div className="mb-5">
                                                     <div className="space-y-2 font-semibold">
-                                                        {accordions.map((item: any) => (
-                                                            <div key={item?.type} className="rounded border border-[#d3d3d3] dark:border-[#1b2e4b]">
+                                                        {attributesData?.map((attr, index) => (
+                                                            <div className="rounded border border-[#d3d3d3] dark:border-[#1b2e4b]">
                                                                 <button
                                                                     type="button"
                                                                     className={`flex w-full items-center p-4 text-white-dark dark:bg-[#1b2e4b] ${active === '1' ? '!text-primary' : ''}`}
                                                                     // onClick={() => togglePara('1')}
                                                                 >
-                                                                    {item?.type}
+                                                                    {capitalizeFLetter(attr.attribute.name)}
                                                                     {/* <button onClick={() => handleRemoveAccordion(item.type)}>Remove</button> */}
 
-                                                                    <div className={`text-red-400 ltr:ml-auto rtl:mr-auto `} onClick={() => handleRemoveAccordion(item.type)}>
+                                                                    {/* <div className={`text-red-400 ltr:ml-auto rtl:mr-auto `} onClick={() => handleRemoveAccordion(item.type)}>
                                                                         <IconTrashLines />
-                                                                    </div>
+                                                                    </div> */}
                                                                 </button>
                                                                 <div>
                                                                     <AnimateHeight duration={300} height={active === '1' ? 'auto' : 0}>
-                                                                        <div className="grid grid-cols-12 gap-4 border-t border-[#d3d3d3] p-4 text-[13px] dark:border-[#1b2e4b]">
-                                                                            <div className="col-span-4">
+                                                                        <div className=" gap-4 border-t border-[#d3d3d3] p-4 text-[13px] dark:border-[#1b2e4b]">
+                                                                            {/* <div className="col-span-4">
                                                                                 <p>
                                                                                     Name:
                                                                                     <br /> <span className="font-semibold">{item.type}</span>
                                                                                 </p>
-                                                                            </div>
-                                                                            <div className="col-span-8">
+                                                                            </div> */}
+                                                                            <div className="w-full">
                                                                                 <div className="active ">
                                                                                     <div className=" mr-4 ">
                                                                                         <label htmlFor="value" className="block pr-5 text-sm font-medium text-gray-700">
@@ -2189,7 +2219,7 @@ const ProductEdit = (props: any) => {
                                                                                             isSearchable={false}
                                                                                             value={(selectedValues[item.type] || []).map((value) => ({ value, label: value }))}
                                                                                         /> */}
-                                                                                        <Select
+                                                                                        {/* <Select
                                                                                             placeholder={`Select ${item.type} Name`}
                                                                                             options={item[`${item.type}Name`]}
                                                                                             onChange={(selectedOptions) => handleMultiSelectChange(selectedOptions, item.type)}
@@ -2200,8 +2230,50 @@ const ProductEdit = (props: any) => {
                                                                                                 const option = options ? options.find((option: any) => option.value === value) : null;
                                                                                                 return option ? { value: option.value, label: option.label } : null;
                                                                                             })}
+                                                                                        /> */}
+                                                                                        {/* <Select
+                                                                                            isMulti
+                                                                                            options={attr.attribute.choices.edges.map((edge) => ({
+                                                                                                value: edge.node.id,
+                                                                                                label: edge.node.name,
+                                                                                                slug: edge.node.slug,
+                                                                                            }))}
+                                                                                            value={selectedValues} 
+                                                                                            onChange={(selectedOptions) => handleSelectChange(attr.attribute.id, selectedOptions)}
+                                                                                            placeholder={`Select ${capitalizeFLetter(attr.attribute.name)}`}
+                                                                                        /> */}
+
+                                                                                        {/* <Select
+                                                                                            isMulti
+                                                                                            options={attr?.attribute?.choices?.edges?.map((edge) => ({
+                                                                                                value: edge?.node?.id,
+                                                                                                label: edge?.node?.name,
+                                                                                                slug: edge?.node?.slug,
+                                                                                            }))}
+                                                                                            // Set initial value from selectedAttributes state
+                                                                                            value={selectedAttributes[attr.attribute.id]?.map((selectedSlug) => {
+                                                                                                const option = attr?.attribute?.choices?.edges?.find((edge) => edge?.node?.slug === selectedSlug);
+                                                                                                return option ? { value: option?.node.id, label: option?.node?.name } : null;
+                                                                                            })}
+                                                                                            onChange={(selectedOptions) => handleSelectChange(attr.attribute.id, selectedOptions)}
+                                                                                            placeholder={`Select ${capitalizeFLetter(attr.attribute.name)}`}
+                                                                                        /> */}
+
+                                                                                        <Select
+                                                                                            isMulti
+                                                                                            options={attr?.attribute?.choices?.edges?.map((edge) => ({
+                                                                                                value: edge?.node?.id,
+                                                                                                label: edge?.node?.name,
+                                                                                                slug: edge?.node?.slug, // Include slug
+                                                                                            }))}
+                                                                                            value={selectedAttributes[attr.attribute.id]?.map((selectedSlug) => {
+                                                                                                const option = attr?.attribute?.choices?.edges?.find((edge) => edge?.node?.slug === selectedSlug);
+                                                                                                return option ? { value: option?.node.id, label: option?.node?.name, slug: option?.node?.slug } : null;
+                                                                                            })}
+                                                                                            onChange={(selectedOptions) => handleSelectChange(attr.attribute.id, selectedOptions)}
+                                                                                            placeholder={`Select ${capitalizeFLetter(attr.attribute.name)}`}
                                                                                         />
-                                                                                        {attributeError[item.type] && <p className="error-message mt-1 text-red-500">{attributeError[item.type]}</p>}
+                                                                                        {/* {attributeError[item.type] && <p className="error-message mt-1 text-red-500">{attributeError[item.type]}</p>} */}
 
                                                                                         {/* <Select placeholder="Select an option" options={options} isMulti isSearchable={false} /> */}
                                                                                         {/* <div className="flex justify-between">

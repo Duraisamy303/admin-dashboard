@@ -96,7 +96,7 @@ const AbandonedCarts = () => {
         },
     });
 
-    const { refetch: orderRefetch,loading:refetchLoading } = useQuery(ORDER_LIST);
+    const { refetch: orderRefetch, loading: refetchLoading } = useQuery(ORDER_LIST);
 
     const [fetchNextPage] = useLazyQuery(ORDER_LIST, {
         onCompleted: (data) => {
@@ -263,6 +263,8 @@ const AbandonedCarts = () => {
             const orderId = data?.draftOrderCreate?.order?.id;
             const url = `/orders/new-order?orderId=${encodeURIComponent(orderId)}`;
             setIsOpenChannel(false);
+            setSelectedCurrency('');
+            setCurrencyPopup('');
             window.open(url, '_blank');
         } catch (error) {
             console.log('error: ', error);
@@ -479,7 +481,7 @@ const AbandonedCarts = () => {
             </div>
 
             <div className="panel mt-6">
-                {getLoading || refetchLoading? (
+                {getLoading || refetchLoading ? (
                     <CommonLoader />
                 ) : (
                     <div className="datatables">
@@ -634,6 +636,7 @@ const AbandonedCarts = () => {
                 close={() => {
                     setCurrencyPopup('');
                     setIsOpenChannel(false);
+                    setSelectedCurrency('');
                 }}
                 renderComponent={() => (
                     <div className="p-5">
@@ -663,6 +666,7 @@ const AbandonedCarts = () => {
                                 onClick={() => {
                                     setCurrencyPopup('');
                                     setIsOpenChannel(false);
+                                    setSelectedCurrency('');
                                 }}
                             >
                                 Cancel

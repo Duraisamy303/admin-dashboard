@@ -11260,6 +11260,89 @@ export const CREATE_VARIANT = gql`
     }
 `;
 
+export const GET_ATTRIBUTE_BY_PRODUCT_TYPE = gql`
+    query ProductType($id: ID!, $firstValues: Int, $afterValues: String, $lastValues: Int, $beforeValues: String) {
+        productType(id: $id) {
+            id
+            name
+            hasVariants
+            productAttributes {
+                id
+                inputType
+                entityType
+                slug
+                name
+                valueRequired
+                unit
+                choices(first: $firstValues, after: $afterValues, last: $lastValues, before: $beforeValues) {
+                    ...AttributeValueList
+                    __typename
+                }
+                __typename
+            }
+            taxClass {
+                id
+                name
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment AttributeValueList on AttributeValueCountableConnection {
+        pageInfo {
+            ...PageInfo
+            __typename
+        }
+        edges {
+            cursor
+            node {
+                ...AttributeValueDetails
+                __typename
+            }
+            __typename
+        }
+        __typename
+    }
+
+    fragment PageInfo on PageInfo {
+        endCursor
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        __typename
+    }
+
+    fragment AttributeValueDetails on AttributeValue {
+        ...AttributeValue
+        plainText
+        richText
+        __typename
+    }
+
+    fragment AttributeValue on AttributeValue {
+        id
+        name
+        slug
+        file {
+            ...File
+            __typename
+        }
+        reference
+        boolean
+        date
+        dateTime
+        value
+        __typename
+    }
+
+    fragment File on File {
+        url
+        contentType
+        __typename
+    }
+`;
+
 export const UPDATE_VARIANT = gql`
     mutation ProductVariantBulkUpdate($product: ID!, $input: [ProductVariantBulkUpdateInput!]!, $errorPolicy: ErrorPolicyEnum) {
         productVariantBulkUpdate(errorPolicy: $errorPolicy, product: $product, variants: $input) {
@@ -11476,15 +11559,38 @@ export const PRODUCT_FULL_DETAILS = gql`
                 value
                 __typename
             }
+            attributes {
+                attribute {
+                    id
+                    slug
+                    name
+                    inputType
+                    entityType
+                    valueRequired
+                    unit
+                    choices(first: 200) {
+                        ...AttributeValueList
+                        __typename
+                    }
+                    __typename
+                }
+                values {
+                    ...AttributeValueDetails
+                    __typename
+                }
+                __typename
+            }
             ...Product
             __typename
             getUpsells {
                 name
                 productId
+                __typename
             }
             getCrosssells {
                 name
                 productId
+                __typename
             }
             productFinish {
                 id
@@ -11509,14 +11615,22 @@ export const PRODUCT_FULL_DETAILS = gql`
             productStonecolor {
                 id
                 name
+                __typename
             }
             productSize {
                 id
                 name
+                __typename
             }
             productItemtype {
                 id
                 name
+                __typename
+            }
+            attributes {
+                attribute {
+                    id
+                }
             }
         }
     }
@@ -11626,7 +11740,6 @@ export const PRODUCT_FULL_DETAILS = gql`
                 entityType
                 valueRequired
                 unit
-
                 __typename
             }
             values {
@@ -12228,7 +12341,7 @@ export const ATTRIBUTE_LIST = gql`
                 __typename
             }
             __typename
-             totalCount
+            totalCount
         }
     }
 

@@ -67,8 +67,8 @@ export const setShipping = async (customerAddress: any) => {
 
 export const productsDropdown = (productData: any) => {
     if (productData) {
-        if (productData && productData?.search && productData?.search?.edges?.length > 0) {
-            const list = productData?.search?.edges?.map((item: any) => item?.node);
+        if (productData.length > 0) {
+            const list = productData?.map((item: any) => item?.node);
             // const dropdown: any = list.map((item: any) => ({ value: item?.id, label: item?.name }));
             return list;
         }

@@ -134,7 +134,7 @@ const AddOrder = () => {
     const { data: productData } = useQuery(FILTER_PRODUCT_LIST, {
         variables: {
             after: null,
-            first: 100,
+            first: 20,
             query: '',
             channel: 'india-channel',
             address: {

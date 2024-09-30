@@ -1328,17 +1328,6 @@ const Editorder = () => {
                                                 <option value="PARTIALLY_REFUNDED">Partially refunded</option> */}
                                             </select>
                                         </div>
-                                        {showRefundText() && (
-                                            <div className="col-span-4">
-                                                <label htmlFor="regularPrice" className="block pr-2 text-sm font-medium text-gray-700">
-                                                    Refund Status:
-                                                </label>
-                                                <div className="flex items-center gap-3">
-                                                    <div className="rounded-2xl bg-green-100 p-2 text-sm font-semibold text-green-700">{refundStatus}</div>
-                                                </div>
-                                            </div>
-                                        )}
-
                                         {orderData?.paymentMethod?.name && (
                                             <div className="col-span-4">
                                                 <label htmlFor="regularPrice" className="block pr-2 text-sm font-medium text-gray-700">
@@ -1366,15 +1355,15 @@ const Editorder = () => {
                                                 <p>{`${formData?.billing?.firstName} ${formData?.billing?.lastName}`}</p>
                                                 <p>{formData?.billing?.company}</p>
                                                 <p>
-                                                    {formData?.billing?.address_1}
-                                                    <br /> {formData?.billing?.city}
+                                                    {formData?.billing?.address_1},
+                                                    <br /> {formData?.billing?.city},
                                                     {formData?.billing?.state && (
                                                         <>
                                                             <br /> {formData?.billing?.state}
                                                         </>
-                                                    )}
-                                                    <br /> {formData?.billing?.countryArea}
-                                                    <br /> {formData?.billing?.pincode}
+                                                    )},
+                                                    <br /> {formData?.billing?.countryArea},
+                                                    <br /> {formData?.billing?.pincode}.
                                                 </p>
                                                 {formData?.billing?.email && (
                                                     <>
@@ -1633,15 +1622,15 @@ const Editorder = () => {
                                                 <p>{`${formData?.shipping?.firstName} ${formData?.shipping?.lastName}`}</p>
                                                 <p>{formData?.shipping?.company}</p>
                                                 <p>
-                                                    {formData?.shipping?.address_1}
-                                                    <br /> {formData?.shipping?.city}
+                                                    {formData?.shipping?.address_1},
+                                                    <br /> {formData?.shipping?.city},
                                                     {formData?.shipping?.state && (
                                                         <>
                                                             <br /> {formData?.shipping?.state}
                                                         </>
-                                                    )}
-                                                    <br /> {formData?.shipping?.countryArea}
-                                                    <br /> {formData?.shipping?.pincode}
+                                                    )},
+                                                    <br /> {formData?.shipping?.countryArea},
+                                                    <br /> {formData?.shipping?.pincode}.
                                                 </p>
                                                 {formData?.shipping?.email && (
                                                     <>
@@ -1865,6 +1854,19 @@ const Editorder = () => {
                                 <div className="text-md">User Email :</div>
                                 <div className="text-primary underline">{orderData?.userEmail}</div>
                             </div>
+
+                            <div className="mt-5">
+                                {showRefundText() && (
+                                    <div className="col-span-4">
+                                        <label htmlFor="regularPrice" className="block pr-2 text-sm font-medium text-gray-700">
+                                            Refund Status:
+                                        </label>
+                                        <div className="flex items-center gap-3">
+                                            <div className="rounded-2xl bg-green-100 p-2 text-sm font-semibold text-green-700">{refundStatus}</div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         <div className="panel p-5">
                             <div className="table-responsive">
@@ -1872,14 +1874,14 @@ const Editorder = () => {
                                     <thead>
                                         <tr>
                                             <th>Item</th>
-                                            <th className="w-1">Cost</th>
-                                            <th className="w-1">Qty</th>
-                                            <th className="w-1">Total</th>
+                                            <th>Cost</th>
+                                            <th>Qty</th>
+                                            <th>Total</th>
 
-                                            <th className="w-1">GST</th>
+                                            <th>GST</th>
 
                                             {/* <th>Action</th> */}
-                                            <th className="w-1"></th>
+                                            {/* <th className="w-1"></th> */}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1892,8 +1894,8 @@ const Editorder = () => {
                                                             <div className="pl-5">{item?.productName}</div>
                                                             {item?.productSku && (
                                                                 <div className="flex items-center">
-                                                                    <h4 className="pl-5">SKU:</h4>
-                                                                    <div className="pl-1 text-gray-500">{item?.productSku}</div>
+                                                                    <h4 className="pl-5 text-[12px]">SKU:</h4>
+                                                                    <div className="pl-1 text-[12px] text-gray-500">{item?.productSku}</div>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -1912,8 +1914,7 @@ const Editorder = () => {
                                                     </td>
                                                     {formData?.billing?.state !== '' && formData?.shipping?.state == 'Tamil Nadu' ? (
                                                         <td>
-                                                            <div>{`SGST: ${formatCurrency(item?.unitPrice?.tax?.currency)}${addCommasToNumber(item?.unitPrice?.tax?.amount / 2)}`}</div>
-
+                                                            <div>{`SGST: ${formatCurrency(item?.unitPrice?.tax?.currency)}${addCommasToNumber(item?.unitPrice?.tax?.amount / 2)}`}</div><span className='ml-10'>+</span>
                                                             <div>{`CSGT: ${formatCurrency(item?.unitPrice?.tax?.currency)}${addCommasToNumber(item?.unitPrice?.tax?.amount / 2)}`}</div>
                                                         </td>
                                                     ) : (
@@ -1946,7 +1947,7 @@ const Editorder = () => {
                                 <div className="mb-6 sm:mb-0"></div>
                                 <div className="sm:w-2/5">
                                     <div className="flex items-center justify-between">
-                                        <div>Items Subtotal</div>
+                                        <div>Items Subtotal:</div>
                                         <div>{`${formatCurrency(orderData?.subtotal?.gross?.currency)}${addCommasToNumber(orderData?.subtotal?.gross?.amount)}`}</div>
                                     </div>
                                     {orderDetails?.order?.giftCards?.length > 0 && (
@@ -1967,7 +1968,7 @@ const Editorder = () => {
                                         </div>
                                     )}
                                     <div className="mt-4 flex  justify-between">
-                                        <div>{orderData?.paymentMethod?.name == 'Cash On delivery' ? 'COD Fee' : 'Shipping Rate'}</div>
+                                        <div>{orderData?.paymentMethod?.name == 'Cash On delivery' ? 'COD Fee:' : 'Shipping:'}</div>
                                         <div>
                                             {orderData?.paymentMethod?.name == 'Cash On delivery' ? (
                                                 <div className="ml-[94px] items-end">{`${formatCurrency(orderData?.shippingPrice?.gross?.currency)}350.00`}</div>
@@ -1984,7 +1985,7 @@ const Editorder = () => {
                                     </div>
                                     {isGiftWrap && (
                                         <div className="mt-4 flex  justify-between">
-                                            <div>Gift Wrap</div>
+                                            <div>Gift Wrap:</div>
                                             <div>
                                                 <div className="ml-[94px] items-end">{`₹50.00`}</div>
                                             </div>
@@ -1993,7 +1994,7 @@ const Editorder = () => {
                                     {formData?.billing?.state !== '' && formData?.shipping?.state == 'Tamil Nadu' ? (
                                         <>
                                             <div className="mt-4 flex items-center justify-between">
-                                                <div>SGST</div>
+                                                <div>SGST:</div>
                                                 <div>
                                                     <div>{`${formatCurrency(orderData?.subtotal?.tax?.currency)}${addCommasToNumber(orderData?.subtotal?.tax?.amount / 2)}`}</div>
 
@@ -2001,7 +2002,7 @@ const Editorder = () => {
                                                 </div>
                                             </div>
                                             <div className="mt-4 flex items-center justify-between">
-                                                <div>CSGT</div>
+                                                <div>CSGT:</div>
                                                 <div>
                                                     <div>{`${formatCurrency(orderData?.subtotal?.tax?.currency)}${addCommasToNumber(orderData?.subtotal?.tax?.amount / 2)}`}</div>
 
@@ -2011,7 +2012,7 @@ const Editorder = () => {
                                         </>
                                     ) : (
                                         <div className="mt-4 flex items-center justify-between">
-                                            <div>IGST</div>
+                                            <div>IGST:</div>
                                             <div>
                                                 <div>{`${formatCurrency(orderData?.subtotal?.tax?.currency)}${addCommasToNumber(orderData?.subtotal?.tax?.amount)}`}</div>
 
@@ -2025,14 +2026,14 @@ const Editorder = () => {
                                         </div> */}
 
                                     <div className="mt-4 flex items-center justify-between font-semibold">
-                                        <div>Order Total</div>
+                                        <div>Order Total:</div>
                                         <div>
                                             <div className="ml-[98px] justify-end">{`${formatCurrency(orderData?.total?.gross?.currency)}${addCommasToNumber(orderData?.total?.gross?.amount)}`}</div>
 
-                                            <div className="pl-3 text-sm">
+                                            {/* <div className="pl-3 text-sm">
                                                 (includes {orderData?.total?.tax?.currency == 'USD' ? '$' : '₹'}
                                                 {roundOff(orderData?.total?.tax?.amount)} GST)
-                                            </div>
+                                            </div> */}
                                         </div>
                                     </div>
 
@@ -2055,14 +2056,14 @@ const Editorder = () => {
                                     {showRefundText() && (
                                         <>
                                             <div className="mt-4 flex items-center justify-between font-semibold">
-                                                <div>Refunded Amount</div>
+                                                <div>Refunded Amount:</div>
                                                 <div>
                                                     <div className="ml-[50px] justify-end">{`${formatCurrency(orderData?.totalRefunded?.currency)}${addCommasToNumber(refundedAmount())}`}</div>
                                                 </div>
                                             </div>
 
                                             <div className="mt-4 flex items-center justify-between font-semibold">
-                                                <div>Net Amount</div>
+                                                <div>Net Amount:</div>
                                                 <div>
                                                     <div className="pl-3 text-sm">{`${formatCurrency(orderData?.totalRefunded?.currency)}${addCommasToNumber(netAmount())}`}</div>
                                                 </div>

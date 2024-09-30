@@ -2189,7 +2189,7 @@ const Editorder = () => {
                                             <option value="Email Invoice">Email Invoice</option>
                                         </select> */}
                                     </div>
-                                    <div className="mt-5 flex justify-between border-t border-gray-200 pb-2 ">
+                                    <div className={`mt-5 flex justify-between ${orderStatus == 'FULFILLED' && 'border-t'} border-gray-200 pb-2 `}>
                                         <div className=" pt-3">
                                             <button onClick={() => handleSubmit()} className="btn btn-outline-primary">
                                                 {updateLoading ? <IconLoader /> : 'Update'}
@@ -2199,7 +2199,7 @@ const Editorder = () => {
                                 </div>
                             </>
                         )}
-                        <div className="panel max-h-[810px]  overflow-y-auto p-5">
+                        <div className="panel mb-5 max-h-[810px]  overflow-y-auto p-5">
                             <div className="mb-5 border-b border-gray-200 pb-2 ">
                                 <h3 className="text-lg font-semibold">Order Notes</h3>
                             </div>
@@ -2258,10 +2258,13 @@ const Editorder = () => {
                             </Formik>
                         </div>
 
-                        <div className="panel max-h-[810px]  overflow-y-auto p-5">
+                        <div className="panel mb-5  max-h-[810px] overflow-y-auto p-5">
                             <div className=" flex items-center justify-between border-b border-gray-200 pb-2 ">
-                                <h3 className="text-lg font-semibold">Payslip</h3>
-
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    {' '}
+                                    <h3 className="text-lg font-semibold">Payslip </h3>
+                                    <IconDownload />
+                                </div>
                                 {orderData?.metadata?.length > 0 && (
                                     <button
                                         type="submit"
@@ -2308,7 +2311,10 @@ const Editorder = () => {
 
                         <div className="panel max-h-[810px]  overflow-y-auto p-5">
                             <div className=" flex items-center justify-between border-b border-gray-200 pb-2 ">
-                                <h3 className="text-lg font-semibold">Invoice</h3>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <h3 className="text-lg font-semibold">Invoice</h3>
+                                    <IconDownload />
+                                </div>
                                 {orderData?.invoices?.length > 0 && (
                                     <button type="submit" onClick={() => setOpenInvoice(true)}>
                                         <IconEdit />

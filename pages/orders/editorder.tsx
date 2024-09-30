@@ -1091,7 +1091,7 @@ const Editorder = () => {
         }
         let final = amt - orderData?.shippingPrice?.gross?.amount;
         setMaxRefundAmt(final);
-        return final.toFixed(2);
+        return final?.toFixed(2);
     };
 
     const setTotalAmountCalc = () => {

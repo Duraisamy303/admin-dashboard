@@ -55,6 +55,7 @@ import { useDispatch } from 'react-redux';
 import Swal from 'sweetalert2';
 import * as Yup from 'yup';
 import Select from 'react-select';
+import CommonLoader from '../elements/commonLoader';
 
 const NewOrder = () => {
     const router = useRouter();
@@ -183,7 +184,11 @@ const NewOrder = () => {
         return channel;
     };
 
-    const { data: productData, refetch: productRefetch , loading: refetchLoading } = useQuery(FILTER_PRODUCT_LIST, {
+    const {
+        data: productData,
+        refetch: productRefetch,
+        loading: refetchLoading,
+    } = useQuery(FILTER_PRODUCT_LIST, {
         variables: {
             after: null,
             first: 20,
@@ -196,6 +201,8 @@ const NewOrder = () => {
             stockAvailability: 'IN_STOCK',
         },
     });
+
+    const { refetch: productLoadMoreRefetch, loading: productLoadMoreLoading } = useQuery(FILTER_PRODUCT_LIST);
 
     // For get Customer list
     useEffect(() => {
@@ -449,7 +456,7 @@ const NewOrder = () => {
                         shippingMethod,
                     },
                 },
-            });
+            });  
             getOrderData();
         } catch (error) {
             console.error(error);
@@ -884,7 +891,7 @@ const NewOrder = () => {
     const loadMoreProducts = async () => {
         try {
             if (state.hasNextPage) {
-                const newProducts = await productRefetch({
+                const newProducts = await productLoadMoreRefetch({
                     after: state.endCursor,
                     first: 20,
                     query: '',
@@ -1815,80 +1822,89 @@ const NewOrder = () => {
                                 </div>
                             </div>
                         ) : (
-                            <div className="h-[700px] p-5 ">
+                            <div className="h-[700px] p-5">
                                 <div className="p-3">
                                     <input type="text" className="form-input w-full p-3" placeholder="Search..." value={state.search} onChange={(e) => setState({ search: e.target.value })} />
                                 </div>
-                                <div className="h-[550px] overflow-scroll">
-                                    {/* Product list */}
-                                    {state.productList?.map(({ name, variants, thumbnail }: any) => (
-                                        <div key={name}>
-                                            <div className="flex gap-3">
-                                                <input
-                                                    type="checkbox"
-                                                    className="form-checkbox"
-                                                    checked={state.selectedItems[name] && Object.values(state.selectedItems[name])?.every((value) => value)}
-                                                    onChange={() => handleHeadingSelect(name)}
-                                                />
-                                                <img src={profilePic(thumbnail?.url)} height={30} width={30} alt={name} />
-                                                <div>{name}</div>
-                                            </div>
-                                            <ul>
-                                                {variants?.map(({ name: variantName, sku, costPrice, pricing }: any) => (
-                                                    <li key={variantName} style={{ paddingLeft: '10px', padding: '20px' }}>
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    className="form-checkbox"
-                                                                    checked={state.selectedItems[name]?.[variantName]}
-                                                                    onChange={() => handleSubHeadingSelect(name, variantName)}
-                                                                />
-                                                                <div>
-                                                                    <div> {variantName}</div>
-                                                                    <div> {sku}</div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex">
-                                                                <div>
-                                                                    {/* <div> {costPrice}</div> */}
-                                                                    <div> {`${formatCurrency(pricing?.price?.gross?.currency)}${addCommasToNumber(pricing?.price?.gross?.amount)}`}</div>
 
-                                                                    {/* <div> {pricing?.price?.gross?.amount}</div> */}
+                                {productLoadMoreLoading ? (
+                                    <CommonLoader />
+                                ) : (
+                                    <div className="h-[550px] overflow-auto">
+                                        {/* Product list */}
+                                        {state.productList?.map(({ name, variants, thumbnail }: any) => (
+                                            <div key={name}>
+                                                <div className="flex gap-3">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="form-checkbox"
+                                                        checked={state.selectedItems[name] && Object.values(state.selectedItems[name])?.every((value) => value)}
+                                                        onChange={() => handleHeadingSelect(name)}
+                                                    />
+                                                    <img src={profilePic(thumbnail?.url)} height={30} width={30} alt={name} />
+                                                    <div>{name}</div>
+                                                </div>
+                                                <ul>
+                                                    {variants?.map(({ name: variantName, sku, costPrice, pricing }: any) => (
+                                                        <li key={variantName} className="py-5 pl-4">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        className="form-checkbox"
+                                                                        checked={state.selectedItems[name]?.[variantName]}
+                                                                        onChange={() => handleSubHeadingSelect(name, variantName)}
+                                                                    />
+                                                                    <div>
+                                                                        <div>{variantName}</div>
+                                                                        <div>{sku}</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex">
+                                                                    <div>
+                                                                        <div>{`${formatCurrency(pricing?.price?.gross?.currency)}${addCommasToNumber(pricing?.price?.gross?.amount)}`}</div>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    ))}
-                                </div>
-                                {state.hasNextPage && (
-                                    <div className="mt-4 flex justify-center">
-                                        <button
-                                            onClick={loadMoreProducts}
-                                            className="rounded border border-blue-500 bg-transparent px-4 py-2 font-semibold text-blue-500 hover:border-transparent hover:bg-blue-500 hover:text-white"
-                                        >
-                                            {refetchLoading ? <IconLoader /> : 'Load More'}
-                                        </button>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        ))}
+                                        {state.hasNextPage && (
+                                            <div className="flex w-full justify-center">
+                                                <button
+                                                    onClick={loadMoreProducts}
+                                                    className="rounded border border-blue-500 bg-transparent px-4 py-2 font-semibold text-blue-500 hover:border-transparent hover:bg-blue-500 hover:text-white"
+                                                >
+                                                    {productLoadMoreLoading ? <IconLoader /> : 'Load More'}
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
-                                <div className="flex justify-end gap-5 pt-2">
-                                    <button
-                                        onClick={() => {
-                                            setState({ selectedItems: {}, addProductOpen: false });
-                                        }}
-                                        className="rounded border border-black bg-transparent px-4 py-2 font-semibold text-black hover:border-transparent hover:bg-blue-500 hover:text-white"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={() => addProducts()}
-                                        className="rounded border border-blue-500 bg-transparent px-4 py-2 font-semibold text-blue-500 hover:border-transparent hover:bg-blue-500 hover:text-white"
-                                    >
-                                        {state.productLoading ? <IconLoader /> : 'Confirm'}
-                                    </button>
+
+                                {/* Button section */}
+                                <div className="mb-5 flex flex-col items-center gap-5 pt-1">
+                                    {/* Load More Button */}
+
+                                    {/* Action Buttons */}
+                                    <div className="flex w-full justify-end gap-3">
+                                        <button
+                                            onClick={() => {
+                                                setState({ selectedItems: {}, addProductOpen: false });
+                                            }}
+                                            className="rounded border border-black bg-transparent px-4 py-2 font-semibold text-black hover:border-transparent hover:bg-blue-500 hover:text-white"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={() => addProducts()}
+                                            className="rounded border border-blue-500 bg-transparent px-4 py-2 font-semibold text-blue-500 hover:border-transparent hover:bg-blue-500 hover:text-white"
+                                        >
+                                            {state.productLoading ? <IconLoader /> : 'Confirm'}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}

@@ -660,8 +660,13 @@ const NewOrder = () => {
                     },
                 },
             });
-            getOrderData();
-            setState({ coupenOption: 'percentage', isOpenCoupen: false, percentcoupenValue: '', fixedcoupenValue: '' });
+            console.log('res: ', res);
+            if (res?.data?.orderDiscountAdd?.errors?.length > 0) {
+                Failure(res?.data?.orderDiscountAdd?.errors[0]?.message);
+            } else {
+                getOrderData();
+                setState({ coupenOption: 'percentage', isOpenCoupen: false, percentcoupenValue: '', fixedcoupenValue: '' });
+            }
             // setIsOpenCoupen(false);
             // setFixedCoupenValue('');
             // setPercentCoupenValue('');

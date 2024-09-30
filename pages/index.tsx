@@ -187,7 +187,6 @@ const Index = () => {
     useEffect(() => {
         publishCount();
         draftCount();
-        totalCount();
     }, []);
 
     const { loading: getLoading, refetch: fetchLowStockList } = useQuery(UPDATED_PRODUCT_PAGINATION, {
@@ -205,6 +204,19 @@ const Index = () => {
             setEndCursor(data?.products?.pageInfo?.endCursor || null);
             setHasNextPage(data?.products?.pageInfo?.hasNextPage || false);
             setHasPreviousPage(data?.products?.pageInfo?.hasPreviousPage || false);
+        },
+    });
+
+    const { data:productsCount } = useQuery(UPDATED_PRODUCT_PAGINATION, {
+        variables: {
+            channel: 'india-channel',
+            first: PAGE_SIZE,
+            after: null,
+            search: "",
+            filter: {},
+        },
+        onCompleted: (data) => {
+            setTotal(data?.products?.totalCount)
         },
     });
 
@@ -251,20 +263,6 @@ const Index = () => {
         }
     };
 
-    const totalCount = async () => {
-        try {
-            const { data } = await refreshfetch({
-                channel: 'india-channel',
-                first: PAGE_SIZE,
-                after: null,
-                search: '',
-            });
-
-            setTotal(data?.products?.totalCount);
-        } catch (error) {
-            console.log('error: ', error);
-        }
-    };
 
     const draftCount = async () => {
         try {

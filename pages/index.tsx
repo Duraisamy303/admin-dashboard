@@ -714,8 +714,8 @@ const Index = () => {
                     channelListings: [
                         {
                             channelId: 'Q2hhbm5lbDoy',
-                            price: item.channelListings[0]?.price?.amount ? item.channelListings[0]?.price?.amount : '',
-                            costPrice: item.channelListings[0]?.costPrice?.amount ? item.channelListings[0]?.costPrice?.amount : '',
+                            price: item.channelListings[0]?.price?.amount ? item.channelListings[0]?.price?.amount : 0,
+                            costPrice: item.channelListings[0]?.costPrice?.amount ? item.channelListings[0]?.costPrice?.amount : 0,
                         },
                     ],
                     stocks: [

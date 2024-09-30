@@ -96,6 +96,21 @@ const AbandonedCarts = () => {
         },
     });
 
+    const {} = useQuery(ORDER_LIST, {
+        variables: {
+            first: PAGE_SIZE,
+            after: null,
+            sort: {
+                direction: 'DESC',
+                field: 'NUMBER',
+            },
+            filter: {},
+        },
+        onCompleted: (data) => {
+            setTotal(data?.orders?.totalCount);
+        },
+    });
+
     const { refetch: orderRefetch, loading: refetchLoading } = useQuery(ORDER_LIST);
 
     const [fetchNextPage] = useLazyQuery(ORDER_LIST, {
@@ -218,7 +233,6 @@ const AbandonedCarts = () => {
         setEndCursor(pageInfo?.endCursor || null);
         setHasNextPage(pageInfo?.hasNextPage || false);
         setHasPreviousPage(pageInfo?.hasPreviousPage || false);
-        setTotal(data?.orders?.totalCount);
     };
 
     const refresh = async () => {

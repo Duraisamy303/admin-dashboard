@@ -1328,6 +1328,14 @@ const Editorder = () => {
                                                 <option value="PARTIALLY_REFUNDED">Partially refunded</option> */}
                                             </select>
                                         </div>
+                                        {orderData?.paymentMethod?.name && (
+                                            <div className="col-span-4">
+                                                <label htmlFor="regularPrice" className="block pr-2 text-sm font-medium text-gray-700">
+                                                    Payment Method:
+                                                </label>
+                                                <input type="text" value={orderData?.paymentMethod?.name} name="paymentMenthod" className="form-input" disabled />
+                                            </div>
+                                        )}
                                     </>
                                     {/* )} */}
                                 </div>
@@ -1858,15 +1866,6 @@ const Editorder = () => {
                                         </div>
                                     </div>
                                 )}
-
-                                {orderData?.paymentMethod?.name && (
-                                    <div className="col-span-4">
-                                        <label htmlFor="regularPrice" className="block pr-2 text-sm font-medium text-gray-700">
-                                            Payment Method:
-                                        </label>
-                                        <input type="text" value={orderData?.paymentMethod?.name} name="paymentMenthod" className="form-input" disabled />
-                                    </div>
-                                )}
                             </div>
                         </div>
                         <div className="panel p-5">
@@ -1895,8 +1894,8 @@ const Editorder = () => {
                                                             <div className="pl-5">{item?.productName}</div>
                                                             {item?.productSku && (
                                                                 <div className="flex items-center">
-                                                                    <h4 className="pl-5">SKU:</h4>
-                                                                    <div className="pl-1 text-gray-500">{item?.productSku}</div>
+                                                                    <h4 className="pl-5 text-[12px]">SKU:</h4>
+                                                                    <div className="pl-1 text-[12px] text-gray-500">{item?.productSku}</div>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -1915,8 +1914,7 @@ const Editorder = () => {
                                                     </td>
                                                     {formData?.billing?.state !== '' && formData?.shipping?.state == 'Tamil Nadu' ? (
                                                         <td>
-                                                            <div>{`SGST: ${formatCurrency(item?.unitPrice?.tax?.currency)}${addCommasToNumber(item?.unitPrice?.tax?.amount / 2)}`}</div>
-
+                                                            <div>{`SGST: ${formatCurrency(item?.unitPrice?.tax?.currency)}${addCommasToNumber(item?.unitPrice?.tax?.amount / 2)}`}</div><span className='ml-10'>+</span>
                                                             <div>{`CSGT: ${formatCurrency(item?.unitPrice?.tax?.currency)}${addCommasToNumber(item?.unitPrice?.tax?.amount / 2)}`}</div>
                                                         </td>
                                                     ) : (

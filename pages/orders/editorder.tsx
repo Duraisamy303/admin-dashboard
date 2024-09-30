@@ -1355,15 +1355,15 @@ const Editorder = () => {
                                                 <p>{`${formData?.billing?.firstName} ${formData?.billing?.lastName}`}</p>
                                                 <p>{formData?.billing?.company}</p>
                                                 <p>
-                                                    {formData?.billing?.address_1}
-                                                    <br /> {formData?.billing?.city}
+                                                    {formData?.billing?.address_1},
+                                                    <br /> {formData?.billing?.city},
                                                     {formData?.billing?.state && (
                                                         <>
                                                             <br /> {formData?.billing?.state}
                                                         </>
-                                                    )}
-                                                    <br /> {formData?.billing?.countryArea}
-                                                    <br /> {formData?.billing?.pincode}
+                                                    )},
+                                                    <br /> {formData?.billing?.countryArea},
+                                                    <br /> {formData?.billing?.pincode}.
                                                 </p>
                                                 {formData?.billing?.email && (
                                                     <>
@@ -1622,15 +1622,15 @@ const Editorder = () => {
                                                 <p>{`${formData?.shipping?.firstName} ${formData?.shipping?.lastName}`}</p>
                                                 <p>{formData?.shipping?.company}</p>
                                                 <p>
-                                                    {formData?.shipping?.address_1}
-                                                    <br /> {formData?.shipping?.city}
+                                                    {formData?.shipping?.address_1},
+                                                    <br /> {formData?.shipping?.city},
                                                     {formData?.shipping?.state && (
                                                         <>
                                                             <br /> {formData?.shipping?.state}
                                                         </>
-                                                    )}
-                                                    <br /> {formData?.shipping?.countryArea}
-                                                    <br /> {formData?.shipping?.pincode}
+                                                    )},
+                                                    <br /> {formData?.shipping?.countryArea},
+                                                    <br /> {formData?.shipping?.pincode}.
                                                 </p>
                                                 {formData?.shipping?.email && (
                                                     <>

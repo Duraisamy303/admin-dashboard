@@ -325,6 +325,9 @@ const Edit = () => {
                                     <p style={{ color: 'gray', marginBottom: '0px' }}>{state.billingAddress?.city}</p>
                                     <p style={{ color: 'gray', marginBottom: '0px' }}>{state.billingAddress?.countryArea}</p>
                                     <p style={{ color: 'gray', marginBottom: '0px' }}>{state.billingAddress?.country}</p>
+                                    <p style={{ color: 'gray', marginBottom: '0px' }}>{state.billingAddress?.postalCode}</p>
+
+                                    
                                 </div>
                             ) : (
                                 <div>No Address found</div>
@@ -348,6 +351,8 @@ const Edit = () => {
                                     <p style={{ color: 'gray', marginBottom: '0px' }}>{state.shippingAddress?.city}</p>
                                     <p style={{ color: 'gray', marginBottom: '0px' }}>{state.shippingAddress?.countryArea}</p>
                                     <p style={{ color: 'gray', marginBottom: '0px' }}>{state.shippingAddress?.country}</p>
+                                    <p style={{ color: 'gray', marginBottom: '0px' }}>{state.shippingAddress?.postalCode}</p>
+
                                 </div>
                             ) : (
                                 <div>No Address found</div>

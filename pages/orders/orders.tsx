@@ -242,8 +242,7 @@ const AbandonedCarts = () => {
                 first: PAGE_SIZE,
                 after: null,
             });
-            console.log('data: ', data);
-
+            // getTotalCounts()
             setData(data);
         } catch (error) {
             console.log('error: ', error);

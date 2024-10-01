@@ -66,8 +66,8 @@ const Reports = () => {
     const [analysisByCustomer] = useMutation(ANALYSIS_BY_CUSTOMER);
     const [analysisByProductRevenue] = useMutation(ANALYSIS_BY_PRODUCT_REVENUE);
     const [analysisProductByCountry] = useMutation(ANALYSIS_PRODUCT_BY_COUNTRY);
-    const [customerList] = useMutation(CUSTOMER_REPORT_LIST);
-    const [guestList] = useMutation(GUEST_LIST);
+    const [customerList, { loading: customerListLoading }] = useMutation(CUSTOMER_REPORT_LIST);
+    const [guestList, { loading: guestListLoading }] = useMutation(GUEST_LIST);
 
     const { data: productSearch, refetch: productSearchRefetch } = useQuery(PRODUCT_BY_NAME);
 
@@ -236,7 +236,6 @@ const Reports = () => {
         }
     };
 
-
     const getProductSearch = async (val) => {
         try {
             const res = await productSearchRefetch({
@@ -249,8 +248,6 @@ const Reports = () => {
             console.log('error: ', error);
         }
     };
-    console.log("state.productSearch: ", state.productSearch);
-
 
     const getSalesByDate = async () => {
         try {
@@ -421,7 +418,6 @@ const Reports = () => {
                 },
             });
             const structuredData = res?.data?.salesByProduct?.topProducts?.map(cleanAndParseJSON);
-            console.log("structuredData: ", structuredData);
 
             const dropdownData = structuredData?.map((item: any) => {
                 return { value: item.variant__product__id, label: item.variant__product__name };
@@ -433,7 +429,6 @@ const Reports = () => {
     };
 
     const getSalesBySingleProduct = async (type: string, productId: any) => {
-        console.log("productId: ", productId);
         try {
             if (type == 'search' && state.productSearch == '') {
                 Failure('Please select product ');
@@ -569,30 +564,37 @@ const Reports = () => {
     const getSalesByCategory = async (categoryid) => {
         try {
             if (categoryid?.length > 0) {
-                let startDate: any, endDate: any;
+                let startDate, endDate;
 
                 if (state.orderDateFilter == 'Last 7 Days') {
                     const { start, end } = getDateRange('last7Days');
-                    (startDate = start), (endDate = end);
+                    startDate = start;
+                    endDate = end;
                 }
 
                 if (state.orderDateFilter == 'This Month') {
                     const { start, end } = getDateRange('thisMonth');
-                    (startDate = start), (endDate = end);
+                    startDate = start;
+                    endDate = end;
                 }
 
                 if (state.orderDateFilter == 'Last Month') {
                     const { start, end } = getDateRange('lastMonth');
-                    (startDate = start), (endDate = end);
+                    startDate = start;
+                    endDate = end;
                 }
+
                 if (state.orderDateFilter == 'Year') {
                     const { start, end } = getDateRange('Year');
-                    (startDate = start), (endDate = end);
+                    startDate = start;
+                    endDate = end;
                 }
 
                 if (state.orderDateFilter == 'Custom') {
-                    (startDate = moment(state.orderStartDate).format('YYYY-MM-DD')), (endDate = moment(state.orderEndDate).format('YYYY-MM-DD'));
+                    startDate = moment(state.orderStartDate).format('YYYY-MM-DD');
+                    endDate = moment(state.orderEndDate).format('YYYY-MM-DD');
                 }
+
                 const arr = categoryid?.map((item) => item.value);
 
                 const res = await salesByCategory({
@@ -603,22 +605,46 @@ const Reports = () => {
                         categoryid: arr,
                     },
                 });
-                const response = res?.data?.salesByCategory;
 
-                const transformDataForTable = (response) => {
+                const response = res?.data?.salesByCategory;
+                console.log('response: ', response);
+
+                const transformDataForTable = (response, categoryid) => {
                     return response.dates.map((date, index) => {
                         const rowData = { date };
                         response.outputData.forEach((data, dataIndex) => {
-                            rowData[`value${dataIndex + 1}`] = data[index];
+                            const key = categoryid[dataIndex]?.label; // Use category label as key
+                            rowData[key] = data[index]; // Assign data to the dynamic key
                         });
                         return rowData;
                     });
                 };
 
-                const tableData = transformDataForTable(response);
-                const numSeries = tableData[0] ? Object.keys(tableData[0])?.filter((key) => key.startsWith('value'))?.length : 0;
+                const generateColumns = (outputDataLength, categoryid) => {
+                    const columns = [{ accessor: 'date', title: 'Date' }];
+                    for (let i = 0; i < outputDataLength; i++) {
+                        const title = categoryid[i]?.label;
+                        columns.push({ accessor: title, title });
+                    }
+                    return columns;
+                };
+
+                const columns = generateColumns(response.outputData.length, categoryid);
+                console.log('columns: ', columns);
+                const tableData = transformDataForTable(response, categoryid);
+                console.log('tableData: ', tableData);
+
+                // Reconstruct series data for the chart
+                const series = categoryid.map((category, index) => {
+                    return {
+                        name: category.label,
+                        data: tableData.map((item) => item[category.label]) || [],
+                    };
+                });
+                console.log('series: ', series);
+
                 const orderChartData = {
-                    series: generateLineChartLoopData(tableData),
+                    series: series, // Array of series for each category
                     options: {
                         chart: {
                             height: 300,
@@ -630,7 +656,7 @@ const Reports = () => {
                                 show: false,
                             },
                         },
-                        colors: generateColors(numSeries),
+                        colors: generateColors(series.length),
                         markers: {
                             size: 5,
                             colors: ['white'],
@@ -646,7 +672,7 @@ const Reports = () => {
                             width: 1,
                         },
                         xaxis: {
-                            categories: tableData?.map((item) => item.date),
+                            categories: tableData.map((item) => item.date), // Dates as X-axis categories
                             axisBorder: {
                                 color: '#e0e6ed',
                             },
@@ -660,7 +686,7 @@ const Reports = () => {
                         },
                         plotOptions: {
                             bar: {
-                                horizontal: false, // Set this to false for vertical bars
+                                horizontal: false,
                             },
                         },
                         fill: {
@@ -668,16 +694,6 @@ const Reports = () => {
                         },
                     },
                 };
-
-                const generateColumns = (outputDataLength, categoryid) => {
-                    const columns = [{ accessor: 'date', title: 'Date' }];
-                    for (let i = 0; i < outputDataLength; i++) {
-                        const title = categoryid[i]?.label;
-                        columns.push({ accessor: `value${i + 1}`, title });
-                    }
-                    return columns;
-                };
-                const columns = generateColumns(response.outputData.length, categoryid);
 
                 setState({ orderChartData, tableData: tableData?.reverse(), tableColumn: columns });
             } else {
@@ -1735,7 +1751,6 @@ const Reports = () => {
                                                                     }
                                                                 }}
                                                             />
-                                                           
                                                         </div>
                                                         <div className="flex items-center justify-between">
                                                             <button type="button" className="btn btn-primary mt-3 h-9" onClick={() => getSalesBySingleProduct('search', state.productSearch?.value)}>
@@ -1934,29 +1949,36 @@ const Reports = () => {
                                     </div>
                                 </div>
                             )}
+                            {customerListLoading || guestListLoading ? (
+                                <CommonLoader />
+                            ) : (
+                                <>
+                                    {state.customerTab == 'Customer list' && <h5 className="pb-5 text-lg font-semibold dark:text-white-light">Customers {`(${state.customerTable?.length})`}</h5>}
 
-                            <div className=" mt-5 items-center justify-center">
-                                <div className="datatables">
-                                    <DataTable
-                                        className="table-hover whitespace-nowrap"
-                                        records={state.customerTable}
-                                        columns={state.customerColumn}
-                                        highlightOnHover
-                                        totalRecords={state.tableData?.length}
-                                        recordsPerPage={10}
-                                        page={null}
-                                        onPageChange={(p) => {}}
-                                        recordsPerPageOptions={[10, 20, 30]}
-                                        onRecordsPerPageChange={() => null}
-                                        // sortStatus={}
-                                        // onSortStatusChange={setSortStatus}
-                                        selectedRecords={null}
-                                        onSelectedRecordsChange={(selectedRecords) => null}
-                                        minHeight={200}
-                                        paginationText={({ from, to, totalRecords }) => null}
-                                    />
-                                </div>
-                            </div>
+                                    <div className=" mt-5 items-center justify-center">
+                                        <div className="datatables">
+                                            <DataTable
+                                                className="table-hover whitespace-nowrap"
+                                                records={state.customerTable}
+                                                columns={state.customerColumn}
+                                                highlightOnHover
+                                                totalRecords={state.tableData?.length}
+                                                recordsPerPage={10}
+                                                page={null}
+                                                onPageChange={(p) => {}}
+                                                recordsPerPageOptions={[10, 20, 30]}
+                                                onRecordsPerPageChange={() => null}
+                                                // sortStatus={}
+                                                // onSortStatusChange={setSortStatus}
+                                                selectedRecords={null}
+                                                onSelectedRecordsChange={(selectedRecords) => null}
+                                                minHeight={200}
+                                                paginationText={({ from, to, totalRecords }) => null}
+                                            />
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     ) : (
                         <div className="panel mt-5 ">

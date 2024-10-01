@@ -73,7 +73,7 @@ export default function Media() {
     const PAGE_LIMIT = 10;
     const PAGE_SIZE = 24;
 
-    const [addNewImages] = useMutation(ADD_NEW_MEDIA_IMAGE);
+    const [addNewImages,{loading:addNewImageLoading}] = useMutation(ADD_NEW_MEDIA_IMAGE);
     const [updateImages, { loading: mediaUpdateLoading }] = useMutation(UPDATE_MEDIA_IMAGE);
     const [deleteImages] = useMutation(DELETE_MEDIA_IMAGE);
     const { data, refetch: getListRefetch, loading: loading } = useQuery(GET_MEDIA_IMAGE);
@@ -239,6 +239,12 @@ export default function Media() {
                 input: body,
             },
         });
+        const bodys = {
+            node: {
+                fileUrl: response.data?.fileCreate?.file?.fileUrl,
+            },
+        };
+        handleClickImage(bodys);
 
         const res = await mediaRefetch({
             first: PAGE_SIZE,
@@ -431,7 +437,7 @@ export default function Media() {
                     </div>
 
                     {state.tab == 0 ? (
-                        state.loading ? (
+                       addNewImageLoading ? (
                             <CommonLoader />
                         ) : (
                             <div className="active  pt-5">

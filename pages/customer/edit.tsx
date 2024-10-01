@@ -6,6 +6,7 @@ import { useMutation, useQuery } from '@apollo/client';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 import * as Yup from 'yup';
+import CommonLoader from '../elements/commonLoader';
 
 const Edit = () => {
     const router = useRouter();
@@ -60,7 +61,7 @@ const Edit = () => {
     });
 
     const { data: countryData } = useQuery(COUNTRY_LIST);
-    const { data: customerData } = useQuery(CUSTOMER_DETAILS, {
+    const { data: customerData, loading: getDetailsLoading } = useQuery(CUSTOMER_DETAILS, {
         variables: {
             id,
             PERMISSION_HANDLE_CHECKOUTS: true,
@@ -242,125 +243,141 @@ const Edit = () => {
 
     return (
         <>
-            <div className="panel mb-5 flex items-center justify-between gap-3 p-5 ">
-                <h3 className="text-lg font-semibold dark:text-white-light">Update Customer</h3>
-                <button type="button" className="btn btn-primary" onClick={() => resetPassword()}>
-                    {state.passwordLoader ? <IconLoader /> : 'Reset Password'}
-                </button>
-            </div>
-            <div className="panel mt-5 grid grid-cols-12 gap-3">
-                <div className="col-span-6">
-                    <label htmlFor="firstname" className=" text-sm font-medium text-gray-700">
-                        First Name
-                    </label>
-
-                    <input type="text" className={`form-input`} name="firstName" value={state.firstName} onChange={handleChange} />
-                    {state.errors.firstName && <div className="mt-1 text-danger">{state.errors.firstName}</div>}
-                </div>
-                <div className="col-span-6">
-                    <label htmlFor="Lastname" className=" text-sm font-medium text-gray-700">
-                        Last Name
-                    </label>
-                    <input type="text" className={`form-input ${state.errors.lastName && 'border border-danger focus:border-danger'}`} name="lastName" value={state.lastName} onChange={handleChange} />
-                    {state.errors.lastName && <div className="mt-1 text-danger">{state.errors.lastName}</div>}
-                </div>
-                <div className="col-span-6">
-                    <label htmlFor="email" className=" text-sm font-medium text-gray-700">
-                        Email address
-                    </label>
-                    <input type="text" disabled className={`form-input ${state.errors.email && 'border border-danger focus:border-danger'}`} name="email" value={state.email} onChange={handleChange} />
-                    {state.errors.email && <div className="mt-1 text-danger">{state.errors.email}</div>}
-                    {/* <input type="mail" className="form-input" name="billing.email" value={formData.billing.email} onChange={handleChange} /> */}
-
-                    {/* <input type="mail" id="billingemail" name="billingemail" className="form-input" required /> */}
-                </div>
-                <div className="col-span-12 ">
-                    <button type="button" className="btn btn-primary" onClick={() => updateCustomer()}>
-                        {state.updateLoading ? <IconLoader /> : 'Update'}
-                    </button>
-                </div>
-            </div>
-            <div className="gap-3">
-                <div className="flex flex-wrap">
-                    <div className="flex flex-1 justify-around ">
-                        <div className="mt-5">
-                            <label htmlFor="firstname" className="text-lg font-bold text-gray-700">
-                                Billing Address
-                            </label>
-                        </div>
-                        <div className="mt-5">
-                            <label htmlFor="firstname" className="text-lg font-bold text-gray-700">
-                                Shipping Address
-                            </label>
-                        </div>
-                    </div>
-                    <div className="flex-initial pt-4">
-                        <button
-                            type="button"
-                            className="btn btn-primary"
-                            onClick={() => {
-                                setState({ manageLoading: true });
-                                router.push(`/customer/address?id=${id}`);
-                                setState({ manageLoading: false });
-                            }}
-                        >
-                            {state.manageLoading ? <IconLoader /> : 'Manage'}
+            {getDetailsLoading ? (
+                <CommonLoader />
+            ) : (
+                <>
+                    <div className="panel mb-5 flex items-center justify-between gap-3 p-5 ">
+                        <h3 className="text-lg font-semibold dark:text-white-light">Update Customer</h3>
+                        <button type="button" className="btn btn-primary" onClick={() => resetPassword()}>
+                            {state.passwordLoader ? <IconLoader /> : 'Reset Password'}
                         </button>
                     </div>
-                </div>
-                <div className="mt-5 flex flex-row gap-3">
-                    <div className="flex-1">
-                        <div className="panel h-full gap-3">
-                            {state.billingAddress !== null && state.billingAddress?.country !== undefined ? (
-                                <div>
-                                    <p style={{ color: 'gray', marginBottom: '0px' }}>
-                                        {state.billingAddress?.firstName} {state.billingAddress?.lastName}
-                                    </p>
-                                    <p style={{ color: 'gray', marginBottom: '0px' }}>{state.billingAddress?.phone}</p>
-                                    <p style={{ color: 'gray', marginBottom: '0px' }}>{state.billingAddress?.companyName}</p>
-                                    <p style={{ color: 'gray', marginBottom: '0px' }}>{state.billingAddress?.email}</p>
-                                    <p style={{ color: 'gray', marginBottom: '0px' }}>
-                                        {state.billingAddress?.streetAddress1} {state.billingAddress?.streetAddress2}
-                                    </p>
-                                    <p style={{ color: 'gray', marginBottom: '0px' }}>{state.billingAddress?.city}</p>
-                                    <p style={{ color: 'gray', marginBottom: '0px' }}>{state.billingAddress?.countryArea}</p>
-                                    <p style={{ color: 'gray', marginBottom: '0px' }}>{state.billingAddress?.country}</p>
-                                    <p style={{ color: 'gray', marginBottom: '0px' }}>{state.billingAddress?.postalCode}</p>
+                    <div className="panel mt-5 grid grid-cols-12 gap-3">
+                        <div className="col-span-6">
+                            <label htmlFor="firstname" className=" text-sm font-medium text-gray-700">
+                                First Name
+                            </label>
 
-                                    
-                                </div>
-                            ) : (
-                                <div>No Address found</div>
-                            )}
+                            <input type="text" className={`form-input`} name="firstName" value={state.firstName} onChange={handleChange} />
+                            {state.errors.firstName && <div className="mt-1 text-danger">{state.errors.firstName}</div>}
+                        </div>
+                        <div className="col-span-6">
+                            <label htmlFor="Lastname" className=" text-sm font-medium text-gray-700">
+                                Last Name
+                            </label>
+                            <input
+                                type="text"
+                                className={`form-input ${state.errors.lastName && 'border border-danger focus:border-danger'}`}
+                                name="lastName"
+                                value={state.lastName}
+                                onChange={handleChange}
+                            />
+                            {state.errors.lastName && <div className="mt-1 text-danger">{state.errors.lastName}</div>}
+                        </div>
+                        <div className="col-span-6">
+                            <label htmlFor="email" className=" text-sm font-medium text-gray-700">
+                                Email address
+                            </label>
+                            <input
+                                type="text"
+                                disabled
+                                className={`form-input ${state.errors.email && 'border border-danger focus:border-danger'}`}
+                                name="email"
+                                value={state.email}
+                                onChange={handleChange}
+                            />
+                            {state.errors.email && <div className="mt-1 text-danger">{state.errors.email}</div>}
+                            {/* <input type="mail" className="form-input" name="billing.email" value={formData.billing.email} onChange={handleChange} /> */}
+
+                            {/* <input type="mail" id="billingemail" name="billingemail" className="form-input" required /> */}
+                        </div>
+                        <div className="col-span-12 ">
+                            <button type="button" className="btn btn-primary" onClick={() => updateCustomer()}>
+                                {state.updateLoading ? <IconLoader /> : 'Update'}
+                            </button>
                         </div>
                     </div>
-
-                    <div className="flex-1">
-                        <div className="panel h-full gap-3">
-                            {state.shippingAddress !== null && state.shippingAddress?.country !== undefined ? (
-                                <div>
-                                    <p style={{ color: 'gray', marginBottom: '0px' }}>
-                                        {state.shippingAddress?.firstName} {state.shippingAddress?.lastName}
-                                    </p>
-                                    <p style={{ color: 'gray', marginBottom: '0px' }}>{state.shippingAddress?.phone}</p>
-                                    <p style={{ color: 'gray', marginBottom: '0px' }}>{state.shippingAddress?.companyName}</p>
-                                    <p style={{ color: 'gray', marginBottom: '0px' }}>{state.shippingAddress?.email}</p>
-                                    <p style={{ color: 'gray', marginBottom: '0px' }}>
-                                        {state.shippingAddress?.streetAddress1} {state.shippingAddress?.streetAddress2}
-                                    </p>
-                                    <p style={{ color: 'gray', marginBottom: '0px' }}>{state.shippingAddress?.city}</p>
-                                    <p style={{ color: 'gray', marginBottom: '0px' }}>{state.shippingAddress?.countryArea}</p>
-                                    <p style={{ color: 'gray', marginBottom: '0px' }}>{state.shippingAddress?.country}</p>
-                                    <p style={{ color: 'gray', marginBottom: '0px' }}>{state.shippingAddress?.postalCode}</p>
-
+                    <div className="gap-3">
+                        <div className="flex flex-wrap">
+                            <div className="flex flex-1 justify-around ">
+                                <div className="mt-5">
+                                    <label htmlFor="firstname" className="text-lg font-bold text-gray-700">
+                                        Billing Address
+                                    </label>
                                 </div>
-                            ) : (
-                                <div>No Address found</div>
-                            )}
+                                <div className="mt-5">
+                                    <label htmlFor="firstname" className="text-lg font-bold text-gray-700">
+                                        Shipping Address
+                                    </label>
+                                </div>
+                            </div>
+                            <div className="flex-initial pt-4">
+                                <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={() => {
+                                        setState({ manageLoading: true });
+                                        router.push(`/customer/address?id=${id}`);
+                                        setState({ manageLoading: false });
+                                    }}
+                                >
+                                    {state.manageLoading ? <IconLoader /> : 'Manage'}
+                                </button>
+                            </div>
+                        </div>
+                        <div className="mt-5 flex flex-row gap-3">
+                            <div className="flex-1">
+                                <div className="panel h-full gap-3">
+                                    {state.billingAddress !== null && state.billingAddress?.country !== undefined ? (
+                                        <div>
+                                            <p style={{ color: 'gray', marginBottom: '0px' }}>
+                                                {state.billingAddress?.firstName} {state.billingAddress?.lastName}
+                                            </p>
+                                            <p style={{ color: 'gray', marginBottom: '0px' }}>{state.billingAddress?.phone}</p>
+                                            <p style={{ color: 'gray', marginBottom: '0px' }}>{state.billingAddress?.companyName}</p>
+                                            <p style={{ color: 'gray', marginBottom: '0px' }}>{state.billingAddress?.email}</p>
+                                            <p style={{ color: 'gray', marginBottom: '0px' }}>
+                                                {state.billingAddress?.streetAddress1} {state.billingAddress?.streetAddress2}
+                                            </p>
+                                            <p style={{ color: 'gray', marginBottom: '0px' }}>{state.billingAddress?.city}</p>
+                                            <p style={{ color: 'gray', marginBottom: '0px' }}>{state.billingAddress?.countryArea}</p>
+                                            <p style={{ color: 'gray', marginBottom: '0px' }}>{state.billingAddress?.country}</p>
+                                            <p style={{ color: 'gray', marginBottom: '0px' }}>{state.billingAddress?.postalCode}</p>
+                                        </div>
+                                    ) : (
+                                        <div>No Address found</div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex-1">
+                                <div className="panel h-full gap-3">
+                                    {state.shippingAddress !== null && state.shippingAddress?.country !== undefined ? (
+                                        <div>
+                                            <p style={{ color: 'gray', marginBottom: '0px' }}>
+                                                {state.shippingAddress?.firstName} {state.shippingAddress?.lastName}
+                                            </p>
+                                            <p style={{ color: 'gray', marginBottom: '0px' }}>{state.shippingAddress?.phone}</p>
+                                            <p style={{ color: 'gray', marginBottom: '0px' }}>{state.shippingAddress?.companyName}</p>
+                                            <p style={{ color: 'gray', marginBottom: '0px' }}>{state.shippingAddress?.email}</p>
+                                            <p style={{ color: 'gray', marginBottom: '0px' }}>
+                                                {state.shippingAddress?.streetAddress1} {state.shippingAddress?.streetAddress2}
+                                            </p>
+                                            <p style={{ color: 'gray', marginBottom: '0px' }}>{state.shippingAddress?.city}</p>
+                                            <p style={{ color: 'gray', marginBottom: '0px' }}>{state.shippingAddress?.countryArea}</p>
+                                            <p style={{ color: 'gray', marginBottom: '0px' }}>{state.shippingAddress?.country}</p>
+                                            <p style={{ color: 'gray', marginBottom: '0px' }}>{state.shippingAddress?.postalCode}</p>
+                                        </div>
+                                    ) : (
+                                        <div>No Address found</div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
+                </>
+            )}
         </>
     );
 };

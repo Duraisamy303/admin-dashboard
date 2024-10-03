@@ -53,6 +53,7 @@ import {
     GET_MEDIA_IMAGE,
     MEDIA_PAGINATION,
     GET_ATTRIBUTE_BY_PRODUCT_TYPE,
+    NEW_PARENT_CATEGORY_LIST,
 } from '@/query/product';
 import {
     Failure,
@@ -267,7 +268,7 @@ const ProductAdd = () => {
         variables: { channel: 'india-channel' },
     });
 
-    const { refetch: categorySearchRefetch } = useQuery(PARENT_CATEGORY_LIST, {
+    const { refetch: categorySearchRefetch } = useQuery(NEW_PARENT_CATEGORY_LIST, {
         variables: { channel: 'india-channel' },
     });
 

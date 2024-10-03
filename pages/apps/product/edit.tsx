@@ -53,6 +53,7 @@ import {
     GET_MEDIA_IMAGE,
     MEDIA_PAGINATION,
     UPDATED_PRODUCT_PAGINATION,
+    NEW_PARENT_CATEGORY_LIST,
 } from '@/query/product';
 import {
     Failure,
@@ -94,6 +95,7 @@ import CommonLoader from '@/pages/elements/commonLoader';
 import Image from 'next/image';
 import IconArrowBackward from '@/components/Icon/IconArrowBackward';
 import IconArrowForward from '@/components/Icon/IconArrowForward';
+import CategorySelect from '@/components/CategorySelect';
 
 const ProductEdit = (props: any) => {
     const router = useRouter();
@@ -232,6 +234,13 @@ const ProductEdit = (props: any) => {
     const { data: parentList, error: parentListError } = useQuery(PARENT_CATEGORY_LIST, {
         variables: { channel: 'india-channel' },
     });
+    const { refetch: categorySearchRefetch } = useQuery(NEW_PARENT_CATEGORY_LIST, {
+        variables: { channel: 'india-channel' },
+    });
+
+    const fetchCategories = async (variables) => {
+        return await categorySearchRefetch(variables);
+    };
 
     const [addFormData] = useMutation(CREATE_PRODUCT);
     const [updateProductChannelList, { loading: updateChannelLoad }] = useMutation(UPDATE_PRODUCT_CHANNEL);
@@ -2451,8 +2460,13 @@ const ProductEdit = (props: any) => {
                                 <h5 className=" block text-lg font-medium text-gray-700">Product Categories</h5>
                             </div>
                             <div className="mb-5">
-                                <Select isMulti value={selectedCat} onChange={(e) => selectCat(e)} options={categoryList} placeholder="Select categories..." className="form-select" />
-
+                                {/* <Select isMulti value={selectedCat} onChange={(e) => selectCat(e)} options={categoryList} placeholder="Select categories..." className="form-select" /> */}
+                                <CategorySelect
+                                    queryFunc={fetchCategories} // Pass the function to fetch categories
+                                    selectedCategory={selectedCat} // Use 'selectedCategory' instead of 'value'
+                                    onCategoryChange={(data) => setselectedCat(data)} // Use 'onCategoryChange' instead of 'onChange'
+                                    placeholder="Select categories"
+                                />
                                 {categoryErrMsg && <p className="error-message mt-1 text-red-500 ">{categoryErrMsg}</p>}
                             </div>
                         </div>

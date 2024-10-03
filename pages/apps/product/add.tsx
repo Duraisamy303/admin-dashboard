@@ -7,24 +7,13 @@ import IconBell from '@/components/Icon/IconBell';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import IconTrashLines from '@/components/Icon/IconTrashLines';
-import IconPencil from '@/components/Icon/IconPencil';
-import { Button } from '@mantine/core';
-import Dropdown from '../../../components/Dropdown';
-import IconCaretDown from '@/components/Icon/IconCaretDown';
 
 import { Dialog, Transition } from '@headlessui/react';
 import IconX from '@/components/Icon/IconX';
-import Image1 from '@/public/assets/images/profile-1.jpeg';
-import Image2 from '@/public/assets/images/profile-2.jpeg';
-import Image3 from '@/public/assets/images/profile-3.jpeg';
 import { Field, Form, Formik } from 'formik';
 import * as Yup from 'yup';
 import Swal from 'sweetalert2';
-import IconEye from '@/components/Icon/IconEye';
-import { date } from 'yup/lib/locale';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
-import IconEdit from '@/components/Icon/IconEdit';
 import Select from 'react-select';
 import pdf from '../../../public/assets/images/pdf.png';
 import docs from '../../../public/assets/images/docs.jpg';
@@ -34,7 +23,6 @@ import AnimateHeight from 'react-animate-height';
 import { useLazyQuery, useMutation, useQuery } from '@apollo/client';
 import {
     ASSIGN_TAG_PRODUCT,
-    CATEGORY_LIST,
     CHANNEL_LIST,
     COLLECTION_LIST,
     COLOR_LIST,
@@ -46,7 +34,6 @@ import {
     DESIGN_LIST,
     FINISH_LIST,
     PARENT_CATEGORY_LIST,
-    PRODUCT_CAT_LIST,
     PRODUCT_LIST_TAGS,
     PRODUCT_TYPE_LIST,
     SIZE_LIST,
@@ -71,33 +58,21 @@ import {
     Failure,
     Success,
     addCommasToNumber,
-    addNewFile,
     addNewMediaFile,
     capitalizeFLetter,
     deleteImagesFromS3,
-    docFilter,
-    fetchImagesFromS3,
-    formatOptions,
-    generatePresignedPost,
     getFileNameFromUrl,
     getFileType,
     getImageDimensions,
-    getImageSizeInKB,
     getKey,
     getMonthNumber,
-    imageFilter,
-    isEmptyObject,
     months,
-    objIsEmpty,
     resizeImage,
     resizingImage,
     sampleParams,
     showDeleteAlert,
-    uploadImage,
-    videoFilter,
+ 
 } from '@/utils/functions';
-import IconRestore from '@/components/Icon/IconRestore';
-import { cA } from '@fullcalendar/core/internal-common';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import Modal from '@/components/Modal';
 import IconLoader from '@/components/Icon/IconLoader';
@@ -107,10 +82,10 @@ import CommonLoader from '@/pages/elements/commonLoader';
 import Image from 'next/image';
 import IconArrowBackward from '@/components/Icon/IconArrowBackward';
 import IconArrowForward from '@/components/Icon/IconArrowForward';
+import CategorySelect from '@/components/CategorySelect';
 
 const ProductAdd = () => {
     const router = useRouter();
-    const isRtl = useSelector((state: any) => state.themeConfig.rtlClass) === 'rtl' ? true : false;
 
     const PAGE_SIZE = 24;
 
@@ -163,11 +138,11 @@ const ProductAdd = () => {
     });
 
     //for accordiant
-    const [selectedArr, setSelectedArr] = useState<any>([]);
-    const [accordions, setAccordions] = useState<any>([]);
-    const [openAccordion, setOpenAccordion] = useState('');
-    const [attDropDownError, setAttDropDownError] = useState('');
-    const [chooseType, setChooseType] = useState('');
+    // const [selectedArr, setSelectedArr] = useState<any>([]);
+    // const [accordions, setAccordions] = useState<any>([]);
+    // const [openAccordion, setOpenAccordion] = useState('');
+    // const [attDropDownError, setAttDropDownError] = useState('');
+    // const [chooseType, setChooseType] = useState('');
     const [selectedValues, setSelectedValues] = useState<any>({});
 
     // error message start
@@ -191,7 +166,7 @@ const ProductAdd = () => {
     const [selectedAttributes, setSelectedAttributes] = useState({});
     const [attributesData, setAttributesData] = useState([]);
     // error message end
-    const [dropdowndata, setDropdownData] = useState<any>('');
+    // const [dropdowndata, setDropdownData] = useState<any>('');
 
     const [images, setImages] = useState<any>('');
     const [imageUrl, setImageUrl] = useState<any>('');
@@ -210,7 +185,7 @@ const ProductAdd = () => {
     // ------------------------------------------New Data--------------------------------------------
 
     const [quantityTrack, setQuantityTrack] = useState(true);
-    const [parentLists, setParentLists] = useState([]);
+    // const [parentLists, setParentLists] = useState([]);
     const [newCatParentLists, setNewCatParentLists] = useState([]);
 
     const [searchUpsells, setSearchUpsells] = useState('');
@@ -226,52 +201,52 @@ const ProductAdd = () => {
         { value: 'hot', label: 'Hot' },
     ];
 
-    const arr = [
-        { type: 'design', designName: dropdowndata?.design },
-        { type: 'style', styleName: dropdowndata?.style },
-        { type: 'stone', stoneName: dropdowndata?.stoneType },
-        { type: 'finish', finishName: dropdowndata?.finish },
-        { type: 'stoneColor', stoneColorName: dropdowndata?.stoneColor },
-        { type: 'type', typeName: dropdowndata?.type },
-        { type: 'size', sizeName: dropdowndata?.size },
-    ];
+    // const arr = [
+    //     { type: 'design', designName: dropdowndata?.design },
+    //     { type: 'style', styleName: dropdowndata?.style },
+    //     { type: 'stone', stoneName: dropdowndata?.stoneType },
+    //     { type: 'finish', finishName: dropdowndata?.finish },
+    //     { type: 'stoneColor', stoneColorName: dropdowndata?.stoneColor },
+    //     { type: 'type', typeName: dropdowndata?.type },
+    //     { type: 'size', sizeName: dropdowndata?.size },
+    // ];
 
-    const optionsVal = arr.map((item) => ({ value: item.type, label: item.type }));
+    // const optionsVal = arr.map((item) => ({ value: item.type, label: item.type }));
 
     // -------------------------------------New Added-------------------------------------------------------
     const { refetch: productListRefetch } = useQuery(PRODUCT_LIST_BY_ID);
 
     const { refetch: relatedProductsRefetch } = useQuery(RELATED_PRODUCT);
 
-    const { error, data: orderDetails } = useQuery(CHANNEL_LIST, {
-        variables: sampleParams,
-    });
-    const { data: finishData, refetch: finishRefetch } = useQuery(FINISH_LIST, {
-        variables: sampleParams,
-    });
+    // const { error, data: orderDetails } = useQuery(CHANNEL_LIST, {
+    //     variables: sampleParams,
+    // });
+    // const { data: finishData, refetch: finishRefetch } = useQuery(FINISH_LIST, {
+    //     variables: sampleParams,
+    // });
 
-    const { data: stoneData, refetch: stoneRefetch } = useQuery(STONE_LIST, {
-        variables: sampleParams,
-    });
-    const { data: designData, refetch: designRefetch } = useQuery(DESIGN_LIST, {
-        variables: sampleParams,
-    });
+    // const { data: stoneData, refetch: stoneRefetch } = useQuery(STONE_LIST, {
+    //     variables: sampleParams,
+    // });
+    // const { data: designData, refetch: designRefetch } = useQuery(DESIGN_LIST, {
+    //     variables: sampleParams,
+    // });
 
-    const { data: styleData, refetch: styleRefetch } = useQuery(STYLE_LIST, {
-        variables: sampleParams,
-    });
+    // const { data: styleData, refetch: styleRefetch } = useQuery(STYLE_LIST, {
+    //     variables: sampleParams,
+    // });
     // -----------------New --------------------------------
-    const { data: stoneColorData, refetch: stoneColorRefetch } = useQuery(COLOR_LIST, {
-        variables: sampleParams,
-    });
+    // const { data: stoneColorData, refetch: stoneColorRefetch } = useQuery(COLOR_LIST, {
+    //     variables: sampleParams,
+    // });
 
-    const { data: typeData, refetch: typeRefetch } = useQuery(TYPE_LIST, {
-        variables: sampleParams,
-    });
+    // const { data: typeData, refetch: typeRefetch } = useQuery(TYPE_LIST, {
+    //     variables: sampleParams,
+    // });
 
-    const { data: sizeData, refetch: sizeRefetch } = useQuery(SIZE_LIST, {
-        variables: sampleParams,
-    });
+    // const { data: sizeData, refetch: sizeRefetch } = useQuery(SIZE_LIST, {
+    //     variables: sampleParams,
+    // });
 
     const { refetch: mediaRefetch } = useQuery(MEDIA_PAGINATION);
 
@@ -292,6 +267,14 @@ const ProductAdd = () => {
     } = useQuery(PARENT_CATEGORY_LIST, {
         variables: { channel: 'india-channel' },
     });
+
+    const { refetch: categorySearchRefetch } = useQuery(PARENT_CATEGORY_LIST, {
+        variables: { channel: 'india-channel' },
+    });
+
+    const fetchCategories = async (variables) => {
+        return await categorySearchRefetch(variables);
+    };
 
     const { data: productSearch, refetch: productSearchRefetch } = useQuery(PRODUCT_BY_NAME);
 
@@ -348,24 +331,24 @@ const ProductAdd = () => {
         setMediaPreviousPage(data.files.pageInfo.hasPreviousPage);
     };
 
-    useEffect(() => {
-        const arr1 = {
-            design: designData?.productDesigns,
-            style: styleData?.productStyles,
-            finish: finishData?.productFinishes,
-            stoneType: stoneData?.productStoneTypes,
-            stoneColor: stoneColorData?.stoneColors,
-            type: typeData?.itemTypes,
-            size: sizeData?.sizes,
-        };
+    // useEffect(() => {
+    //     const arr1 = {
+    //         design: designData?.productDesigns,
+    //         style: styleData?.productStyles,
+    //         finish: finishData?.productFinishes,
+    //         stoneType: stoneData?.productStoneTypes,
+    //         stoneColor: stoneColorData?.stoneColors,
+    //         type: typeData?.itemTypes,
+    //         size: sizeData?.sizes,
+    //     };
 
-        const singleObj = Object.entries(arr1).reduce((acc: any, [key, value]) => {
-            acc[key] = value?.edges.map(({ node }: any) => ({ value: node?.id, label: node?.name }));
-            return acc;
-        }, {});
+    //     const singleObj = Object.entries(arr1).reduce((acc: any, [key, value]) => {
+    //         acc[key] = value?.edges.map(({ node }: any) => ({ value: node?.id, label: node?.name }));
+    //         return acc;
+    //     }, {});
 
-        setDropdownData(singleObj);
-    }, [finishData, stoneData, designData, styleData, stoneColorData, typeData, sizeData]);
+    //     setDropdownData(singleObj);
+    // }, [finishData, stoneData, designData, styleData, stoneColorData, typeData, sizeData]);
 
     useEffect(() => {
         getAttributeList();
@@ -379,12 +362,12 @@ const ProductAdd = () => {
         }
     };
 
-    useEffect(() => {
-        const getparentCategoryList = parentList?.categories?.edges;
-        const options = formatOptions(getparentCategoryList);
-        setNewCatParentLists(getparentCategoryList);
-        setParentLists(options);
-    }, [parentList]);
+    // useEffect(() => {
+    //     const getparentCategoryList = parentList?.categories?.edges;
+    //     const options = formatOptions(getparentCategoryList);
+    //     setNewCatParentLists(getparentCategoryList);
+    //     setParentLists(options);
+    // }, [parentList]);
 
     useEffect(() => {
         getProductForUpsells();
@@ -412,7 +395,7 @@ const ProductAdd = () => {
     const [createVariant, { loading: createVariantLoad }] = useMutation(CREATE_VARIANT);
     const [updateVariantList, { loading: updateVariantLoad }] = useMutation(UPDATE_VARIANT_LIST);
     const [updateMedatData, { loading: updateMedaLoad }] = useMutation(UPDATE_META_DATA);
-    const [assignTagToProduct] = useMutation(ASSIGN_TAG_PRODUCT);
+    // const [assignTagToProduct] = useMutation(ASSIGN_TAG_PRODUCT);
     const [createMedia] = useMutation(PRODUCT_MEDIA_CREATE_NEW);
 
     const { data, refetch: getListRefetch } = useQuery(GET_MEDIA_IMAGE);
@@ -586,33 +569,33 @@ const ProductAdd = () => {
         setPreviewLoading(true);
         const savedContent = await editorInstance.save();
 
-        const styleRes = await styleRefetch({
-            sampleParams,
-        });
+        // const styleRes = await styleRefetch({
+        //     sampleParams,
+        // });
 
-        const designRes = await designRefetch({
-            sampleParams,
-        });
+        // const designRes = await designRefetch({
+        //     sampleParams,
+        // });
 
-        const finishRes = await finishRefetch({
-            sampleParams,
-        });
+        // const finishRes = await finishRefetch({
+        //     sampleParams,
+        // });
 
-        const stoneTypeRes = await stoneRefetch({
-            sampleParams,
-        });
+        // const stoneTypeRes = await stoneRefetch({
+        //     sampleParams,
+        // });
 
-        const stoneColorRes = await stoneColorRefetch({
-            sampleParams,
-        });
+        // const stoneColorRes = await stoneColorRefetch({
+        //     sampleParams,
+        // });
 
-        const typeRes = await typeRefetch({
-            sampleParams,
-        });
+        // const typeRes = await typeRefetch({
+        //     sampleParams,
+        // });
 
-        const sizeRes = await sizeRefetch({
-            sampleParams,
-        });
+        // const sizeRes = await sizeRefetch({
+        //     sampleParams,
+        // });
         let youMayLike = [];
 
         if (selectedCrosssell?.length > 0) {
@@ -631,16 +614,34 @@ const ProductAdd = () => {
             }
         }
 
-        const arr1 = {
-            design: designRes?.data?.productDesigns,
-            style: styleRes?.data?.productStyles,
-            finish: finishRes?.data?.productFinishes,
-            stoneType: stoneTypeRes?.data?.productStoneTypes,
-            stoneColor: stoneColorRes?.data?.stoneColors,
-            type: typeRes?.data?.itemTypes,
-            size: sizeRes?.data?.sizes,
-        };
-        const attributes = getFullDetails(selectedValues, arr1);
+        // const arr1 = {
+        //     design: designRes?.data?.productDesigns,
+        //     style: styleRes?.data?.productStyles,
+        //     finish: finishRes?.data?.productFinishes,
+        //     stoneType: stoneTypeRes?.data?.productStoneTypes,
+        //     stoneColor: stoneColorRes?.data?.stoneColors,
+        //     type: typeRes?.data?.itemTypes,
+        //     size: sizeRes?.data?.sizes,
+        // };
+        // const attributes = getFullDetails(selectedValues, arr1);
+
+        const att = attributesData
+            .map((attr) => {
+                const selectedValues = selectedAttributes[attr?.id] || [];
+                return selectedValues.length > 0
+                    ? {
+                          id: attr?.id,
+                          values: selectedValues,
+                          name: attr?.name || null,
+                      }
+                    : null;
+            })
+            .filter(Boolean);
+
+        console.log('att: ', att);
+
+        const attributes = att;
+
         const idSet = new Set(selectedCat.map((item) => item.value));
         let parentCat = '';
         let relateProducts = [];
@@ -1158,37 +1159,37 @@ const ProductAdd = () => {
         }
     };
 
-    const handleAddAccordion = () => {
-        if (chooseType == '') {
-            setAttDropDownError('Please select a type');
-        } else {
-            const selectedType = arr.find((item) => item?.type === chooseType);
-            setSelectedArr([chooseType, ...selectedArr]);
-            setAccordions([selectedType, ...accordions]);
-            setOpenAccordion(chooseType);
-            setSelectedValues({ ...selectedValues, [chooseType]: [] }); // Clear selected values for the chosen type
-            setChooseType('');
-            setAttDropDownError('');
-        }
-    };
+    // const handleAddAccordion = () => {
+    //     if (chooseType == '') {
+    //         setAttDropDownError('Please select a type');
+    //     } else {
+    //         const selectedType = arr.find((item) => item?.type === chooseType);
+    //         setSelectedArr([chooseType, ...selectedArr]);
+    //         setAccordions([selectedType, ...accordions]);
+    //         setOpenAccordion(chooseType);
+    //         setSelectedValues({ ...selectedValues, [chooseType]: [] }); // Clear selected values for the chosen type
+    //         setChooseType('');
+    //         setAttDropDownError('');
+    //     }
+    // };
 
-    const handleRemoveAccordion = (type: any) => {
-        setSelectedArr(selectedArr.filter((item: any) => item !== type));
-        setAccordions(accordions.filter((item: any) => item.type !== type));
-        setOpenAccordion('');
-        const updatedSelectedValues: any = { ...selectedValues };
-        delete updatedSelectedValues[type];
-        setSelectedValues(updatedSelectedValues);
-    };
+    // const handleRemoveAccordion = (type: any) => {
+    //     setSelectedArr(selectedArr.filter((item: any) => item !== type));
+    //     setAccordions(accordions.filter((item: any) => item.type !== type));
+    //     setOpenAccordion('');
+    //     const updatedSelectedValues: any = { ...selectedValues };
+    //     delete updatedSelectedValues[type];
+    //     setSelectedValues(updatedSelectedValues);
+    // };
 
-    const handleDropdownChange = (event: any, type: any) => {
-        setChooseType(type);
-    };
+    // const handleDropdownChange = (event: any, type: any) => {
+    //     setChooseType(type);
+    // };
 
-    const handleMultiSelectChange = (selectedOptions: any, type: any) => {
-        const selectedValuesForType = selectedOptions.map((option: any) => option.value);
-        setSelectedValues({ ...selectedValues, [type]: selectedValuesForType });
-    };
+    // const handleMultiSelectChange = (selectedOptions: any, type: any) => {
+    //     const selectedValuesForType = selectedOptions.map((option: any) => option.value);
+    //     setSelectedValues({ ...selectedValues, [type]: selectedValuesForType });
+    // };
 
     const handleChange = (index: any, fieldName: any, fieldValue: any) => {
         setVariants((prevItems) => {
@@ -2115,7 +2116,13 @@ const ProductAdd = () => {
                                 <h5 className=" block text-lg font-medium text-gray-700">Product Categories</h5>
                             </div>
                             <div className="mb-5">
-                                <Select isMulti value={selectedCat} onChange={(e) => setselectedCat(e)} options={parentLists} placeholder="Select categories..." className="form-select" />
+                                <CategorySelect
+                                    queryFunc={fetchCategories} // Pass the function to fetch categories
+                                    selectedCategory={selectedCat} // Use 'selectedCategory' instead of 'value'
+                                    onCategoryChange={(data) => setselectedCat(data)} // Use 'onCategoryChange' instead of 'onChange'
+                                    placeholder="Select categories"
+                                />
+                                {/* <Select isMulti value={selectedCat} onChange={(e) => setselectedCat(e)} options={parentLists} placeholder="Select categories..." className="form-select" /> */}
 
                                 {categoryErrMsg && <p className="error-message mt-1 text-red-500 ">{categoryErrMsg}</p>}
                             </div>
@@ -2852,7 +2859,7 @@ const ProductAdd = () => {
                                                         </>
                                                     )}
                                                 </div>
-                                                {productPreview?.attributes && (
+                                                {productPreview?.attributes?.length > 0 && (
                                                     <div
                                                         style={{
                                                             borderBottom: '1px solid #EAEBED',
@@ -2877,46 +2884,17 @@ const ProductAdd = () => {
                                                                 // gap: 5,
                                                             }}
                                                         >
-                                                            {Object.keys(productPreview?.attributes).map((key) => {
-                                                                const attribute = productPreview?.attributes[key];
-                                                                // Determine the label based on the attribute key
-                                                                let label;
-                                                                switch (key) {
-                                                                    case 'design':
-                                                                        label = 'Design';
-                                                                        break;
-                                                                    case 'style':
-                                                                        label = 'Style';
-                                                                        break;
-                                                                    case 'finish':
-                                                                        label = 'Finish';
-                                                                        break;
-                                                                    case 'stoneColor':
-                                                                        label = 'Stone Color';
-                                                                        break;
-                                                                    case 'type':
-                                                                        label = 'Type';
-                                                                        break;
-                                                                    case 'size':
-                                                                        label = 'Size';
-                                                                        break;
-                                                                    default:
-                                                                        label = key.charAt(0).toUpperCase() + key.slice(1); // Capitalize key if no specific label
-                                                                        break;
-                                                                }
-
-                                                                return (
-                                                                    <div className="flex flex-wrap gap-3" key={key}>
-                                                                        <span style={{ fontWeight: 'bold' }}>{label} : </span>
-                                                                        {attribute.map((item, index) => (
-                                                                            <span key={item.id} style={{ marginRight: '3px', cursor: 'pointer' }}>
-                                                                                {item.name}
-                                                                                {index < attribute.length - 1 ? ', ' : ''}
-                                                                            </span>
-                                                                        ))}
-                                                                    </div>
-                                                                );
-                                                            })}
+                                                            {productPreview?.attributes?.map((key: any) => (
+                                                                <div className="flex flex-wrap gap-3" key={key?.id}>
+                                                                    <span style={{ fontWeight: 'bold' }}>{key?.name} : </span>
+                                                                    {key?.values?.map((item, index) => (
+                                                                        <span key={item} style={{ marginRight: '1px', cursor: 'pointer' }}>
+                                                                            {item}
+                                                                            {index < key?.values?.length - 1 ? ',' : ''}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            ))}
                                                         </ul>
                                                     </div>
                                                 )}

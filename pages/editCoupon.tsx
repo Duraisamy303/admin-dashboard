@@ -10,11 +10,13 @@ import Select from 'react-select';
 import { useMutation, useQuery } from '@apollo/client';
 import {
     ASSIGN_TO_COUPON,
+    CATEGORY_LIST,
     COUPEN_DETAILS,
     COUPON_CHANNEL_UPDATE,
     COUPON_CODES,
     COUPON_META_DATA,
     CREATE_COUPEN,
+    NEW_PARENT_CATEGORY_LIST,
     PRODUCT_BY_NAME,
     REMOVE_TO_COUPON,
     SEARCH_CATEGORIES,
@@ -25,6 +27,7 @@ import {
 import { Description } from '@headlessui/react/dist/components/description/description';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import IconLoader from '@/components/Icon/IconLoader';
+import CategorySelect from '@/components/CategorySelect';
 
 const EditCoupon = () => {
     const router = useRouter();
@@ -32,7 +35,7 @@ const EditCoupon = () => {
     const [updateCoupons] = useMutation(UPDATE_COUPON);
     const [channelUpdate, { loading: chennelLoading }] = useMutation(COUPON_CHANNEL_UPDATE);
     const { data: couponDetail, refetch: coupenRefetch, loading } = useQuery(COUPEN_DETAILS);
-    const { data: productCat, refetch: categorySearchRefetch } = useQuery(SEARCH_CATEGORIES);
+    const { data: productCat, refetch: categorySearchRefetch } = useQuery(NEW_PARENT_CATEGORY_LIST);
     const { data: productSearch, refetch: productSearchRefetch } = useQuery(PRODUCT_BY_NAME);
     const [removeDataFromCoupon, { loading: removeLoading }] = useMutation(REMOVE_TO_COUPON);
 
@@ -40,6 +43,10 @@ const EditCoupon = () => {
     const [metaData, { loading: metaLoading }] = useMutation(COUPON_META_DATA);
 
     const { data: codeList, refetch: codeListRefetch } = useQuery(COUPON_CODES);
+
+    const fetchCategories = async (variables) => {
+        return await categorySearchRefetch(variables);
+    };
 
     const [state, setState] = useSetState({
         couponName: '',
@@ -90,7 +97,7 @@ const EditCoupon = () => {
         codeType();
         getDetails();
         couponCodeList();
-        categoryList();
+        // categoryList();
     }, [id, codeList, couponDetail]);
 
     useEffect(() => {
@@ -507,16 +514,16 @@ const EditCoupon = () => {
         setState({ codeOption: type, usageOption: type2, minimumReqOption: type1, specificInfoOption: type3, maxReqOption: type4 });
     };
 
-    const categoryList = async () => {
-        const res = await categorySearchRefetch({
-            after: null,
-            first: 500,
-            query: '',
-        });
-        const datas = res?.data?.search?.edges?.map((item) => item?.node)?.map((val) => ({ value: val?.id, label: val?.name }));
+    // const categoryList = async () => {
+    //     const res = await categorySearchRefetch({
+    //         after: null,
+    //         first: 500,
+    //         query: '',
+    //     });
+    //     const datas = res?.data?.search?.edges?.map((item) => item?.node)?.map((val) => ({ value: val?.id, label: val?.name }));
 
-        setState({ catOption: datas });
-    };
+    //     setState({ catOption: datas });
+    // };
 
     return (
         <>
@@ -777,11 +784,12 @@ const EditCoupon = () => {
                                         onChange={(data) => setState({ selectedProduct: data })}
                                         isSearchable={true}
                                         isMulti={true}
+                                        isClearable
                                         onInputChange={(inputValue) => setState({ searchProduct: inputValue })}
                                     />
                                 </div>
                                 <div className="col-6 md:w-6/12">
-                                    <label htmlFor="name" className="block text-lg font-medium text-gray-700">
+                                    {/* <label htmlFor="name" className="block text-lg font-medium text-gray-700">
                                         Categories
                                     </label>
                                     <Select
@@ -791,11 +799,32 @@ const EditCoupon = () => {
                                         onChange={(data: any) => setState({ selectedCategory: data })}
                                         isSearchable={true}
                                         isMulti={true}
+                                    /> */}
+
+                                    <CategorySelect
+                                        queryFunc={fetchCategories} // Pass the function to fetch categories
+                                        selectedCategory={state.selectedCategory} // Use 'selectedCategory' instead of 'value'
+                                        onCategoryChange={(data) => setState({ selectedCategory: data })} // Use 'onCategoryChange' instead of 'onChange'
+                                        placeholder="Select categories"
                                     />
+                                    {/* <CategorySelect
+                                        queryFunc={fetchCategories} // Pass the function to fetch categories
+                                        value={state.selectedCategory} // Selected categories
+                                        onChange={(data: any) => setState({ selectedCategory: data })}
+                                        // Handle category change
+                                        placeholder="Select categories"
+                                    /> */}
                                 </div>
                             </div>
                             <div className="col-6 mt-5 md:w-6/12">
-                                <label htmlFor="name" className="block text-lg font-medium text-gray-700">
+                                <CategorySelect
+                                    queryFunc={fetchCategories} // Pass the function to fetch categories
+                                    selectedCategory={state.selectedExcludeCategory} // Use 'selectedCategory' instead of 'value'
+                                    onCategoryChange={(data) => setState({ selectedExcludeCategory: data })} // Use 'onCategoryChange' instead of 'onChange'
+                                    placeholder="Select categories"
+                                    title="Exclude Categories"
+                                />
+                                {/* <label htmlFor="name" className="block text-lg font-medium text-gray-700">
                                     Exclude Categories
                                 </label>
                                 <Select
@@ -805,7 +834,8 @@ const EditCoupon = () => {
                                     onChange={(data: any) => setState({ selectedExcludeCategory: data })}
                                     isSearchable={true}
                                     isMulti={true}
-                                />
+                                    title="Exclude Categories"
+                                /> */}
                             </div>
                         </>
                     )}

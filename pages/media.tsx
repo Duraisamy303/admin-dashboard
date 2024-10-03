@@ -42,8 +42,9 @@ import { Description } from '@headlessui/react/dist/components/description/descr
 import IconLoader from '@/components/Icon/IconLoader';
 import IconArrowBackward from '@/components/Icon/IconArrowBackward';
 import IconArrowForward from '@/components/Icon/IconArrowForward';
+import PrivateRouter from '@/components/Layouts/PrivateRouter';
 
-export default function Media() {
+const Media = () => {
     const [state, setState] = useSetState({
         tab: 1,
         imageList: [],
@@ -73,7 +74,7 @@ export default function Media() {
     const PAGE_LIMIT = 10;
     const PAGE_SIZE = 24;
 
-    const [addNewImages,{loading:addNewImageLoading}] = useMutation(ADD_NEW_MEDIA_IMAGE);
+    const [addNewImages, { loading: addNewImageLoading }] = useMutation(ADD_NEW_MEDIA_IMAGE);
     const [updateImages, { loading: mediaUpdateLoading }] = useMutation(UPDATE_MEDIA_IMAGE);
     const [deleteImages] = useMutation(DELETE_MEDIA_IMAGE);
     const { data, refetch: getListRefetch, loading: loading } = useQuery(GET_MEDIA_IMAGE);
@@ -437,7 +438,7 @@ export default function Media() {
                     </div>
 
                     {state.tab == 0 ? (
-                       addNewImageLoading ? (
+                        addNewImageLoading ? (
                             <CommonLoader />
                         ) : (
                             <div className="active  pt-5">
@@ -640,4 +641,5 @@ export default function Media() {
             </div>
         </div>
     );
-}
+};
+export default PrivateRouter(Media);

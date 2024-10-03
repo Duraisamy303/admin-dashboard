@@ -3,6 +3,7 @@ import {
     CREATE_PRODUCT,
     CREATE_VARIANT,
     DELETE_PRODUCTS,
+    NEW_PARENT_CATEGORY_LIST,
     PARENT_CATEGORY_LIST,
     PRODUCT_FULL_DETAILS,
     PRODUCT_LIST_TAGS,
@@ -38,6 +39,7 @@ import Select from 'react-select';
 import IconMenuReport from '@/components/Icon/Menu/IconMenuReport';
 import IconX from '@/components/Icon/IconX';
 import ErrorMessage from '@/components/Layouts/ErrorMessage';
+import CategorySelect from '@/components/CategorySelect';
 
 const Index = () => {
     const PAGE_SIZE = 20;
@@ -53,9 +55,10 @@ const Index = () => {
     const [publish, setPublish] = useState(0);
     const [draft, setDraft] = useState(0);
     const [search, setSearch] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState(null);
     const [status, setStatus] = useState('');
     const [parentLists, setParentLists] = useState([]);
+    console.log('parentLists: ', parentLists);
     const [categoryOption, setCategoryOption] = useState([]);
     const [initialCatOption, setInitialCatOption] = useState([]);
     const [initialCatVal, setInitialCatVal] = useState({
@@ -125,6 +128,7 @@ const Index = () => {
     const { refetch: refreshfetch } = useQuery(UPDATED_PRODUCT_PAGINATION);
     const [updateProduct] = useMutation(UPDATE_PRODUCT);
     const [updateVariant] = useMutation(UPDATE_VARIANT);
+    const { data: productCat, refetch: categorySearchRefetch } = useQuery(NEW_PARENT_CATEGORY_LIST);
 
     const { data: parentList } = useQuery(PARENT_CATEGORY_LIST, {
         variables: { channel: 'india-channel' },
@@ -132,6 +136,10 @@ const Index = () => {
     const { data: tagsList, refetch: tagListRefetch } = useQuery(PRODUCT_LIST_TAGS, {
         variables: { channel: 'india-channel' },
     });
+
+    const fetchCategories = async (variables) => {
+        return await categorySearchRefetch(variables);
+    };
 
     const tableRef = useRef(null);
 
@@ -195,7 +203,7 @@ const Index = () => {
             first: PAGE_SIZE,
             after: null,
             search: search,
-            filter: buildFilter(selectedCategory, status),
+            filter: buildFilter(selectedCategory?.value, status),
         },
         onCompleted: (data) => {
             const products = data?.products?.edges || [];
@@ -207,16 +215,16 @@ const Index = () => {
         },
     });
 
-    const { data:productsCount } = useQuery(UPDATED_PRODUCT_PAGINATION, {
+    const { data: productsCount } = useQuery(UPDATED_PRODUCT_PAGINATION, {
         variables: {
             channel: 'india-channel',
             first: PAGE_SIZE,
             after: null,
-            search: "",
+            search: '',
             filter: {},
         },
         onCompleted: (data) => {
-            setTotal(data?.products?.totalCount)
+            setTotal(data?.products?.totalCount);
         },
     });
 
@@ -262,7 +270,6 @@ const Index = () => {
             console.log('error: ', error);
         }
     };
-
 
     const draftCount = async () => {
         try {
@@ -383,7 +390,7 @@ const Index = () => {
                 first: PAGE_SIZE,
                 after: endCursor,
                 search: search,
-                filter: buildFilter(selectedCategory, status),
+                filter: buildFilter(selectedCategory?.value, status),
             },
         });
     };
@@ -395,7 +402,7 @@ const Index = () => {
                 last: PAGE_SIZE,
                 before: startCursor,
                 search: search,
-                filter: buildFilter(selectedCategory, status),
+                filter: buildFilter(selectedCategory?.value, status),
             },
         });
     };
@@ -408,20 +415,20 @@ const Index = () => {
                 first: PAGE_SIZE,
                 after: null,
                 search: e,
-                filter: buildFilter(selectedCategory, status),
+                filter: buildFilter(selectedCategory?.value, status),
             },
         });
     };
 
     const handleCategoryChange = (e) => {
-        setSelectedCategory(e.target.value);
+        setSelectedCategory(e);
         fetchLowStockList({
             variables: {
                 channel: 'india-channel',
                 first: PAGE_SIZE,
                 after: null,
                 search: search,
-                filter: buildFilter(e.target.value, status),
+                filter: buildFilter(e?.value, status),
             },
         });
     };
@@ -434,7 +441,7 @@ const Index = () => {
                 first: PAGE_SIZE,
                 after: null,
                 search: search,
-                filter: buildFilter(selectedCategory, selectedStatus),
+                filter: buildFilter(selectedCategory?.value, selectedStatus),
             },
         });
     };
@@ -490,7 +497,7 @@ const Index = () => {
                         first: PAGE_SIZE,
                         after: null,
                         search: search,
-                        filter: buildFilter(selectedCategory, status),
+                        filter: buildFilter(selectedCategory?.value, status),
                     },
                 });
                 Swal.fire('Deleted!', 'Your files have been deleted.', 'success');
@@ -1206,7 +1213,15 @@ const Index = () => {
 
                 {/* Category Dropdown */}
                 <div className="flex-1">
-                    <select className="form-select w-full" value={selectedCategory} onChange={handleCategoryChange}>
+                    <CategorySelect
+                        queryFunc={fetchCategories} // Pass the function to fetch categories
+                        selectedCategory={selectedCategory} // Use 'selectedCategory' instead of 'value'
+                        onCategoryChange={(data) => handleCategoryChange(data)} // Use 'onCategoryChange' instead of 'onChange'
+                        placeholder="Select category"
+                        isMulti={false}
+                        clearable={true}
+                    />
+                    {/* <select className="form-select w-full" value={selectedCategory} onChange={handleCategoryChange}>
                         <option value="">Select a Category</option>
                         {parentLists.map((parent) => (
                             <React.Fragment key={parent.id}>
@@ -1218,7 +1233,7 @@ const Index = () => {
                                 ))}
                             </React.Fragment>
                         ))}
-                    </select>
+                    </select> */}
                 </div>
 
                 {/* Status Dropdown */}
@@ -1300,6 +1315,9 @@ const Index = () => {
                 ) : (
                     <DataTable
                         className="table-hover whitespace-nowrap"
+                        style={{
+                            overflow: 'visible',
+                        }}
                         records={recordsData}
                         columns={[
                             {

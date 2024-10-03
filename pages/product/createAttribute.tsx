@@ -10,8 +10,9 @@ import IconLoader from '@/components/Icon/IconLoader';
 import { useRouter } from 'next/router';
 import { useMutation } from '@apollo/client';
 import { CREATE_ATTRIBUTE } from '@/query/product';
+import PrivateRouter from '@/components/Layouts/PrivateRouter';
 
-export default function createAttribute() {
+const createAttribute = () => {
     const router = useRouter();
 
     const [state, setState] = useSetState({
@@ -214,4 +215,5 @@ export default function createAttribute() {
             />
         </>
     );
-}
+};
+export default PrivateRouter(createAttribute);

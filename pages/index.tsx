@@ -1502,7 +1502,7 @@ const Index = () => {
                                                     <Select value={initialCatVal} onChange={(e: any) => setInitialCatVal(e)} options={initialCatOption} placeholder="Select categories..." />
                                                     {initialCatVal?.value == 'change to' && (
                                                         <div className="mt-4">
-                                                            <Select
+                                                            {/* <Select
                                                                 isMulti
                                                                 value={selectedCat}
                                                                 onChange={(e: any) => {
@@ -1512,6 +1512,16 @@ const Index = () => {
                                                                 options={categoryOption}
                                                                 placeholder="Select categories..."
                                                                 // className="form-select"
+                                                            /> */}
+                                                            <CategorySelect
+                                                                queryFunc={fetchCategories} // Pass the function to fetch categories
+                                                                placeholder="Select categories"
+                                                                // title="Categories"
+                                                                selectedCategory={selectedCat}
+                                                                onCategoryChange={(e: any) => {
+                                                                    setSelectedCat(e);
+                                                                    setBulkCatError('');
+                                                                }}
                                                             />
                                                             {bulkCatError && <ErrorMessage message={bulkCatError} />}
                                                         </div>

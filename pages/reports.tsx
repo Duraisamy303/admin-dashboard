@@ -30,6 +30,7 @@ import {
     COUNTRY_LIST,
     CUSTOMER_REPORT_LIST,
     GUEST_LIST,
+    NEW_PARENT_CATEGORY_LIST,
     PARENT_CATEGORY_LIST,
     PRODUCT_BY_NAME,
     SALES_BY_CATEGORY,
@@ -42,6 +43,7 @@ import Select from 'react-select';
 import moment from 'moment';
 import CommonLoader from './elements/commonLoader';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
+import CategorySelect from '@/components/CategorySelect';
 const ReactApexChart = dynamic(() => import('react-apexcharts'), {
     ssr: false,
 });
@@ -74,6 +76,14 @@ const Reports = () => {
     const { data: country } = useQuery(COUNTRY_LIST);
 
     const { data: parentList, error: parentListError, refetch: parentListRefetch } = useQuery(PARENT_CATEGORY_LIST);
+
+    const { refetch: categoryRefetch } = useQuery(NEW_PARENT_CATEGORY_LIST, {
+        variables: { channel: 'india-channel' },
+    });
+
+    const fetchCategories = async (variables) => {
+        return await categoryRefetch(variables);
+    };
 
     const [state, setState] = useSetState({
         orderSubMenu: 'Sales by date',
@@ -1823,13 +1833,21 @@ const Reports = () => {
                                         <div className="mb-4">
                                             <button className="flex w-full items-center justify-between bg-gray-200 p-4 text-lg font-medium dark:bg-gray-800"> Categories</button>
                                             <div className="border border-t-0 border-gray-300 p-4 dark:border-gray-700">
-                                                <Select
+                                                {/* <Select
                                                     isMulti
                                                     value={state.selectedCategory}
                                                     onChange={(data: any) => setState({ selectedCategory: data })}
                                                     options={state.categoryList}
                                                     placeholder="Select categories..."
                                                     className="form-select"
+                                                /> */}
+
+                                                <CategorySelect
+                                                    queryFunc={fetchCategories} // Pass the function to fetch categories
+                                                    placeholder="Select categories"
+                                                    title="Categories"
+                                                    selectedCategory={state.selectedCategory}
+                                                    onCategoryChange={(data: any) => setState({ selectedCategory: data })}
                                                 />
 
                                                 {/* <button type="button" className="btn btn-primary mt-3 h-9" onClick={() => getSalesByCategory(state.selectedCategory)}>
@@ -2073,13 +2091,20 @@ const Reports = () => {
                                     <div className="mb-4">
                                         <button className="flex w-full items-center justify-between bg-gray-200 p-4 text-lg font-medium dark:bg-gray-800"> Categories</button>
                                         <div className="border border-t-0 border-gray-300 p-4 dark:border-gray-700">
-                                            <Select
+                                            {/* <Select
                                                 placeholder="Select categories"
                                                 options={state.categoryList}
                                                 value={state.analysisSelectedCategory}
                                                 onChange={(data: any) => setState({ analysisSelectedCategory: data })}
                                                 isSearchable={true}
                                                 isMulti
+                                            /> */}
+                                            <CategorySelect
+                                                queryFunc={fetchCategories} // Pass the function to fetch categories
+                                                placeholder="Select categories"
+                                                title="Categories"
+                                                selectedCategory={state.analysisSelectedCategory}
+                                                onCategoryChange={(data: any) => setState({ analysisSelectedCategory: data })}
                                             />
                                         </div>
                                     </div>

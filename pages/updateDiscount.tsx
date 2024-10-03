@@ -17,6 +17,7 @@ import {
     COUPON_META_DATA,
     CREATE_COUPEN,
     DISCOUNT_DETAILS,
+    NEW_PARENT_CATEGORY_LIST,
     PRODUCT_BY_NAME,
     REMOVE_DISCOUNT_DATA,
     REMOVE_TO_COUPON,
@@ -31,6 +32,7 @@ import {
 import { Description } from '@headlessui/react/dist/components/description/description';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import IconLoader from '@/components/Icon/IconLoader';
+import CategorySelect from '@/components/CategorySelect';
 
 const EditCoupon = () => {
     const router = useRouter();
@@ -44,6 +46,14 @@ const EditCoupon = () => {
 
     const [assignDataRefetch, { loading: assignLoading }] = useMutation(ASSIGN_DISCOUNT);
     const [metaData, { loading: metaLoading }] = useMutation(UPDATE_DISCOUNT_METADATA);
+
+    const { refetch: categoryRefetch } = useQuery(NEW_PARENT_CATEGORY_LIST, {
+        variables: { channel: 'india-channel' },
+    });
+
+    const fetchCategories = async (variables) => {
+        return await categoryRefetch(variables);
+    };
 
     const [state, setState] = useSetState({
         couponName: '',
@@ -426,7 +436,14 @@ const EditCoupon = () => {
                         />
                     </div>
                     <div className="col-6 md:w-6/12">
-                        <label htmlFor="name" className="block text-lg font-medium text-gray-700">
+                        <CategorySelect
+                            queryFunc={fetchCategories} // Pass the function to fetch categories
+                            placeholder="Select categories"
+                            title="Categories"
+                            selectedCategory={state.selectedCategory}
+                            onCategoryChange={(data: any) => setState({ selectedCategory: data })}
+                        />
+                        {/* <label htmlFor="name" className="block text-lg font-medium text-gray-700">
                             Categories
                         </label>
                         <Select
@@ -435,8 +452,8 @@ const EditCoupon = () => {
                             value={state.selectedCategory}
                             onChange={(data: any) => setState({ selectedCategory: data })}
                             isSearchable={true}
-                            isMulti={true}
-                        />
+                            isMulti={true} */}
+                        {/* /> */}
                     </div>
                 </div>
 

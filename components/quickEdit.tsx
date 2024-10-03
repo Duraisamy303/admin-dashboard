@@ -59,8 +59,6 @@ export default function QuickEdit(props: any) {
         variantError: [],
     });
 
-    console.log('menuOrder: ', state.menuOrder);
-
     useEffect(() => {
         getProductDetails();
         tags_list();
@@ -110,10 +108,7 @@ export default function QuickEdit(props: any) {
 
     const tags_list = async () => {
         try {
-            const res: any = await tagsListRefetch({
-                variables: { channel: 'india-channel', id: data?.id },
-            });
-
+            const res: any = await tagsListRefetch({ channel: 'india-channel', id: data?.id, first: 100 });
             if (res?.data?.tags?.edges?.length > 0) {
                 const list = res?.data?.tags?.edges;
                 const dropdownData = list?.map((item: any) => {

@@ -58,7 +58,6 @@ const Index = () => {
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [status, setStatus] = useState('');
     const [parentLists, setParentLists] = useState([]);
-    console.log('parentLists: ', parentLists);
     const [categoryOption, setCategoryOption] = useState([]);
     const [initialCatOption, setInitialCatOption] = useState([]);
     const [initialCatVal, setInitialCatVal] = useState({
@@ -134,7 +133,7 @@ const Index = () => {
         variables: { channel: 'india-channel' },
     });
     const { data: tagsList, refetch: tagListRefetch } = useQuery(PRODUCT_LIST_TAGS, {
-        variables: { channel: 'india-channel' },
+        variables: { channel: 'india-channel', first: 100 },
     });
 
     const fetchCategories = async (variables) => {

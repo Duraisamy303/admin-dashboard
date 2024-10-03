@@ -71,7 +71,6 @@ import {
     resizingImage,
     sampleParams,
     showDeleteAlert,
- 
 } from '@/utils/functions';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import Modal from '@/components/Modal';
@@ -378,7 +377,7 @@ const ProductAdd = () => {
     }, [searchCrossell]);
 
     const { data: tagsList, refetch: tagListRefetch } = useQuery(PRODUCT_LIST_TAGS, {
-        variables: { channel: 'india-channel' },
+        variables: { channel: 'india-channel', first: 100 },
     });
 
     const { data: collection_list } = useQuery(COLLECTION_LIST, {

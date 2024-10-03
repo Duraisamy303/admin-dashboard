@@ -62,6 +62,7 @@ import {
     addNewMediaFile,
     capitalizeFLetter,
     deleteImagesFromS3,
+    formatOptions,
     getFileNameFromUrl,
     getFileType,
     getImageDimensions,
@@ -362,12 +363,11 @@ const ProductAdd = () => {
         }
     };
 
-    // useEffect(() => {
-    //     const getparentCategoryList = parentList?.categories?.edges;
-    //     const options = formatOptions(getparentCategoryList);
-    //     setNewCatParentLists(getparentCategoryList);
-    //     setParentLists(options);
-    // }, [parentList]);
+    useEffect(() => {
+        const getparentCategoryList = parentList?.categories?.edges;
+        // const options = formatOptions(getparentCategoryList);
+        setNewCatParentLists(getparentCategoryList);
+    }, [parentList]);
 
     useEffect(() => {
         getProductForUpsells();
@@ -2577,6 +2577,7 @@ const ProductAdd = () => {
                                 </div>
 
                                 <div>
+                                    
                                     <label htmlFor="parentCategory">Parent Category</label>
                                     <select name="parentCategory" className="form-select" value={formData.parentCategory} onChange={handleCatChange}>
                                         <option value="">Open this select</option>

@@ -1914,7 +1914,8 @@ const Editorder = () => {
                                                     </td>
                                                     {formData?.billing?.state !== '' && formData?.shipping?.state == 'Tamil Nadu' ? (
                                                         <td>
-                                                            <div>{`SGST: ${formatCurrency(item?.unitPrice?.tax?.currency)}${addCommasToNumber(item?.unitPrice?.tax?.amount / 2)}`}</div><span className='ml-10'>+</span>
+                                                            <div>{`SGST: ${formatCurrency(item?.unitPrice?.tax?.currency)}${addCommasToNumber(item?.unitPrice?.tax?.amount / 2)}`}</div>
+                                                            <span className="ml-10">+</span>
                                                             <div>{`CSGT: ${formatCurrency(item?.unitPrice?.tax?.currency)}${addCommasToNumber(item?.unitPrice?.tax?.amount / 2)}`}</div>
                                                         </td>
                                                     ) : (
@@ -1971,14 +1972,10 @@ const Editorder = () => {
                                         <div>{orderData?.paymentMethod?.name == 'Cash On delivery' ? 'COD Fee:' : 'Shipping:'}</div>
                                         <div>
                                             {orderData?.paymentMethod?.name == 'Cash On delivery' ? (
-                                                <div className="ml-[94px] items-end">{`${formatCurrency(orderData?.shippingPrice?.gross?.currency)}350.00`}</div>
+                                                <div className="ml-[94px] items-end">{`${formatCurrency(orderData?.subtotal?.gross?.currency)}${orderData?.codAmount}`}</div>
                                             ) : (
                                                 <div className="ml-[94px] items-end">
-                                                    {`${formatCurrency(orderData?.shippingPrice?.gross?.currency)}${
-                                                        isGiftWrap
-                                                            ? `${addCommasToNumber(orderData?.shippingPrice?.gross?.amount) - 50}.00`
-                                                            : addCommasToNumber(orderData?.shippingPrice?.gross?.amount)
-                                                    }`}
+                                                    {`${formatCurrency(orderData?.shippingPrice?.gross?.currency)}${addCommasToNumber(orderData?.shippingPrice?.gross?.amount)}`}
                                                 </div>
                                             )}
                                         </div>
@@ -1987,7 +1984,7 @@ const Editorder = () => {
                                         <div className="mt-4 flex  justify-between">
                                             <div>Gift Wrap:</div>
                                             <div>
-                                                <div className="ml-[94px] items-end">{`₹50.00`}</div>
+                                                <div className="ml-[94px] items-end">{`${formatCurrency(orderData?.subtotal?.gross?.currency)}${orderData?.giftWrapAmount}`}</div>
                                             </div>
                                         </div>
                                     )}

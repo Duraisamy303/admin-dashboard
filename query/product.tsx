@@ -8379,6 +8379,8 @@ export const GET_ORDER_DETAILS = gql`
     fragment OrderDetails on Order {
         id
         token
+        codAmount
+        giftWrapAmount
         ...Metadata
         billingAddress {
             ...Address

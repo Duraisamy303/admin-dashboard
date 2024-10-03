@@ -225,35 +225,44 @@ export default function QuickEdit(props: any) {
             crosssells = state.productData?.getCrosssells?.map((item: any) => item?.productId);
         }
 
-        let finish = [];
-        if (state.productData?.productFinish?.length > 0) {
-            finish = state.productData?.productFinish?.map((item: any) => item.id);
-        }
+        // let finish = [];
+        // if (state.productData?.productFinish?.length > 0) {
+        //     finish = state.productData?.productFinish?.map((item: any) => item.id);
+        // }
 
-        let design = [];
-        if (state.productData?.prouctDesign?.length > 0) {
-            design = state.productData?.prouctDesign?.map((item: any) => item.id);
-        }
+        // let design = [];
+        // if (state.productData?.prouctDesign?.length > 0) {
+        //     design = state.productData?.prouctDesign?.map((item: any) => item.id);
+        // }
 
-        let style = [];
-        if (state.productData?.productstyle?.length > 0) {
-            style = state.productData?.productstyle?.map((item: any) => item.id);
-        }
+        // let style = [];
+        // if (state.productData?.productstyle?.length > 0) {
+        //     style = state.productData?.productstyle?.map((item: any) => item.id);
+        // }
 
-        let stone = [];
-        if (state.productData?.productStoneType?.length > 0) {
-            stone = state.productData?.productStoneType?.map((item: any) => item.id);
-        }
+        // let stone = [];
+        // if (state.productData?.productStoneType?.length > 0) {
+        //     stone = state.productData?.productStoneType?.map((item: any) => item.id);
+        // }
 
-        let size = [];
-        if (state.productData?.productSize?.length > 0) {
-            size = state.productData?.productSize?.map((item: any) => item.id);
-        }
+        // let size = [];
+        // if (state.productData?.productSize?.length > 0) {
+        //     size = state.productData?.productSize?.map((item: any) => item.id);
+        // }
 
+        const finalArray = state.productData?.attributes?.reduce((acc, attr) => {
+            if (attr?.values?.length > 0) {
+                acc.push({
+                    id: attr?.attribute?.id,
+                    values: attr?.values?.map((value) => value?.slug), // extracting the slug of each value
+                });
+            }
+            return acc;
+        }, []);
         const tagId = state.tags?.map((item) => item.value) || [];
 
         const input = {
-            attributes: [],
+            attributes: finalArray,
             category: state.categories?.map((item) => item?.value),
             collections: state.productData?.collections.map((item) => item.id),
             tags: tagId,
@@ -268,11 +277,11 @@ export default function QuickEdit(props: any) {
             crosssells,
             slug: state.productData?.slug,
             order_no: state.menuOrder,
-            prouctDesign: design,
-            productstyle: style,
-            productFinish: finish,
-            productStoneType: stone,
-            productSize: size,
+            // prouctDesign: design,
+            // productstyle: style,
+            // productFinish: finish,
+            // productStoneType: stone,
+            // productSize: size,
         };
 
         const res = await updateProduct({

@@ -1,4 +1,4 @@
-import { CATEGORY_LIST, PARENT_CATEGORY_LIST, PRODUCT_EXPORT } from '@/query/product';
+import { CATEGORY_LIST, NEW_PARENT_CATEGORY_LIST, PARENT_CATEGORY_LIST, PRODUCT_EXPORT } from '@/query/product';
 import { Failure, downloadExlcel, useSetState } from '@/utils/functions';
 import { useQuery } from '@apollo/client';
 import moment from 'moment';
@@ -8,6 +8,9 @@ import Loader from './elements/loader';
 import IconLoader from '@/components/Icon/IconLoader';
 import { useRouter } from 'next/router';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
+import FileSaver from 'file-saver';
+import XLSX from 'sheetjs-style';
+import CategorySelect from '@/components/CategorySelect';
 
 const Product_export = () => {
     const { data: exportData, refetch: exportDatarefetch } = useQuery(PRODUCT_EXPORT);
@@ -26,11 +29,19 @@ const Product_export = () => {
             channel: 'india-channel',
         },
     });
+    const { refetch: categoryRefetch } = useQuery(NEW_PARENT_CATEGORY_LIST, {
+        variables: { channel: 'india-channel' },
+    });
+
+
+
+    const fetchCategories = async (variables) => {
+        return await categoryRefetch(variables);
+    };
 
     const { data: parentList } = useQuery(PARENT_CATEGORY_LIST, {
         variables: { channel: 'india-channel' },
     });
-
 
     const ArrayToString = (array) => {
         let label = '';
@@ -56,17 +67,30 @@ const Product_export = () => {
         return label;
     };
 
+    const downloadExcel = (excelData: any, fileName: any, headers: string[]) => {
+        const filetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; charset=utf-8';
+        const fileExtension = '.xlsx';
+        const ws = XLSX.utils.json_to_sheet(excelData, { header: headers }); // Specify the header order
+        const wb = XLSX.utils.book_new(); // Create a new workbook
+        XLSX.utils.book_append_sheet(wb, ws, 'data'); // Append the sheet to the workbook
+
+        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const data = new Blob([excelBuffer], { type: filetype });
+        FileSaver.saveAs(data, fileName + fileExtension);
+    };
+
     const generateCSV = async () => {
         try {
             setState({ loading: true });
             let hasNextPage = true;
             let after = null;
             let allData = [];
+            let attributeColumns = new Set(); // Set to track unique attribute names across all products
 
             while (hasNextPage) {
                 let cat = [];
                 if (state.category) {
-                    cat = [state.category];
+                    cat = [state.category?.value];
                 }
                 const res = await exportDatarefetch({
                     first: 200,
@@ -80,73 +104,96 @@ const Product_export = () => {
                 if (!pageInfo || !edges) {
                     console.error('Invalid response structure:', res);
                     setState({ loading: false });
-
                     throw new Error('Invalid response structure');
                 }
 
-                allData = [...allData, ...edges];
-                after = pageInfo.endCursor;
-                hasNextPage = pageInfo.hasNextPage;
+                allData = [
+                    ...allData,
+                    ...edges.map((item) => {
+                        const data = item?.node;
+                        const product = data?.product;
+
+                        let res: any = {
+                            ID: product?.productId,
+                            SKU: data?.sku,
+                            Name: product?.name,
+                            "Tax Class": product?.taxClass?.name,
+                            'In Stock': data?.stocks?.length > 0 ? (data?.stocks[0]?.quantity > 0 ? 'Yes' : 'No') : 'No',
+                            Stock: data?.stocks?.length > 0 ? data?.stocks[0]?.quantity : 0,
+                            Price: data?.pricing?.price?.gross?.amount,
+                            Category: product?.category?.map((cat) => cat.name)?.join(', '),
+                            Tags: ArrayToString(product?.tags),
+                            Images: ArrayToImg(product?.media),
+                            Upsells: ArrayToString(product?.getUpsells),
+                            'Cross Sells': ArrayToString(product?.getCrosssells),
+                            Position: product?.orderNo,
+                            Published: IsPublished(product?.channelListings),
+                        };
+
+                        const metadata = product?.metadata || [];
+                        const shortDescription = metadata.find((meta) => meta?.key === 'short_description')?.value || '';
+                        const description = product?.description || '';
+                        res['Short Description'] = shortDescription;
+                        res['Description'] = description;
+
+                        const attributes = product?.attributes || [];
+                        attributes.forEach((attr) => {
+                            const attributeName = attr?.attribute?.name;
+                            const attributeValues = attr?.values?.map((val) => val?.name).join(', ') || '';
+
+                            if (attributeName) {
+                                attributeColumns?.add(attributeName);
+
+                                res[attributeName] = attributeValues;
+                            }
+                        });
+
+                        return res;
+                    }),
+                ];
+
+                after = pageInfo?.endCursor;
+                hasNextPage = pageInfo?.hasNextPage;
             }
+
             setState({ loading: false });
 
-            const excelData = allData?.map((item: any) => {
-                const data = item?.node;
-                const product = data?.product;
-                let res: any = {
-                    ID: product?.productId,
-                    SKU: data?.sku,
-                    Name: product?.name,
-                    // TaxStatus: '',
-                    TaxClass: product?.taxClass?.name,
-                    'In Stock': data?.stocks?.length > 0 ? (data?.stocks[0]?.quantity > 0 ? 'Yes' : 'No') : 'No',
-                    Stock: data?.stocks?.length > 0 ? data?.stocks[0]?.quantity : 0,
-                    Price: data?.pricing?.price?.gross?.amount,
-                    Category: product?.category?.name,
-                    Tags: ArrayToString(product?.tags),
-                    Images: ArrayToImg(product?.media),
-                    Upsells: ArrayToString(product?.getUpsells),
-                    'Cross-sells': ArrayToString(product?.getCrosssells),
-                    Position: product?.orderNo,
-                    Sizes: ArrayToString(product?.productSize),
-                    'Item Types': ArrayToString(product?.productItemtype),
-                    'Stone Types': ArrayToString(product?.productStoneType),
-                    Designs: ArrayToString(product?.prouctDesign),
-                    Styles: ArrayToString(product?.productstyle),
-                    Finishes: ArrayToString(product?.productFinish),
-                    'Stone Colors': ArrayToString(product?.productStonecolor),
-                    Published: IsPublished(product?.channelListings),
-                };
+            const attributeColumnArray: any = Array.from(attributeColumns);
 
-                if (product?.metadata?.length > 0) {
-                    const shortDescription = product?.metadata?.find((meta) => meta.key === 'short_description')?.value;
-                    const description = product?.description;
-                    if (description) {
-                        res.Description = description;
-                    } else {
-                        res.Description = '';
-                    }
-                    if (shortDescription) {
-                        res['Short description'] = shortDescription;
-                    } else {
-                        res['Short description'] = '';
-                    }
-                } else {
-                    res['Short description'] = '';
-                    res.Description = '';
-                }
+            if (allData?.length > 0) {
+                const excelData = allData?.map((item) => {
+                    attributeColumnArray?.forEach((attr) => {
+                        if (!(attr in item)) {
+                            item[attr] = ''; 
+                        }
+                    });
+                    return item;
+                });
 
-                return res;
-            });
-
-            if (excelData?.length > 0) {
-                downloadExlcel(excelData, 'Export Products');
+                downloadExcel(excelData, 'Export Products', [
+                    'ID',
+                    'SKU',
+                    'Name',
+                    'Tax Class',
+                    'In Stock',
+                    'Stock',
+                    'Price',
+                    'Category',
+                    'Tags',
+                    'Images',
+                    'Upsells',
+                    'Cross Sells',
+                    'Position',
+                    'Short Description',
+                    'Description',
+                    'Published',
+                    ...attributeColumnArray, // Include dynamic attribute columns
+                ]);
             } else {
                 Failure('No Data Found');
             }
         } catch (error) {
             setState({ loading: false });
-
             console.error('Error:', error);
         }
     };
@@ -165,8 +212,16 @@ const Product_export = () => {
                                 Which product category should be exported?
                             </label>
                         </div>
-                        <div className="mb-5">
-                            <select className="form-select flex-1" value={state.category} onChange={(e) => setState({ category: e.target.value })}>
+                        <div className="mb-5 w-[30%]">
+                        <CategorySelect
+                            queryFunc={fetchCategories} // Pass the function to fetch categories
+                            placeholder="Select Category"
+                            // title="Categories"
+                            selectedCategory={state.category}
+                            onCategoryChange={(data: any) => setState({ category: data })}
+                            isMulti={false}
+                        />
+                            {/* <select className="form-select flex-1" value={state.category} onChange={(e) => setState({ category: e.target.value })}>
                                 <option value="">Select a Categories </option>
                                 {parentList?.categories?.edges?.map((item: any) => {
                                     return (
@@ -180,7 +235,7 @@ const Product_export = () => {
                                         </>
                                     );
                                 })}
-                            </select>
+                            </select> */}
                         </div>
                     </div>
                     <div className="flex items-center justify-center gap-5">

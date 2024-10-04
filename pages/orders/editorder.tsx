@@ -957,7 +957,6 @@ const Editorder = () => {
 
     const generatePayslip = async (country?: any) => {
         try {
-
             if (slipNumber == '') {
                 setSlipNumberError('This field is required');
             } else if (slipDate == '') {
@@ -1381,7 +1380,7 @@ const Editorder = () => {
                                                     <>
                                                         <p className="mt-3 font-semibold">Email Address:</p>
                                                         <p>
-                                                            <a href="mailto:mail2inducs@gmail.com" className="text-primary underline">
+                                                            <a href={`mailto:${formData?.billing?.email}`} className="text-primary underline">
                                                                 {formData?.billing?.email}
                                                             </a>
                                                         </p>
@@ -1391,7 +1390,7 @@ const Editorder = () => {
                                                     <>
                                                         <p className="mt-3 font-semibold">Phone:</p>
                                                         <p>
-                                                            <a href="tel:01803556656" className="text-primary underline">
+                                                            <a href={`tel:${formData?.billing?.phone}`} className="text-primary underline">
                                                                 {formData?.billing?.phone}
                                                             </a>
                                                         </p>
@@ -1649,7 +1648,7 @@ const Editorder = () => {
                                                     <>
                                                         <p className="mt-3 font-semibold">Email Address:</p>
                                                         <p>
-                                                            <a href="mailto:mail2inducs@gmail.com" className="text-primary underline">
+                                                            <a href={`mailto:${formData?.shipping?.email}`} className="text-primary underline">
                                                                 {formData?.shipping?.email}
                                                             </a>
                                                         </p>
@@ -1659,7 +1658,7 @@ const Editorder = () => {
                                                     <>
                                                         <p className="mt-3 font-semibold">Phone:</p>
                                                         <p>
-                                                            <a href="tel:01803556656" className="text-primary underline">
+                                                            <a href={`tel:${formData?.shipping?.phone}`} className="text-primary underline">
                                                                 {formData?.shipping?.phone}
                                                             </a>
                                                         </p>
@@ -2285,7 +2284,6 @@ const Editorder = () => {
                                                 setSlipNumber(orderDetails?.order?.metadata[1]?.value);
                                                 setIsOpenPayslip(true);
                                             }
-                                           
                                         }}
                                     >
                                         <IconEdit />

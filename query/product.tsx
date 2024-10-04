@@ -2150,6 +2150,16 @@ export const PRODUCT_EXPORT = gql`
                             isPublished
                         }
                         productId
+                        attributes {
+                            attribute {
+                                name
+                                slug
+                            }
+                            values {
+                                name
+                                slug
+                            }
+                        }
                     }
                 }
             }
@@ -16028,35 +16038,35 @@ export const PARENT_CATEGORY_LIST = gql`
 `;
 
 export const NEW_PARENT_CATEGORY_LIST = gql`
-query MyQuery($first: Int, $after: String = "") {
-    categories(level: 0, first: $first, after: $after) {
-      edges {
-        node {
-          id
-          name
-          level
-          description
-          children(first: $first, after: $after) {
+    query MyQuery($first: Int, $after: String = "") {
+        categories(level: 0, first: $first, after: $after) {
             edges {
-              node {
-                id
-                name
-                description
-              }
+                node {
+                    id
+                    name
+                    level
+                    description
+                    children(first: $first, after: $after) {
+                        edges {
+                            node {
+                                id
+                                name
+                                description
+                            }
+                        }
+                    }
+                }
             }
-          }
+            pageInfo {
+                endCursor
+                hasNextPage
+                startCursor
+                hasPreviousPage
+            }
+            totalCount
         }
-      }
-      pageInfo {
-        endCursor
-        hasNextPage
-        startCursor
-        hasPreviousPage
-      }
-      totalCount
     }
-  }
-  `;
+`;
 
 export const CONFIRM_ORDER = gql`
     mutation OrderConfirm($id: ID!) {

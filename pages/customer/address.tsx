@@ -344,6 +344,7 @@ const Address = () => {
                                     <p style={{ color: 'gray', marginBottom: '0px' }}>{address.city}</p>
                                     <p style={{ color: 'gray', marginBottom: '0px' }}>{address.countryArea}</p>
                                     <p style={{ color: 'gray', marginBottom: '0px' }}>{address.country?.country}</p>
+                                    <p style={{ color: 'gray', marginBottom: '0px' }}>{address?.postalCode}</p>
                                 </div>
                                 <div style={{ textAlign: 'right' }} ref={dropdownRef}>
                                     <button
@@ -407,7 +408,13 @@ const Address = () => {
                                                             code: address?.country?.code,
                                                         });
 
-                                                        const filter = res?.data?.addressValidationRules?.countryAreaChoices?.find((item: any) => item.raw == address?.countryArea);
+                                                        let filter;
+                                                        if (address?.country?.code == 'IN') {
+                                                            filter = res?.data?.addressValidationRules?.countryAreaChoices?.find((item: any) => item.raw == address?.countryArea);
+                                                        }else{
+                                                            filter = res?.data?.addressValidationRules?.countryAreaChoices?.find((item: any) => item.verbose == address?.countryArea);
+
+                                                        }
 
                                                         setState({
                                                             isOpen: true,
@@ -479,12 +486,12 @@ const Address = () => {
                             </div>
                         </div>
 
-                        <div className="profile__input-box">
+                        {/* <div className="profile__input-box">
                             <div className="profile__input">
                                 <input name="email" type="text" className="form-input" placeholder="Enter your email" value={state.email} onChange={handleChange} />
                                 {state.errors.email && <p className="error-message mt-1 text-red-500">{state.errors.email}</p>}
                             </div>
-                        </div>
+                        </div> */}
 
                         <div className="profile__input-box">
                             <div className="profile__input">

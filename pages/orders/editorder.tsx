@@ -241,6 +241,9 @@ const Editorder = () => {
     const [slipLoading, setSlipLoading] = useState(false);
 
     const [slipNumber, setSlipNumber] = useState('');
+    const [slipNumberError, setSlipNumberError] = useState('');
+    const [slipDateError, setSlipDateError] = useState('');
+
     const [coupenAmt, setCoupenAmt] = useState(null);
 
     const [slipDate, setSlipDate] = useState('');
@@ -954,31 +957,39 @@ const Editorder = () => {
 
     const generatePayslip = async (country?: any) => {
         try {
-            setSlipLoading(true);
-            const res = await updatePayslip({
-                variables: {
-                    id,
-                    input: [
-                        {
-                            key: 'packing_slip_number:',
-                            value: slipNumber,
-                        },
-                        {
-                            key: 'packing_slip_date:',
-                            value: slipDate,
-                        },
-                    ],
-                    keysToDelete: [],
-                },
-            });
-            const response = await createPayslip({
-                variables: { orderId: id },
-            });
-            getOrderDetails();
-            setSlipLoading(false);
 
-            Success('Payslip updated Successfully');
-            setIsOpenPayslip(false);
+            if (slipNumber == '') {
+                setSlipNumberError('This field is required');
+            } else if (slipDate == '') {
+                setSlipDateError('This field is required');
+            } else {
+                setSlipLoading(true);
+                const res = await updatePayslip({
+                    variables: {
+                        id,
+                        input: [
+                            {
+                                key: 'packing_slip_number:',
+                                value: slipNumber,
+                            },
+                            {
+                                key: 'packing_slip_date:',
+                                value: slipDate,
+                            },
+                        ],
+                        keysToDelete: [],
+                    },
+                });
+                const response = await createPayslip({
+                    variables: { orderId: id },
+                });
+                getOrderDetails();
+                setSlipLoading(false);
+                setSlipDateError('');
+                setSlipNumberError('');
+                Success('Payslip updated Successfully');
+                setIsOpenPayslip(false);
+            }
         } catch (error) {
             setSlipLoading(false);
             console.log('error: ', error);
@@ -1361,7 +1372,8 @@ const Editorder = () => {
                                                         <>
                                                             <br /> {formData?.billing?.state}
                                                         </>
-                                                    )},
+                                                    )}
+                                                    ,
                                                     <br /> {formData?.billing?.countryArea},
                                                     <br /> {formData?.billing?.pincode}.
                                                 </p>
@@ -1628,7 +1640,8 @@ const Editorder = () => {
                                                         <>
                                                             <br /> {formData?.shipping?.state}
                                                         </>
-                                                    )},
+                                                    )}
+                                                    ,
                                                     <br /> {formData?.shipping?.countryArea},
                                                     <br /> {formData?.shipping?.pincode}.
                                                 </p>
@@ -2267,9 +2280,12 @@ const Editorder = () => {
                                         type="submit"
                                         // className="btn btn-outline-primary"
                                         onClick={() => {
-                                            setSlipDate(mintDateTime(slipDate));
-                                            setSlipNumber(slipNumber);
-                                            setIsOpenPayslip(true);
+                                            if (orderDetails?.order?.metadata?.length > 0) {
+                                                setSlipDate(mintDateTime(orderDetails?.order?.metadata[0]?.value));
+                                                setSlipNumber(orderDetails?.order?.metadata[1]?.value);
+                                                setIsOpenPayslip(true);
+                                            }
+                                           
                                         }}
                                     >
                                         <IconEdit />
@@ -2448,15 +2464,20 @@ const Editorder = () => {
             <Modal
                 addHeader={'Update Payslip'}
                 open={isOpenPayslip}
-                close={() => setIsOpenPayslip(false)}
+                close={() => {
+                    setSlipDateError('');
+                    setSlipNumberError('');
+                    setIsOpenPayslip(false);
+                }}
                 renderComponent={() => (
                     <div className="p-5 pb-7">
                         <form className="flex flex-col gap-3">
                             <div className=" w-full">
                                 <input type="text" className="form-input" placeholder="Slip Number" value={slipNumber} onChange={(e: any) => setSlipNumber(e.target.value)} />
+                                {slipNumberError && <div className="mt-1 text-danger">{slipNumberError}</div>}
                             </div>
 
-                            <div className="flex w-full">
+                            <div className=" w-full">
                                 <input
                                     type="datetime-local"
                                     min={getCurrentDateTime()}
@@ -2466,11 +2487,21 @@ const Editorder = () => {
                                     name="dateTimeCreated"
                                     className="form-input"
                                 />
+                                {slipDateError && <div className="mt-1 text-danger">{slipDateError}</div>}
+
                                 {/* <input type="text" className="form-input" placeholder="Slip Date" value={slipDate} onChange={(e: any) => slipDate(e.target.value)} /> */}
                             </div>
 
                             <div className="mt-8 flex items-center justify-end">
-                                <button type="button" className="btn btn-outline-danger gap-2" onClick={() => setIsOpenPayslip(false)}>
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-danger gap-2"
+                                    onClick={() => {
+                                        setSlipDateError('');
+                                        setSlipNumberError('');
+                                        setIsOpenPayslip(false);
+                                    }}
+                                >
                                     Cancel
                                 </button>
                                 <button type="button" onClick={() => generatePayslip()} className="btn btn-primary ltr:ml-4 rtl:mr-4">

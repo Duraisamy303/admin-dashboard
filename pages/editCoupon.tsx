@@ -28,6 +28,7 @@ import { Description } from '@headlessui/react/dist/components/description/descr
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import IconLoader from '@/components/Icon/IconLoader';
 import CategorySelect from '@/components/CategorySelect';
+import ProductSelect from '@/components/ProductSelect';
 
 const EditCoupon = () => {
     const router = useRouter();
@@ -42,10 +43,16 @@ const EditCoupon = () => {
     const [assignDataRefetch, { loading: assignLoading }] = useMutation(ASSIGN_TO_COUPON);
     const [metaData, { loading: metaLoading }] = useMutation(COUPON_META_DATA);
 
+    const { data, refetch: productListSearchRefetch, loading: productLoading } = useQuery(UPDATED_PRODUCT_PAGINATION);
+
     const { data: codeList, refetch: codeListRefetch } = useQuery(COUPON_CODES);
 
     const fetchCategories = async (variables) => {
         return await categorySearchRefetch(variables);
+    };
+
+    const fetchProducts = async (variables) => {
+        return await productListSearchRefetch(variables);
     };
 
     const [state, setState] = useSetState({
@@ -774,6 +781,21 @@ const EditCoupon = () => {
                         <>
                             <div className="mt-5 flex w-full gap-5">
                                 <div className="col-6 md:w-6/12">
+                                    {/* <ProductSelect
+                                        queryFunc={fetchProducts}
+                                        selectedCategory={state.selectedProduct}
+                                        onCategoryChange={(data) => setState({ selectedProduct: data })}
+                                        loading={productLoading}
+                                    /> */}
+
+                                    <ProductSelect
+                                        loading={productLoading}
+                                        queryFunc={fetchProducts}
+                                        selectedCategory={state.selectedProduct}
+                                        onCategoryChange={(data) => setState({ selectedProduct: data })}
+                                    />
+
+                                    {/* 
                                     <label htmlFor="name" className="block text-lg font-medium text-gray-700">
                                         Products
                                     </label>
@@ -786,7 +808,7 @@ const EditCoupon = () => {
                                         isMulti={true}
                                         isClearable
                                         onInputChange={(inputValue) => setState({ searchProduct: inputValue })}
-                                    />
+                                    /> */}
                                 </div>
                                 <div className="col-6 md:w-6/12">
                                     {/* <label htmlFor="name" className="block text-lg font-medium text-gray-700">

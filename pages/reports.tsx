@@ -38,12 +38,14 @@ import {
     SALES_BY_DATE,
     SALES_BY_PRODUCT,
     SALES_BY_SINGLE_PRODUCT,
+    UPDATED_PRODUCT_PAGINATION,
 } from '@/query/product';
 import Select from 'react-select';
 import moment from 'moment';
 import CommonLoader from './elements/commonLoader';
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import CategorySelect from '@/components/CategorySelect';
+import ProductSelect from '@/components/ProductSelect';
 const ReactApexChart = dynamic(() => import('react-apexcharts'), {
     ssr: false,
 });
@@ -77,12 +79,18 @@ const Reports = () => {
 
     const { data: parentList, error: parentListError, refetch: parentListRefetch } = useQuery(PARENT_CATEGORY_LIST);
 
+    const { data, refetch: productListSearchRefetch, loading: productLoading } = useQuery(UPDATED_PRODUCT_PAGINATION);
+
     const { refetch: categoryRefetch } = useQuery(NEW_PARENT_CATEGORY_LIST, {
         variables: { channel: 'india-channel' },
     });
 
     const fetchCategories = async (variables) => {
         return await categoryRefetch(variables);
+    };
+
+    const fetchProducts = async (variables) => {
+        return await productListSearchRefetch(variables);
     };
 
     const [state, setState] = useSetState({
@@ -1747,7 +1755,15 @@ const Reports = () => {
                                                 {state.activeAccordion === 'search' && (
                                                     <div className="border border-t-0 border-gray-300 p-4 dark:border-gray-700">
                                                         <div className="pl-4">
-                                                            <Select
+                                                            <ProductSelect
+                                                                loading={productLoading}
+                                                                queryFunc={fetchProducts}
+                                                                selectedCategory={state.productSearch}
+                                                                onCategoryChange={(data) => setState({ productSearch: data })}
+                                                                isMulti={false}
+                                                            />
+
+                                                            {/* <Select
                                                                 placeholder="Select a product"
                                                                 options={state.productList}
                                                                 value={state.productSearch}
@@ -1760,7 +1776,7 @@ const Reports = () => {
                                                                         getProductSearch(inputValue); // Only pass the actual input value
                                                                     }
                                                                 }}
-                                                            />
+                                                            /> */}
                                                         </div>
                                                         <div className="flex items-center justify-between">
                                                             <button type="button" className="btn btn-primary mt-3 h-9" onClick={() => getSalesBySingleProduct('search', state.productSearch?.value)}>

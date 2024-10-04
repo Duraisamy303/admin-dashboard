@@ -33,6 +33,7 @@ import { Description } from '@headlessui/react/dist/components/description/descr
 import PrivateRouter from '@/components/Layouts/PrivateRouter';
 import IconLoader from '@/components/Icon/IconLoader';
 import CategorySelect from '@/components/CategorySelect';
+import ProductSelect from '@/components/ProductSelect';
 
 const EditCoupon = () => {
     const router = useRouter();
@@ -51,8 +52,14 @@ const EditCoupon = () => {
         variables: { channel: 'india-channel' },
     });
 
+    const { data, refetch: productListSearchRefetch, loading: productLoading } = useQuery(UPDATED_PRODUCT_PAGINATION);
+
     const fetchCategories = async (variables) => {
         return await categoryRefetch(variables);
+    };
+
+    const fetchProducts = async (variables) => {
+        return await productListSearchRefetch(variables);
     };
 
     const [state, setState] = useSetState({
@@ -425,7 +432,7 @@ const EditCoupon = () => {
                         <label htmlFor="name" className="block text-lg font-medium text-gray-700">
                             Products
                         </label>
-                        <Select
+                        {/* <Select
                             placeholder="Select a product"
                             options={state.productList}
                             value={state.selectedProduct}
@@ -433,7 +440,8 @@ const EditCoupon = () => {
                             isSearchable={true}
                             isMulti={true}
                             onInputChange={(inputValue) => setState({ searchProduct: inputValue })}
-                        />
+                        /> */}
+                        <ProductSelect loading={productLoading} queryFunc={fetchProducts} selectedCategory={state.selectedProduct} onCategoryChange={(data) => setState({ selectedProduct: data })} />
                     </div>
                     <div className="col-6 md:w-6/12">
                         <CategorySelect

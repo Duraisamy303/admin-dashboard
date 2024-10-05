@@ -167,8 +167,7 @@ const Header = () => {
     const { t, i18n } = useTranslation();
 
     const signOutClick = () => {
-        localStorage.removeItem('token');
-
+        localStorage.removeItem('adminToken');
         router.replace('/auth/signin');
     };
     return (

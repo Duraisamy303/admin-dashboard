@@ -4,6 +4,7 @@ import IconTrashLines from './Icon/IconTrashLines';
 import {
     CREATE_VARIANT,
     DELETE_VARIENT,
+    NEW_PARENT_CATEGORY_LIST,
     PARENT_CATEGORY_LIST,
     PRODUCT_FULL_DETAILS,
     PRODUCT_LIST_TAGS,
@@ -15,6 +16,8 @@ import {
 import { useMutation, useQuery } from '@apollo/client';
 import Select from 'react-select';
 import IconLoader from './Icon/IconLoader';
+import TagSelect from './TagSelect';
+import CategorySelect from './CategorySelect';
 
 export default function QuickEdit(props: any) {
     const { data, updateList, closeExpand } = props;
@@ -30,6 +33,20 @@ export default function QuickEdit(props: any) {
 
     const { refetch: tagsListRefetch } = useQuery(PRODUCT_LIST_TAGS);
     const [updateProduct] = useMutation(UPDATE_PRODUCT);
+
+    const { refetch: categorySearchRefetch } = useQuery(NEW_PARENT_CATEGORY_LIST, {
+        variables: { channel: 'india-channel' },
+    });
+
+    const { refetch: tagRefetch, loading: tagloading } = useQuery(PRODUCT_LIST_TAGS);
+
+    const fetchCategories = async (variables) => {
+        return await categorySearchRefetch(variables);
+    };
+
+    const fetchTag = async (variables) => {
+        return await tagRefetch(variables);
+    };
 
     const [state, setState] = useSetState({
         name: '',
@@ -640,7 +657,9 @@ export default function QuickEdit(props: any) {
                                 <h5 className=" block text-lg font-medium text-gray-700">Product Tags</h5>
                             </div>
                             <div className="mb-5">
-                                <Select placeholder="Select an tags" isMulti options={state.tagsOption} value={state.tags} onChange={(data: any) => setState({ tags: data })} isSearchable={true} />
+                                <TagSelect loading={tagloading} queryFunc={fetchTag} selectedCategory={state.tags} onCategoryChange={(data) => setState({ tags: data })} />
+
+                                {/* <Select placeholder="Select an tags" isMulti options={state.tagsOption} value={state.tags} onChange={(data: any) => setState({ tags: data })} isSearchable={true} /> */}
                             </div>
                         </div>
                     </div>
@@ -650,14 +669,20 @@ export default function QuickEdit(props: any) {
                                 <h5 className=" block text-lg font-medium text-gray-700">Product Categories</h5>
                             </div>
                             <div className="mb-5">
-                                <Select
-                                    placeholder="Select an tags"
+                                <CategorySelect
+                                    queryFunc={fetchCategories} // Pass the function to fetch categories
+                                    selectedCategory={state.categories} // Use 'selectedCategory' instead of 'value'
+                                    onCategoryChange={(data) => setState({ categories: data })} // Use 'onCategoryChange' instead of 'onChange'
+                                    placeholder="Select categories"
+                                />
+                                {/* <Select
+                                    placeholder="Select Categories"
                                     isMulti
                                     options={state.categoriesOption}
                                     value={state.categories}
                                     onChange={(data: any) => setState({ categories: data })}
                                     isSearchable={true}
-                                />
+                                /> */}
                                 {state.error?.category && <p className="error-message mt-1 text-red-500">{state.error?.category}</p>}
                             </div>
                         </div>

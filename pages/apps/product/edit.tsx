@@ -96,6 +96,7 @@ import Image from 'next/image';
 import IconArrowBackward from '@/components/Icon/IconArrowBackward';
 import IconArrowForward from '@/components/Icon/IconArrowForward';
 import CategorySelect from '@/components/CategorySelect';
+import TagSelect from '@/components/TagSelect';
 
 const ProductEdit = (props: any) => {
     const router = useRouter();
@@ -238,8 +239,14 @@ const ProductEdit = (props: any) => {
         variables: { channel: 'india-channel' },
     });
 
+    const { refetch: tagRefetch, loading: tagloading } = useQuery(PRODUCT_LIST_TAGS);
+
     const fetchCategories = async (variables) => {
         return await categorySearchRefetch(variables);
+    };
+
+    const fetchTag = async (variables) => {
+        return await tagRefetch(variables);
     };
 
     const [addFormData] = useMutation(CREATE_PRODUCT);
@@ -2476,7 +2483,9 @@ const ProductEdit = (props: any) => {
                                 <h5 className=" block text-lg font-medium text-gray-700">Product Tags</h5>
                             </div>
                             <div className="mb-5">
-                                <Select placeholder="Select an tags" isMulti options={tagList} value={selectedTag} onChange={(data: any) => setSelectedTag(data)} isSearchable={true} />
+                                <TagSelect loading={tagloading} queryFunc={fetchTag} selectedCategory={selectedTag} onCategoryChange={(data) => setSelectedTag(data)} />
+
+                                {/* <Select placeholder="Select an tags" isMulti options={tagList} value={selectedTag} onChange={(data: any) => setSelectedTag(data)} isSearchable={true} /> */}
                             </div>
                         </div>
                     </div>

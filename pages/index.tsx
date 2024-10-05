@@ -40,6 +40,7 @@ import IconMenuReport from '@/components/Icon/Menu/IconMenuReport';
 import IconX from '@/components/Icon/IconX';
 import ErrorMessage from '@/components/Layouts/ErrorMessage';
 import CategorySelect from '@/components/CategorySelect';
+import TagSelect from '@/components/TagSelect';
 
 const Index = () => {
     const PAGE_SIZE = 20;
@@ -136,8 +137,14 @@ const Index = () => {
         variables: { channel: 'india-channel', first: 100 },
     });
 
+    const { refetch: tagRefetch, loading: tagloading } = useQuery(PRODUCT_LIST_TAGS);
+
     const fetchCategories = async (variables) => {
         return await categorySearchRefetch(variables);
+    };
+
+    const fetchTag = async (variables) => {
+        return await tagRefetch(variables);
     };
 
     const tableRef = useRef(null);
@@ -1535,14 +1542,16 @@ const Index = () => {
                                                     <Select value={initialTagVal} onChange={(e: any) => setInitialTagVal(e)} options={initialCatOption} placeholder="Select categories..." />
                                                     {initialTagVal?.value == 'change to' && (
                                                         <div className="mt-4">
-                                                            <Select
+                                                            <TagSelect loading={tagloading} queryFunc={fetchTag} selectedCategory={selectedTag} onCategoryChange={(data) => setSelectedTag(data)} />
+
+                                                            {/* <Select
                                                                 placeholder="Select Tags"
                                                                 options={tagOption}
                                                                 value={selectedTag}
                                                                 onChange={(data: any) => setSelectedTag(data)}
                                                                 isSearchable={true}
                                                                 isMulti
-                                                            />
+                                                            /> */}
                                                         </div>
                                                     )}
                                                 </div>

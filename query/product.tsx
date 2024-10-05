@@ -12316,8 +12316,8 @@ export const PRODUCT_DETAILS = gql`
 `;
 
 export const PRODUCT_LIST_TAGS = gql`
-    query TagList($first: Int, $last: Int, $before: String, $after: String) {
-        tags(first: $first, last: $last, before: $before, after: $after) {
+    query TagList($first: Int, $last: Int, $before: String, $after: String, $search: String = "") {
+        tags(first: $first, last: $last, before: $before, after: $after, search: $search) {
             edges {
                 node {
                     id

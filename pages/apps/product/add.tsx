@@ -84,6 +84,7 @@ import Image from 'next/image';
 import IconArrowBackward from '@/components/Icon/IconArrowBackward';
 import IconArrowForward from '@/components/Icon/IconArrowForward';
 import CategorySelect from '@/components/CategorySelect';
+import TagSelect from '@/components/TagSelect';
 
 const ProductAdd = () => {
     const router = useRouter();
@@ -277,6 +278,10 @@ const ProductAdd = () => {
         return await categorySearchRefetch(variables);
     };
 
+    const fetchTag = async (variables) => {
+        return await tagRefetch(variables);
+    };
+
     const { data: productSearch, refetch: productSearchRefetch } = useQuery(PRODUCT_BY_NAME);
 
     const [addNewImages] = useMutation(ADD_NEW_MEDIA_IMAGE);
@@ -380,6 +385,8 @@ const ProductAdd = () => {
     const { data: tagsList, refetch: tagListRefetch } = useQuery(PRODUCT_LIST_TAGS, {
         variables: { channel: 'india-channel', first: 100 },
     });
+
+    const { refetch: tagRefetch, loading:tagloading } = useQuery(PRODUCT_LIST_TAGS);
 
     const { data: collection_list } = useQuery(COLLECTION_LIST, {
         variables: sampleParams,
@@ -2136,7 +2143,9 @@ const ProductAdd = () => {
                                 <h5 className=" block text-lg font-medium text-gray-700">Product Tags</h5>
                             </div>
                             <div className="mb-5">
-                                <Select placeholder="Select an tags" options={tagList} value={selectedTag} onChange={(data: any) => setSelectedTag(data)} isSearchable={true} isMulti />
+                                <TagSelect  loading={tagloading} queryFunc={fetchTag} selectedCategory={selectedTag} onCategoryChange={(data) => setSelectedTag(data)} />
+
+                                {/* <Select placeholder="Select an tags" options={tagList} value={selectedTag} onChange={(data: any) => setSelectedTag(data)} /> */}
                             </div>
                             <p className="mt-5 cursor-pointer text-primary underline" onClick={() => setIsOpenTag(true)}>
                                 Add a new tag
@@ -2577,7 +2586,6 @@ const ProductAdd = () => {
                                 </div>
 
                                 <div>
-                                    
                                     <label htmlFor="parentCategory">Parent Category</label>
                                     <select name="parentCategory" className="form-select" value={formData.parentCategory} onChange={handleCatChange}>
                                         <option value="">Open this select</option>

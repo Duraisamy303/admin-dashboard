@@ -33,10 +33,10 @@ const ProductImport = () => {
             return;
         }
 
-        if (getCheckedName() == undefined) {
-            Failure('Please select updated products type');
-            return;
-        }
+        // if (getCheckedName() == undefined) {
+        //     Failure('Please select updated products type');
+        //     return;
+        // }
 
         setState({ loading: true });
 
@@ -84,7 +84,7 @@ const ProductImport = () => {
     const getCheckedName = () => {
         let val = '';
         val = Object.keys(state.checked).find((key) => state.checked[key]);
-        return val;
+        return val ? val : '';
     };
 
     return (

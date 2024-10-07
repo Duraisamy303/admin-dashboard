@@ -475,7 +475,7 @@ const Address = () => {
                         </div>
                         <div className="profile__input-box">
                             <div className="profile__input">
-                                <input name="companyName" type="text" className="form-input" placeholder="Enter your companyName" value={state.companyName} onChange={handleChange} />
+                                <input name="companyName" type="text" className="form-input" placeholder="Enter your company name" value={state.companyName} onChange={handleChange} />
                                 {/* {state.errors.companyName && <p className="error-message mt-1 text-red-500">{state.errors.companyName}</p>} */}
                             </div>
                         </div>

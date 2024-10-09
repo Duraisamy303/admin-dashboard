@@ -2180,6 +2180,9 @@ export const ORDER_LIST = gql`
             edges {
                 node {
                     __typename
+                    transactions {
+                        id
+                    }
                     billingAddress {
                         ...Address
                         __typename
@@ -2257,6 +2260,10 @@ export const ORDER_LIST = gql`
                         streetAddress2
                     }
                     origin
+                    totalRefunded {
+                        amount
+                        currency
+                    }
                 }
                 __typename
             }
@@ -19221,6 +19228,7 @@ export const REFUND_DATA = gql`
                 __typename
             }
             __typename
+            status
         }
     }
 

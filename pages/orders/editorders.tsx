@@ -205,6 +205,7 @@ const Editorder = () => {
 
     const [paymentStatus, setPaymentStatus] = useState('');
     const [refundStatus, setRefundStatus] = useState('');
+    console.log("refundStatus: ", refundStatus);
     const [refError, setRefError] = useState('');
     const [selectedCurrency, setSelectedCurrency] = useState('');
     const [currencyPopup, setCurrencyPopup] = useState('');
@@ -370,7 +371,10 @@ const Editorder = () => {
                     setPaymentStatus(orderDetails?.order?.paymentStatus);
                 } else {
                     setPaymentStatus('FULLY_CHARGED');
-                    setRefundStatus(orderDetails?.order?.paymentStatus);
+                    
+                }
+                if(orderDetails?.order?.totalRefunded !=0){
+                    setRefundStatus("Partially Refunded");
                 }
                 const billing = orderDetails?.order?.billingAddress;
                 const shipping = orderDetails?.order?.shippingAddress;
@@ -739,19 +743,19 @@ const Editorder = () => {
             if (reference == '') {
                 setRefError('This field is required');
             } else {
-            setTransactionLoading(true);
-            const res = await markAsPaid({
-                variables: {
-                    id: id,
-                    transactionReference: reference,
-                },
-            });
-            getOrderDetails();
-            setIsPaymentOpen(false);
-            setTransactionLoading(false);
-            setRefError('');
-            Success('Payment status updated');
-        }
+                setTransactionLoading(true);
+                const res = await markAsPaid({
+                    variables: {
+                        id: id,
+                        transactionReference: reference,
+                    },
+                });
+                getOrderDetails();
+                setIsPaymentOpen(false);
+                setTransactionLoading(false);
+                setRefError('');
+                Success('Payment status updated');
+            }
         } catch (error) {
             setTransactionLoading(false);
             console.log('error: ', error);
@@ -1309,7 +1313,6 @@ const Editorder = () => {
                             orderId: id,
                         },
                     });
-                    console.log('response: ', response);
 
                     if (response?.data?.orderGrantRefundCreate?.errors?.length > 0) {
                         Failure(response?.data?.orderGrantRefundCreate?.errors[0]?.message);
@@ -1326,20 +1329,11 @@ const Editorder = () => {
                         });
                         setIsOpenRefund(false);
 
-                        console.log('response: ', resizeBy);
-
-                        // getRefundData();
-                        // setSelectedItem(refundAmtType[0]);
-                        // const res = await getOrderDetails({
-                        //     variables: {
-                        //         id: id,
-                        //         isStaffUser: true,
-                        //     },
-                        // });
                         setManualAmount(null);
                         setManualAmtError('');
                         getOrderData();
                         setQuantities({});
+                        Success('Refund Amount Updated');
                     }
                 }
             } else {
@@ -1391,6 +1385,7 @@ const Editorder = () => {
                             setIsOpenRefund(false);
                             getOrderData();
                             setQuantities({});
+                            Success('Refund Amount Updated');
 
                             // getRefundData();
                             // setIsOpenRefund(false);
@@ -1414,12 +1409,10 @@ const Editorder = () => {
     };
     const showRefundBtn = (data) => {
         let without_shipping_amount = Number(data?.total?.gross?.amount) - (Number(data?.shippingPrice?.gross?.amount) + Number(data?.codAmount) + Number(data?.giftWrapAmount));
-        console.log('without_shipping_amount: ', without_shipping_amount);
         let totalRefunded = data?.totalRefunded?.amount;
-        console.log('totalRefunded: ', totalRefunded);
         let show = false;
 
-        if (data?.isPaid && totalRefunded < without_shipping_amount) {
+        if (totalRefunded < without_shipping_amount && (data?.paymentStatus == 'FULLY_CHARGED' || data?.paymentStatus == 'PARTIALLY_REFUNDED' || data.isPaid)) {
             show = true;
         }
         setShowRefundBtn(show);
@@ -1451,7 +1444,9 @@ const Editorder = () => {
         if (freeShipping?.includes(orderData?.shippingMethod?.id) && refundStatus == 'FULLY_REFUNDED') {
             net = 0;
         } else {
-            net = orderData?.total?.gross?.amount - (orderData?.totalRefunded?.amount + Number(orderData?.shippingPrice?.gross?.amount) + Number(orderData?.codAmount) + Number(orderData?.giftWrapAmount));
+            net =
+                orderData?.total?.gross?.amount -
+                (orderData?.totalRefunded?.amount + Number(orderData?.shippingPrice?.gross?.amount) + Number(orderData?.codAmount) + Number(orderData?.giftWrapAmount));
         }
         return net;
     };
@@ -2647,7 +2642,6 @@ const Editorder = () => {
                             <div className=" w-full">
                                 <input type="text" className="form-input" placeholder="Reference" value={reference} onChange={(e: any) => setReference(e.target.value)} />
                                 {refError && <div className="mt-1 text-danger">{refError}</div>}
-                           
                             </div>
 
                             <div className="mt-8 flex items-center justify-end">

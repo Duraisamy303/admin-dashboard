@@ -539,17 +539,37 @@ export const OrderStatus = (status: any) => {
     // cancelled == cancelled
 };
 
-export const PaymentStatus = (status: any) => {
-    if (status === 'NOT_CHARGED') {
-        return 'Pending';
-    } else if (status === 'FULLY_REFUNDED') {
-        return 'Fully Refunded';
-    } else if (status === 'PARTIALLY_REFUNDED') {
-        return 'Partially Refunded';
+export const PaymentStatus = (status: any, origin: any, totalRefund: any) => {
+    if (origin == 'CHECKOUT') {
+        if (totalRefund?.amount == 0) {
+            if (status === 'NOT_CHARGED') {
+                return 'Pending';
+            } else if (status === 'FULLY_REFUNDED') {
+                return 'Fully Refunded';
+            } else if (status === 'PARTIALLY_REFUNDED') {
+                return 'Partially Refunded';
+            } else {
+                return 'Completed';
+            }
+        } else {
+            return 'Partially Refunded';
+        }
     } else {
-        return 'Completed';
+        if (status === 'NOT_CHARGED') {
+            return 'Pending';
+        } else if (status === 'FULLY_REFUNDED') {
+            return 'Fully Refunded';
+        } else if (status === 'PARTIALLY_REFUNDED') {
+            return 'Partially Refunded';
+        } else {
+            return 'Completed';
+        }
     }
 };
+
+// else if (status === 'FULLY_CHARGED') {
+//     return 'Partially refunded';
+// }
 
 export const getDateRange = (rangeType) => {
     const today = new Date();
@@ -1333,7 +1353,6 @@ export const Quantity = (orderData, grantedRefunds) => {
     return remainingQuantities;
 };
 
-
 export const FullfillQuantity = (orderData, grantedRefunds) => {
     const fulfillmentLines = orderData?.lines || [];
     const refundedLines = grantedRefunds?.flatMap((refund) => refund.lines) || [];
@@ -1373,7 +1392,6 @@ export const FullfillQuantity = (orderData, grantedRefunds) => {
     return remainingQuantities;
 };
 
-
 export const DraftQuantity = (orderData, grantedRefunds) => {
     const fulfillmentLines = orderData?.lines || [];
     const refundedLines = grantedRefunds?.flatMap((refund) => refund.lines) || [];
@@ -1404,18 +1422,17 @@ export const DraftQuantity = (orderData, grantedRefunds) => {
     return remainingQuantities;
 };
 
-
 export const DraftFullfillQuantity = (orderData, grantedRefunds) => {
     const fulfillmentLines = orderData?.lines || [];
-    console.log("fulfillmentLines: ", fulfillmentLines);
-    const refundedLines = grantedRefunds?.flatMap((refund) => refund.lines) || [];
+    console.log('fulfillmentLines: ', fulfillmentLines);
+    const refundedLines = grantedRefunds?.lines || [];
     const remainingQuantities = {};
 
     // Create a map to track total refunded quantities for each line ID
     const refundedMap = {};
 
     // Sum the quantities of the refunded lines grouped by order line ID
-    refundedLines.forEach((refundLine) => {
+    refundedLines?.forEach((refundLine) => {
         const lineId = refundLine.id;
         const quantity = refundLine.quantity;
 
@@ -1424,8 +1441,8 @@ export const DraftFullfillQuantity = (orderData, grantedRefunds) => {
     });
 
     // Calculate remaining quantities for each fulfillment line
-    fulfillmentLines.forEach((fulfillmentLine) => {
-        console.log("fulfillmentLine: ", fulfillmentLine);
+    fulfillmentLines?.forEach((fulfillmentLine) => {
+        console.log('fulfillmentLine: ', fulfillmentLine);
         const orderLineId = fulfillmentLine?.id; // Use orderLine ID
         const fulfilledQuantity = fulfillmentLine?.quantity || 0; // Default to 0 if undefined
         const refundedQuantity = refundedMap[orderLineId] || 0; // Get the total refunded quantity for this ID
@@ -1446,3 +1463,54 @@ export const DraftFullfillQuantity = (orderData, grantedRefunds) => {
     return remainingQuantities;
 };
 
+export const updateOrderLinesWithRefund = (data) => {
+    console.log('data: ', data);
+    const order = data.data.order;
+    console.log('order: ', order);
+
+    // Filter fulfillments with status "REFUNDED"
+    const refundedFulfillments = order?.fulfillments?.filter((f) => f?.status === 'REFUNDED');
+    console.log('refundedFulfillments: ', refundedFulfillments);
+
+    // Loop through order lines and update their quantity based on refunded fulfillment lines
+    order?.lines?.forEach((line) => {
+        refundedFulfillments.forEach((fulfillment) => {
+            console.log('fulfillment: ', fulfillment);
+            fulfillment.lines.forEach((fulfillmentLine) => {
+                console.log('fulfillmentLine: ', fulfillmentLine);
+                if (line.id === fulfillmentLine?.orderLine?.id) {
+                    // Update the line's quantity by subtracting the refunded quantity
+                    line.quantity -= fulfillmentLine?.quantity;
+                }
+            });
+        });
+    });
+
+    return order.lines;
+};
+
+export const processOrder = (order) => {
+    const updatedLines = order.lines.map((line) => {
+        const refundedQuantity = order.fulfillments
+            .filter((fulfillment) => fulfillment.status === 'REFUNDED')
+            .flatMap((fulfillment) =>
+                fulfillment.lines.map((fulfillmentLine) => {
+                    if (fulfillmentLine.orderLine.id === line.id) {
+                        return fulfillmentLine.quantity;
+                    }
+                    return 0;
+                })
+            )
+            .reduce((acc, qty) => acc + qty, 0);
+
+        // Calculate the new quantity
+        const newQuantity = line.quantity - refundedQuantity;
+
+        return {
+            ...line,
+            quantity: newQuantity < 0 ? 0 : newQuantity, // Ensure quantity doesn't go below 0
+        };
+    });
+
+    return updatedLines;
+};

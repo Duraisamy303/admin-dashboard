@@ -7,7 +7,7 @@ export default function ProductSelect({
     placeholder = 'Select Products',
     selectedCategory,
     onCategoryChange,
-    initialFetchParams = { first: 100, channel: 'india-channel' },
+    initialFetchParams = { first: 20, channel: 'india-channel' },
     isMulti = true,
     clearable = true,
     title = '',

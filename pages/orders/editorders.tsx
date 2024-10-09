@@ -205,7 +205,7 @@ const Editorder = () => {
 
     const [paymentStatus, setPaymentStatus] = useState('');
     const [refundStatus, setRefundStatus] = useState('');
-
+    const [refError, setRefError] = useState('');
     const [selectedCurrency, setSelectedCurrency] = useState('');
     const [currencyPopup, setCurrencyPopup] = useState('');
     const [currencyLoading, setCurrencyLoading] = useState(false);
@@ -736,6 +736,9 @@ const Editorder = () => {
 
     const updatePaymentStatus = async () => {
         try {
+            if (reference == '') {
+                setRefError('This field is required');
+            } else {
             setTransactionLoading(true);
             const res = await markAsPaid({
                 variables: {
@@ -746,8 +749,9 @@ const Editorder = () => {
             getOrderDetails();
             setIsPaymentOpen(false);
             setTransactionLoading(false);
-
+            setRefError('');
             Success('Payment status updated');
+        }
         } catch (error) {
             setTransactionLoading(false);
             console.log('error: ', error);
@@ -2640,8 +2644,10 @@ const Editorder = () => {
                 renderComponent={() => (
                     <div className="p-5 pb-7">
                         <form onSubmit={updateDiscount}>
-                            <div className="flex w-full">
+                            <div className=" w-full">
                                 <input type="text" className="form-input" placeholder="Reference" value={reference} onChange={(e: any) => setReference(e.target.value)} />
+                                {refError && <div className="mt-1 text-danger">{refError}</div>}
+                           
                             </div>
 
                             <div className="mt-8 flex items-center justify-end">

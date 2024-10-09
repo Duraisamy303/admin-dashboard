@@ -184,6 +184,7 @@ const Editorder = () => {
     const [updateInvoideLoading, setUpdateInvoideLoading] = useState(false);
 
     const [transactionLoading, setTransactionLoading] = useState(false);
+    const [refError, setRefError] = useState('');
 
     const [isUpdateQty, setIsUpdateQty] = useState(false);
     const [productQuantity, setProductQuantity] = useState('');
@@ -194,7 +195,6 @@ const Editorder = () => {
     const [isEdited, setIsEdited] = useState<any>({});
     const [fullfillData, setFullfillData] = useState([]);
     const [quantities, setQuantities] = useState({});
-    console.log('quantities: ', quantities);
     const [applyAllProduct, setApplyAllProduct] = useState(false);
 
     const [paymentStatus, setPaymentStatus] = useState('');
@@ -240,7 +240,6 @@ const Editorder = () => {
     const [loading, setLoading] = useState(false);
     const [refundData, setRefundData] = useState(null);
     const [refundProduct, setRefundProduct] = useState(null);
-    console.log('refundProduct: ', refundProduct);
     const [disableLines, setDisableLines] = useState(false);
     const [initialQuantity, setInitialQuantity] = useState(false);
     const [confirmLoading, setConfirmLoading] = useState(false);
@@ -466,7 +465,6 @@ const Editorder = () => {
                     };
                 }),
             };
-            console.log('updatedObj: ', updatedObj);
 
             setRefundProduct(updatedObj);
             let disableLines = false;
@@ -715,18 +713,22 @@ const Editorder = () => {
 
     const updatePaymentStatus = async () => {
         try {
-            setTransactionLoading(true);
-            const res = await markAsPaid({
-                variables: {
-                    id: id,
-                    transactionReference: reference,
-                },
-            });
-            getOrderDetails();
-            setIsPaymentOpen(false);
-            setTransactionLoading(false);
-
-            Success('Payment status updated');
+            if (reference == '') {
+                setRefError('This field is required');
+            } else {
+                setTransactionLoading(true);
+                const res = await markAsPaid({
+                    variables: {
+                        id: id,
+                        transactionReference: reference,
+                    },
+                });
+                getOrderDetails();
+                setIsPaymentOpen(false);
+                setTransactionLoading(false);
+                setRefError('');
+                Success('Payment status updated');
+            }
         } catch (error) {
             setTransactionLoading(false);
             console.log('error: ', error);
@@ -1184,8 +1186,6 @@ const Editorder = () => {
 
         return isDisable;
     };
-    console.log("quantities: ", quantities);
-
 
     const handleRefund = async () => {
         try {
@@ -1226,7 +1226,6 @@ const Editorder = () => {
                 if (maxRefundAmt < totalAmount) {
                     Failure(`Not allwed to Refund Amount.${'\n'}Max Refund Amount is ${addCommasToNumber(maxRefundAmt)}`);
                 } else {
-
                     const filteredData = Object.entries(quantities)
                         .filter(([key, value]) => value !== 0) // Keep entries with value different from 0
                         .reduce((acc, [key, value]) => {
@@ -2541,8 +2540,9 @@ const Editorder = () => {
                 renderComponent={() => (
                     <div className="p-5 pb-7">
                         <form onSubmit={updateDiscount}>
-                            <div className="flex w-full">
+                            <div className=" w-full">
                                 <input type="text" className="form-input" placeholder="Reference" value={reference} onChange={(e: any) => setReference(e.target.value)} />
+                                {refError && <div className="mt-1 text-danger">{refError}</div>}
                             </div>
 
                             <div className="mt-8 flex items-center justify-end">

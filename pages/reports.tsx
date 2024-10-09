@@ -32,6 +32,7 @@ import {
     GUEST_LIST,
     NEW_PARENT_CATEGORY_LIST,
     PARENT_CATEGORY_LIST,
+    PRODUCT_BY_COUNTRY,
     PRODUCT_BY_NAME,
     SALES_BY_CATEGORY,
     SALES_BY_COUPON,
@@ -68,6 +69,7 @@ const Reports = () => {
     const [analysisByOrder] = useMutation(ANALYSIS_BY_ORDER);
     const [analysisByRevenue] = useMutation(ANALYSIS_BY_REVENUE);
     const [analysisByCustomer] = useMutation(ANALYSIS_BY_CUSTOMER);
+    const [productByCountry] = useMutation(PRODUCT_BY_COUNTRY);
     const [analysisByProductRevenue] = useMutation(ANALYSIS_BY_PRODUCT_REVENUE);
     const [analysisProductByCountry] = useMutation(ANALYSIS_PRODUCT_BY_COUNTRY);
     const [customerList, { loading: customerListLoading }] = useMutation(CUSTOMER_REPORT_LIST);
@@ -198,8 +200,8 @@ const Reports = () => {
         state.analysisSelectedCountries,
         state.analysisSelectedCategory,
         state.analysisSelectedProduct,
-        ,
-        state.activeTab,
+
+        // state.activeTab,
     ]);
 
     useEffect(() => {
@@ -249,19 +251,6 @@ const Reports = () => {
             const response = res?.data?.products?.edges;
             const dropdownData = response?.map((item: any) => ({ value: item?.node?.id, label: item?.node?.name }));
             setState({ analysisProductList: dropdownData });
-        } catch (error) {
-            console.log('error: ', error);
-        }
-    };
-
-    const getProductSearch = async (val) => {
-        try {
-            const res = await productSearchRefetch({
-                name: val,
-            });
-            const response = res?.data?.products?.edges;
-            const dropdownData = response?.map((item: any) => ({ value: item?.node?.id, label: item?.node?.name }));
-            setState({ productList: dropdownData });
         } catch (error) {
             console.log('error: ', error);
         }
@@ -1139,7 +1128,7 @@ const Reports = () => {
                 productIds = state.analysisSelectedProduct?.map((item) => item?.value);
             }
 
-            const res = await analysisProductByCountry({
+            const res = await productByCountry({
                 variables: {
                     fromdate: startDate,
                     toDate: endDate,
@@ -1386,13 +1375,19 @@ const Reports = () => {
             });
             const response = res?.data?.questReport;
 
-            const table = response?.dates?.map((date, index) => ({
-                date,
-                ordersList: response.ordersList[index],
+            const table = response?.lastOrderIds?.map((item, index) => ({
+                email: response.emailList[index],
+                lastOrder: response.lastOrder[index],
+                lastOrderDate: response.lastOrderDate[index],
+                moneySpentList: response.moneySpentList[index],
+                nameList: response.nameList[index],
             }));
             const tableColumn = [
-                { accessor: 'date', title: 'Date' },
-                { accessor: 'ordersList', title: 'Order count' },
+                { accessor: 'nameList', title: 'Name' },
+                { accessor: 'email', title: 'Email' },
+                { accessor: 'lastOrder', title: 'Last Order' },
+                { accessor: 'lastOrderDate', title: 'Last Order Date' },
+                { accessor: 'moneySpentList', title: 'Spend Money' },
             ];
             setState({ customerTable: table, customerColumn: tableColumn });
         } catch (error) {
@@ -2093,13 +2088,20 @@ const Reports = () => {
                                     <div className="mb-4">
                                         <button className="flex w-full items-center justify-between bg-gray-200 p-4 text-lg font-medium dark:bg-gray-800">Products</button>
                                         <div className="border border-t-0 border-gray-300 p-4 dark:border-gray-700">
-                                            <Select
+                                            {/* <Select
                                                 placeholder="Select products "
                                                 options={state.analysisProductList}
                                                 value={state.analysisSelectedProduct}
                                                 onChange={(e: any) => setState({ analysisSelectedProduct: e })}
                                                 isSearchable={true}
                                                 isMulti
+                                            /> */}
+
+                                            <ProductSelect
+                                                loading={productLoading}
+                                                queryFunc={fetchProducts}
+                                                selectedCategory={state.analysisSelectedProduct}
+                                                onCategoryChange={(data) => setState({ analysisSelectedProduct: data })}
                                             />
                                         </div>
                                     </div>

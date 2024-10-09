@@ -2256,6 +2256,7 @@ export const ORDER_LIST = gql`
                         streetAddress1
                         streetAddress2
                     }
+                    origin
                 }
                 __typename
             }
@@ -2304,6 +2305,231 @@ export const SHIPPING_LIST = gql`
         }
     }
 `;
+
+export const ORDER_DETAILS_GRAND_REFUND = gql`
+    query OrderDetailsGrantRefund($id: ID!) {
+        order(id: $id) {
+            ...OrderDetailsGrantRefund
+            __typename
+        }
+    }
+
+    fragment OrderDetailsGrantRefund on Order {
+        id
+        number
+        lines {
+            ...OrderLineGrantRefund
+            __typename
+            variant {
+                product {
+                    thumbnail {
+                        url
+                        alt
+                    }
+                }
+            }
+        }
+        fulfillments {
+            ...OrderFulfillmentGrantRefund
+            __typename
+        }
+        shippingPrice {
+            gross {
+                ...Money
+                __typename
+            }
+            __typename
+        }
+        total {
+            gross {
+                ...Money
+                __typename
+            }
+            __typename
+        }
+        grantedRefunds {
+            ...OrderDetailsGrantedRefund
+            __typename
+        }
+        __typename
+    }
+
+    fragment OrderLineGrantRefund on OrderLine {
+        id
+        thumbnail {
+            url
+            __typename
+        }
+        productName
+        quantity
+        quantityToFulfill
+        variantName
+        productName
+        unitPrice {
+            gross {
+                ...Money
+                __typename
+            }
+            __typename
+        }
+        __typename
+    }
+
+    fragment Money on Money {
+        amount
+        currency
+        __typename
+    }
+
+    fragment OrderFulfillmentGrantRefund on Fulfillment {
+        id
+        fulfillmentOrder
+        status
+        lines {
+            id
+            quantity
+            orderLine {
+                ...OrderLineGrantRefund
+                __typename
+            }
+            __typename
+        }
+        __typename
+    }
+
+    fragment OrderDetailsGrantedRefund on OrderGrantedRefund {
+        id
+        reason
+        amount {
+            ...Money
+            __typename
+        }
+        shippingCostsIncluded
+        lines {
+            id
+            quantity
+            orderLine {
+                ...OrderLine
+                __typename
+            }
+            __typename
+        }
+        __typename
+    }
+
+    fragment OrderLine on OrderLine {
+        id
+        isShippingRequired
+        allocations {
+            id
+            quantity
+            warehouse {
+                id
+                name
+                __typename
+            }
+            __typename
+        }
+        variant {
+            id
+            name
+            quantityAvailable
+            preorder {
+                endDate
+                __typename
+            }
+            stocks {
+                ...Stock
+                __typename
+            }
+            product {
+                id
+                isAvailableForPurchase
+                __typename
+            }
+            __typename
+        }
+        productName
+        productSku
+        quantity
+        quantityFulfilled
+        quantityToFulfill
+        totalPrice {
+            ...TaxedMoney
+            __typename
+        }
+        unitDiscount {
+            amount
+            currency
+            __typename
+        }
+        unitDiscountValue
+        unitDiscountReason
+        unitDiscountType
+        undiscountedUnitPrice {
+            currency
+            gross {
+                amount
+                currency
+                __typename
+            }
+            net {
+                amount
+                currency
+                __typename
+            }
+            __typename
+        }
+        unitPrice {
+            gross {
+                amount
+                currency
+                __typename
+            }
+            net {
+                amount
+                currency
+                __typename
+            }
+            __typename
+        }
+        thumbnail {
+            url
+            __typename
+        }
+        __typename
+    }
+
+    fragment Stock on Stock {
+        id
+        quantity
+        quantityAllocated
+        warehouse {
+            ...Warehouse
+            __typename
+        }
+        __typename
+    }
+
+    fragment Warehouse on Warehouse {
+        id
+        name
+        __typename
+    }
+
+    fragment TaxedMoney on TaxedMoney {
+        net {
+            ...Money
+            __typename
+        }
+        gross {
+            ...Money
+            __typename
+        }
+        __typename
+    }
+`;
+
 export const LAST_UPDATE_DETAILS = gql`
     mutation {
         stockUpdate {
@@ -11037,7 +11263,7 @@ export const SALES_BY_PRODUCT = gql`
 `;
 
 export const SALES_BY_SINGLE_PRODUCT = gql`
-    mutation SalesByProduct($fromdate: String!, $toDate: String!, $currency: String!, $productid: Int!) {
+    mutation SalesByProduct($fromdate: String!, $toDate: String!, $currency: String!, $productid: String!) {
         salesByProduct(fromDate: $fromdate, inputString: $currency, toDate: $toDate, productid: $productid) {
             dates
             totalItemsSoldList
@@ -11106,6 +11332,16 @@ export const ANALYSIS_BY_PRODUCT_REVENUE = gql`
     }
 `;
 
+export const PRODUCT_BY_COUNTRY = gql`
+    mutation orderProductsByCountry($fromdate: String!, $toDate: String!, $categoryIds: [ID!]!, $countryCodeList: [String!]!, $productIds: [ID]!) {
+        orderProductsByCountry(fromDate: $fromdate, toDate: $toDate, categoryIds: $categoryIds, countryCodeList: $countryCodeList, productIds: $productIds) {
+            countries
+            outputData
+            productsName
+        }
+    }
+`;
+
 export const PRODUCT_BY_NAME = gql`
     query ProductSearch($name: String!) {
         products(search: $name, channel: "india-channel", first: 20, sortBy: { direction: ASC, field: NAME }) {
@@ -11154,11 +11390,15 @@ export const ANALYSIS_PRODUCT_BY_COUNTRY = gql`
 `;
 
 export const GUEST_LIST = gql`
-    mutation questReport($fromdate: String!, $toDate: String!) {
+    mutation questReport($fromdate: String, $toDate: String) {
         questReport(fromDate: $fromdate, toDate: $toDate) {
-            dates
-            ordersList
-            ordersListCount
+            __typename
+            nameList
+            moneySpentList
+            lastOrderIds
+            lastOrderDate
+            lastOrder
+            emailList
         }
     }
 `;
@@ -18942,9 +19182,16 @@ export const REFUND_DATA = gql`
                     product {
                         thumbnail {
                             url
+                            __typename
                         }
+                        __typename
                     }
+                    __typename
                 }
+            }
+            grantedRefunds {
+                ...OrderDetailsGrantedRefund
+                __typename
             }
             fulfillments {
                 id
@@ -18962,8 +19209,11 @@ export const REFUND_DATA = gql`
                             product {
                                 thumbnail {
                                     url
+                                    __typename
                                 }
+                                __typename
                             }
+                            __typename
                         }
                     }
                     __typename
@@ -18997,6 +19247,137 @@ export const REFUND_DATA = gql`
         }
         __typename
     }
+    fragment OrderDetailsGrantedRefund on OrderGrantedRefund {
+        id
+        reason
+        amount {
+            ...Money
+            __typename
+        }
+        shippingCostsIncluded
+        lines {
+            id
+            quantity
+            orderLine {
+                ...OrderLine
+                __typename
+            }
+            __typename
+        }
+        __typename
+    }
+
+    fragment OrderLine on OrderLine {
+        id
+        isShippingRequired
+        allocations {
+            id
+            quantity
+            warehouse {
+                id
+                name
+                __typename
+            }
+            __typename
+        }
+        variant {
+            id
+            name
+            quantityAvailable
+            preorder {
+                endDate
+                __typename
+            }
+            stocks {
+                ...Stock
+                __typename
+            }
+            product {
+                id
+                isAvailableForPurchase
+                __typename
+            }
+            __typename
+        }
+        productName
+        productSku
+        quantity
+        quantityFulfilled
+        quantityToFulfill
+        totalPrice {
+            ...TaxedMoney
+            __typename
+        }
+        unitDiscount {
+            amount
+            currency
+            __typename
+        }
+        unitDiscountValue
+        unitDiscountReason
+        unitDiscountType
+        undiscountedUnitPrice {
+            currency
+            gross {
+                amount
+                currency
+                __typename
+            }
+            net {
+                amount
+                currency
+                __typename
+            }
+            __typename
+        }
+        unitPrice {
+            gross {
+                amount
+                currency
+                __typename
+            }
+            net {
+                amount
+                currency
+                __typename
+            }
+            __typename
+        }
+        thumbnail {
+            url
+            __typename
+        }
+        __typename
+    }
+
+    fragment Stock on Stock {
+        id
+        quantity
+        quantityAllocated
+        warehouse {
+            ...Warehouse
+            __typename
+        }
+        __typename
+    }
+
+    fragment Warehouse on Warehouse {
+        id
+        name
+        __typename
+    }
+
+    fragment TaxedMoney on TaxedMoney {
+        net {
+            ...Money
+            __typename
+        }
+        gross {
+            ...Money
+            __typename
+        }
+        __typename
+    }
 `;
 
 export const REARANGE_ORDER = gql`
@@ -19005,6 +19386,169 @@ export const REARANGE_ORDER = gql`
             success
             updatedCount
         }
+    }
+`;
+
+export const CREATE_MANUAL_ORDER_REFUND = gql`
+    mutation CreateManualTransactionRefund($orderId: ID!, $amount: PositiveDecimal!, $currency: String!, $description: String, $pspReference: String) {
+        transactionCreate(
+            id: $orderId
+            transaction: { name: "Manual refund", pspReference: $pspReference, amountRefunded: { amount: $amount, currency: $currency } }
+            transactionEvent: { pspReference: $pspReference, message: $description }
+        ) {
+            transaction {
+                ...TransactionItem
+                __typename
+            }
+            errors {
+                ...TransactionCreateError
+                __typename
+            }
+            __typename
+        }
+    }
+
+    fragment TransactionItem on TransactionItem {
+        id
+        pspReference
+        actions
+        name
+        externalUrl
+        events {
+            ...TransactionEvent
+            __typename
+        }
+        authorizedAmount {
+            ...Money
+            __typename
+        }
+        chargedAmount {
+            ...Money
+            __typename
+        }
+        refundedAmount {
+            ...Money
+            __typename
+        }
+        canceledAmount {
+            ...Money
+            __typename
+        }
+        authorizePendingAmount {
+            ...Money
+            __typename
+        }
+        chargePendingAmount {
+            ...Money
+            __typename
+        }
+        refundPendingAmount {
+            ...Money
+            __typename
+        }
+        cancelPendingAmount {
+            ...Money
+            __typename
+        }
+        __typename
+    }
+
+    fragment TransactionEvent on TransactionEvent {
+        id
+        pspReference
+        amount {
+            ...Money
+            __typename
+        }
+        type
+        message
+        createdAt
+        createdBy {
+            ... on User {
+                ...StaffMemberAvatar
+                __typename
+            }
+            ... on App {
+                ...AppAvatar
+                __typename
+            }
+            __typename
+        }
+        externalUrl
+        __typename
+    }
+
+    fragment Money on Money {
+        amount
+        currency
+        __typename
+    }
+
+    fragment StaffMemberAvatar on User {
+        ...StaffMember
+        avatar(size: 512) {
+            url
+            __typename
+        }
+        __typename
+    }
+
+    fragment StaffMember on User {
+        id
+        email
+        firstName
+        isActive
+        lastName
+        __typename
+    }
+
+    fragment AppAvatar on App {
+        id
+        name
+        __typename
+    }
+
+    fragment TransactionCreateError on TransactionCreateError {
+        field
+        message
+        code
+        __typename
+    }
+`;
+
+export const ORDER_GRAND_REFUND_ORDER = gql`
+    mutation OrderGrantRefundAdd($orderId: ID!, $amount: Decimal, $reason: String, $lines: [OrderGrantRefundCreateLineInput!], $grantRefundForShipping: Boolean) {
+        orderGrantRefundCreate(id: $orderId, input: { amount: $amount, reason: $reason, lines: $lines, grantRefundForShipping: $grantRefundForShipping }) {
+            errors {
+                ...OrderGrantRefundCreateError
+                __typename
+            }
+            grantedRefund {
+                id
+                __typename
+            }
+            order {
+                totalRemainingGrant {
+                    amount
+                    currency
+                }
+            }
+            __typename
+        }
+    }
+
+    fragment OrderGrantRefundCreateError on OrderGrantRefundCreateError {
+        field
+        message
+        code
+        lines {
+            field
+            message
+            code
+            lineId
+            __typename
+        }
+        __typename
     }
 `;
 

@@ -1293,7 +1293,6 @@ export const uniqueState = (arr) => {
     return uniqueChoices;
 };
 
-
 export const addReportCommasToNumber = (value: any) => {
     if (typeof value === 'number') {
         return new Intl.NumberFormat('en-IN', {
@@ -1303,3 +1302,147 @@ export const addReportCommasToNumber = (value: any) => {
         return value;
     }
 };
+
+export const Quantity = (orderData, grantedRefunds) => {
+    const fulfillmentLines = orderData?.lines || [];
+    const refundedLines = grantedRefunds?.flatMap((refund) => refund.lines) || [];
+    const remainingQuantities = {};
+
+    // Create a map to track total refunded quantities for each line ID
+    const refundedMap = {};
+
+    // Sum the quantities of the refunded lines grouped by order line ID
+    refundedLines.forEach((refundLine) => {
+        const orderLineId = refundLine.orderLine.id;
+        const quantity = refundLine.quantity;
+
+        // Only add to the map if the order line ID matches a fulfillment line ID
+        refundedMap[orderLineId] = (refundedMap[orderLineId] || 0) + quantity;
+    });
+
+    // Calculate remaining quantities for each fulfillment line
+    fulfillmentLines.forEach((fulfillmentLine) => {
+        const orderLineId = fulfillmentLine.id; // Use fulfillment line ID
+        const fulfilledQuantity = fulfillmentLine.quantity || 0; // Default to 0 if undefined
+        const refundedQuantity = refundedMap[orderLineId] || 0; // Get the total refunded quantity for this ID
+
+        // Calculate remaining quantity
+        remainingQuantities[orderLineId] = fulfilledQuantity - refundedQuantity;
+    });
+
+    return remainingQuantities;
+};
+
+
+export const FullfillQuantity = (orderData, grantedRefunds) => {
+    const fulfillmentLines = orderData?.lines || [];
+    const refundedLines = grantedRefunds?.flatMap((refund) => refund.lines) || [];
+    const remainingQuantities = {};
+
+    // Create a map to track total refunded quantities for each line ID
+    const refundedMap = {};
+
+    // Sum the quantities of the refunded lines grouped by order line ID
+    refundedLines.forEach((refundLine) => {
+        const lineId = refundLine.orderLine.id;
+        const quantity = refundLine.quantity;
+
+        // Only add to the map if the order line ID matches a fulfillment line ID
+        refundedMap[lineId] = (refundedMap[lineId] || 0) + quantity;
+    });
+
+    // Calculate remaining quantities for each fulfillment line
+    fulfillmentLines.forEach((fulfillmentLine) => {
+        const orderLineId = fulfillmentLine?.orderLine?.id; // Use orderLine ID
+        const fulfilledQuantity = fulfillmentLine?.quantity || 0; // Default to 0 if undefined
+        const refundedQuantity = refundedMap[orderLineId] || 0; // Get the total refunded quantity for this ID
+
+        // Calculate remaining quantity
+        remainingQuantities[orderLineId] = fulfilledQuantity - refundedQuantity;
+    });
+
+    // Handle cases where there are no refunded lines
+    if (refundedLines.length === 0) {
+        fulfillmentLines.forEach((fulfillmentLine) => {
+            const orderLineId = fulfillmentLine?.orderLine?.id;
+            const fulfilledQuantity = fulfillmentLine?.quantity || 0;
+            remainingQuantities[orderLineId] = fulfilledQuantity;
+        });
+    }
+
+    return remainingQuantities;
+};
+
+
+export const DraftQuantity = (orderData, grantedRefunds) => {
+    const fulfillmentLines = orderData?.lines || [];
+    const refundedLines = grantedRefunds?.flatMap((refund) => refund.lines) || [];
+    const remainingQuantities = {};
+
+    // Create a map to track total refunded quantities for each line ID
+    const refundedMap = {};
+
+    // Sum the quantities of the refunded lines grouped by order line ID
+    refundedLines.forEach((refundLine) => {
+        const orderLineId = refundLine.orderLine.id;
+        const quantity = refundLine.quantity;
+
+        // Only add to the map if the order line ID matches a fulfillment line ID
+        refundedMap[orderLineId] = (refundedMap[orderLineId] || 0) + quantity;
+    });
+
+    // Calculate remaining quantities for each fulfillment line
+    fulfillmentLines.forEach((fulfillmentLine) => {
+        const orderLineId = fulfillmentLine.id; // Use fulfillment line ID
+        const fulfilledQuantity = fulfillmentLine.quantity || 0; // Default to 0 if undefined
+        const refundedQuantity = refundedMap[orderLineId] || 0; // Get the total refunded quantity for this ID
+
+        // Calculate remaining quantity
+        remainingQuantities[orderLineId] = fulfilledQuantity - refundedQuantity;
+    });
+
+    return remainingQuantities;
+};
+
+
+export const DraftFullfillQuantity = (orderData, grantedRefunds) => {
+    const fulfillmentLines = orderData?.lines || [];
+    console.log("fulfillmentLines: ", fulfillmentLines);
+    const refundedLines = grantedRefunds?.flatMap((refund) => refund.lines) || [];
+    const remainingQuantities = {};
+
+    // Create a map to track total refunded quantities for each line ID
+    const refundedMap = {};
+
+    // Sum the quantities of the refunded lines grouped by order line ID
+    refundedLines.forEach((refundLine) => {
+        const lineId = refundLine.id;
+        const quantity = refundLine.quantity;
+
+        // Only add to the map if the order line ID matches a fulfillment line ID
+        refundedMap[lineId] = (refundedMap[lineId] || 0) + quantity;
+    });
+
+    // Calculate remaining quantities for each fulfillment line
+    fulfillmentLines.forEach((fulfillmentLine) => {
+        console.log("fulfillmentLine: ", fulfillmentLine);
+        const orderLineId = fulfillmentLine?.id; // Use orderLine ID
+        const fulfilledQuantity = fulfillmentLine?.quantity || 0; // Default to 0 if undefined
+        const refundedQuantity = refundedMap[orderLineId] || 0; // Get the total refunded quantity for this ID
+
+        // Calculate remaining quantity
+        remainingQuantities[orderLineId] = fulfilledQuantity - refundedQuantity;
+    });
+
+    // Handle cases where there are no refunded lines
+    if (refundedLines.length === 0) {
+        fulfillmentLines.forEach((fulfillmentLine) => {
+            const orderLineId = fulfillmentLine?.id;
+            const fulfilledQuantity = fulfillmentLine?.quantity || 0;
+            remainingQuantities[orderLineId] = fulfilledQuantity;
+        });
+    }
+
+    return remainingQuantities;
+};
+

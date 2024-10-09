@@ -586,7 +586,16 @@ const AbandonedCarts = () => {
                                     render: (row) => (
                                         <>
                                             <Tippy content="Edit">
-                                                <button type="button" onClick={() => window.open(`/orders/editorder?id=${row.id}`, '_blank')}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (row?.origin == 'CHECKOUT') {
+                                                            window.open(`/orders/editorders?id=${row.id}`, '_blank');
+                                                        } else {
+                                                            window.open(`/orders/editorder?id=${row.id}`, '_blank');
+                                                        }
+                                                    }}
+                                                >
                                                     <IconPencil className="ltr:mr-2 rtl:ml-2" />
                                                 </button>
                                             </Tippy>

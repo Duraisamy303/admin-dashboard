@@ -386,7 +386,7 @@ const ProductAdd = () => {
         variables: { channel: 'india-channel', first: 100 },
     });
 
-    const { refetch: tagRefetch, loading:tagloading } = useQuery(PRODUCT_LIST_TAGS);
+    const { refetch: tagRefetch, loading: tagloading } = useQuery(PRODUCT_LIST_TAGS);
 
     const { data: collection_list } = useQuery(COLLECTION_LIST, {
         variables: sampleParams,
@@ -2088,7 +2088,7 @@ const ProductAdd = () => {
                             <div className="mb-5 border-b border-gray-200 pb-2">
                                 <h5 className=" block text-lg font-medium text-gray-700">Product Gallery</h5>
                             </div>
-                            <div className="grid grid-cols-12 gap-3">
+                            {/* <div className="grid grid-cols-12 gap-3">
                                 {imageUrl?.length > 0 &&
                                     imageUrl?.map((item: any, index: any) => (
                                         <div className="relative col-span-4 flex h-[60px] w-[80px] overflow-hidden " key={index}>
@@ -2104,6 +2104,33 @@ const ProductAdd = () => {
                                             </button>
                                         </div>
                                     ))}
+                            </div> */}
+
+                            <div className="grid grid-cols-12 gap-3">
+                                {imageUrl?.length > 0 && imageUrl?.map((item: any, index: any) => (
+                                    <>
+                                        <div
+                                            key={item}
+                                            className="h-15 w-15 relative col-span-4 overflow-hidden bg-black"
+                                            // draggable
+                                            // onDragStart={(e) => handleDragStart(e, item.id, index)}
+                                            // onDragOver={handleDragOver}
+                                            // onDrop={(e) => handleDrop(e, index)}
+                                        >
+                                            {item?.endsWith('.mp4') ? (
+                                                <video controls src={item} className="h-full w-full object-cover">
+                                                    Your browser does not support the video tag.
+                                                </video>
+                                            ) : (
+                                                <img src={item} alt="Product image" className=" h-full w-full" />
+                                            )}
+
+                                            <button className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white" onClick={() => handleRemoveImage(index)}>
+                                                <IconTrashLines />
+                                            </button>
+                                        </div>
+                                    </>
+                                ))}
                             </div>
 
                             <p
@@ -2143,7 +2170,7 @@ const ProductAdd = () => {
                                 <h5 className=" block text-lg font-medium text-gray-700">Product Tags</h5>
                             </div>
                             <div className="mb-5">
-                                <TagSelect  loading={tagloading} queryFunc={fetchTag} selectedCategory={selectedTag} onCategoryChange={(data) => setSelectedTag(data)} />
+                                <TagSelect loading={tagloading} queryFunc={fetchTag} selectedCategory={selectedTag} onCategoryChange={(data) => setSelectedTag(data)} />
 
                                 {/* <Select placeholder="Select an tags" options={tagList} value={selectedTag} onChange={(data: any) => setSelectedTag(data)} /> */}
                             </div>

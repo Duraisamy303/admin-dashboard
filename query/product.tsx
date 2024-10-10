@@ -2078,99 +2078,107 @@ export const UPDATE_PAYMENT = gql`
 
 export const PRODUCT_EXPORT = gql`
     query ProductVariantsExport($first: Int!, $after: String, $categories: [ID!]!) {
-        productVariants(first: $first, after: $after, channel: "india-channel", categories: $categories) {
-            edges {
-                node {
-                    id
-                    name
-                    sku
-                    stocks {
-                        quantity
-                    }
-                    media {
-                        url
-                    }
-                    pricing {
-                        price {
-                            gross {
-                                amount
-                                currency
-                            }
-                        }
-                    }
-                    product {
-                        category {
-                            name
-                        }
-                        name
-                        orderNo
-                        description
-                        media {
-                            url
-                        }
-                        slug
-                        prouctDesign {
-                            name
-                        }
-                        productstyle {
-                            name
-                        }
-                        productStonecolor {
-                            name
-                        }
-                        productStoneType {
-                            name
-                        }
-                        productSize {
-                            name
-                        }
-                        productItemtype {
-                            name
-                        }
-                        productFinish {
-                            name
-                        }
-                        getCrosssells {
-                            name
-                        }
-                        getUpsells {
-                            name
-                        }
-                        tags {
-                            name
-                        }
-                        taxClass {
-                            name
-                        }
-                        metadata {
-                            key
-                            value
-                        }
-                        channelListings {
-                            isPublished
-                        }
-                        productId
-                        attributes {
-                            attribute {
-                                name
-                                slug
-                            }
-                            values {
-                                name
-                                slug
-                            }
-                        }
-                    }
-                }
-            }
-            pageInfo {
-                endCursor
-                hasNextPage
-                hasPreviousPage
-                startCursor
-            }
+  productVariants(
+    first: $first
+    after: $after
+    channel: "india-channel"
+    categories: $categories
+  ) {
+    edges {
+      node {
+        id
+        name
+        sku
+        stocks {
+          quantity
         }
+        media {
+          url
+        }
+        pricing {
+          price {
+            gross {
+              amount
+              currency
+            }
+          }
+        }
+        product {
+          category {
+            name
+            parent {
+              name
+            }
+          }
+          name
+          orderNo
+          description
+          media {
+            url
+          }
+          slug
+          prouctDesign {
+            name
+          }
+          productstyle {
+            name
+          }
+          productStonecolor {
+            name
+          }
+          productStoneType {
+            name
+          }
+          productSize {
+            name
+          }
+          productItemtype {
+            name
+          }
+          productFinish {
+            name
+          }
+          getCrosssells {
+            name
+          }
+          getUpsells {
+            name
+          }
+          tags {
+            name
+          }
+          taxClass {
+            name
+          }
+          metadata {
+            key
+            value
+          }
+          channelListings {
+            isPublished
+          }
+          productId
+          attributes {
+            attribute {
+              name
+              slug
+            }
+            values {
+              name
+              slug
+            }
+          }
+        }
+      }
     }
+    pageInfo {
+      endCursor
+      hasNextPage
+      hasPreviousPage
+      startCursor
+    }
+  }
+}
 `;
 
 export const ORDER_LIST = gql`

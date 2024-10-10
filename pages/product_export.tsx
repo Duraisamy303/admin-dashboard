@@ -121,7 +121,9 @@ const Product_export = () => {
                             'In Stock': data?.stocks?.length > 0 ? (data?.stocks[0]?.quantity > 0 ? 'Yes' : 'No') : 'No',
                             Stock: data?.stocks?.length > 0 ? data?.stocks[0]?.quantity : 0,
                             Price: data?.pricing?.price?.gross?.amount,
-                            Category: product?.category?.map((cat) => cat.name)?.join(', '),
+                            Category: product?.category?.map((cat) => {
+                                return cat.parent ? `${cat?.name}(${cat?.parent?.name})` : cat?.name;
+                              })?.join(', '),
                             Tags: ArrayToString(product?.tags),
                             Images: ArrayToImg(product?.media),
                             Upsells: ArrayToString(product?.getUpsells),

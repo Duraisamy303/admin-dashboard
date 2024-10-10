@@ -702,6 +702,7 @@ const Editorder = () => {
                     },
                 });
                 if (res?.data?.orderFulfill?.errors?.length > 0) {
+                    Failure(res?.data?.orderFulfill?.errors[0]?.message)
                     setIsOrderOpen(false);
                 } else {
                     setOrderStatus('FULFILLED');

@@ -748,11 +748,17 @@ const Editorder = () => {
                         transactionReference: reference,
                     },
                 });
-                getOrderDetails();
-                setIsPaymentOpen(false);
-                setTransactionLoading(false);
-                setRefError('');
-                Success('Payment status updated');
+                if (res?.data?.orderMarkAsPaid?.errors?.length > 0) {
+                    Failure(res?.data?.orderMarkAsPaid?.errors[0]?.message);
+                    setIsPaymentOpen(false);
+                    setTransactionLoading(false);
+                } else {
+                    getOrderDetails();
+                    setIsPaymentOpen(false);
+                    setTransactionLoading(false);
+                    setRefError('');
+                    Success('Payment status updated');
+                }
             }
         } catch (error) {
             setTransactionLoading(false);

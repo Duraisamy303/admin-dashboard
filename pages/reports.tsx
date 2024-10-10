@@ -535,7 +535,7 @@ const Reports = () => {
                         chart: {
                             height: 350,
                             type: 'line',
-                            zoom: { enabled: false },  // Disable zoom
+                            zoom: { enabled: false }, // Disable zoom
                             toolbar: { show: false },
                         },
                         colors: ['#FF0000', '#0000FF'],
@@ -772,7 +772,7 @@ const Reports = () => {
                         height: 350,
                         type: 'line',
                         zoom: { enabled: false },
-                        toolbar: { show: false }, 
+                        toolbar: { show: false },
                     },
                     colors: ['#FF0000', '#0000FF'],
                     stroke: { width: [2, 2, 2, 2, 2, 2, 2, 2] },
@@ -1341,7 +1341,7 @@ const Reports = () => {
                 chart: {
                     zoom: { enabled: false }, // Disable zoom
                     toolbar: { show: false }, // Remove menu icons (toolbar)
-                  },
+                },
             },
         };
         setState({ analysisChartData });
@@ -2037,7 +2037,7 @@ const Reports = () => {
                                             </div>
                                         </React.Fragment>
                                     ))}
-                                    {state.analysisTab !== 'Order Analysis' && (
+                                    {state.analysisTab !== 'Order Analysis' && state.analysisTab !== 'Product by Country' && state.analysisTab !== 'Product Revenue' && (
                                         <div className="pl-4">
                                             <select className="form-select w-[180px]" value={state.analysisCurrency} onChange={(e) => setState({ analysisCurrency: e.target.value })}>
                                                 <option value="All Currencies">All Currencies</option>

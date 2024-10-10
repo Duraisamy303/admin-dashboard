@@ -113,6 +113,9 @@ const AbandonedCarts = () => {
 
     const { refetch: orderRefetch, loading: refetchLoading } = useQuery(ORDER_LIST);
 
+    const { refetch: orderCountRefetch} = useQuery(ORDER_LIST);
+
+
     const [fetchNextPage] = useLazyQuery(ORDER_LIST, {
         onCompleted: (data) => {
             setData(data);
@@ -141,7 +144,7 @@ const AbandonedCarts = () => {
 
         for (let { type, filter } of filters) {
             try {
-                const { data } = await orderRefetch({
+                const { data } = await orderCountRefetch({
                     channel: 'india-channel',
                     first: PAGE_SIZE,
                     after: null,
@@ -242,7 +245,7 @@ const AbandonedCarts = () => {
                 first: PAGE_SIZE,
                 after: null,
             });
-            // getTotalCounts()
+            getTotalCounts()
             setData(data);
         } catch (error) {
             console.log('error: ', error);

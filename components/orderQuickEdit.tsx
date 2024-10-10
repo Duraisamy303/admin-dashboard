@@ -281,6 +281,7 @@ const OrderQuickEdit = (props: any) => {
                     },
                 });
                 if (res?.data?.orderFulfill?.errors?.length > 0) {
+                    Failure(res?.data?.orderFulfill?.errors[0]?.message);
                     setIsOrderOpen(false);
                 } else {
                     setOrderStatus('FULFILLED');
@@ -449,7 +450,7 @@ const OrderQuickEdit = (props: any) => {
                     },
                 });
                 orderCancelDraft();
-                setOrderStatus(status);
+                // setOrderStatus(status);
                 updateList();
             } else {
                 orderCancelDraft();
@@ -1035,7 +1036,7 @@ const OrderQuickEdit = (props: any) => {
                                                 <tr className="panel align-top" key={index}>
                                                     <td>{item?.productName}</td>
                                                     <td>
-                                                    <img src={profilePic(item?.variant?.product?.thumbnail?.url)} height={80} alt="Selected" className="object-cover" />
+                                                        <img src={profilePic(item?.variant?.product?.thumbnail?.url)} height={80} alt="Selected" className="object-cover" />
                                                     </td>
                                                     <td>{item?.variant?.sku}</td>
 

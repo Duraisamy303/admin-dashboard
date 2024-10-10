@@ -1428,6 +1428,8 @@ const Index = () => {
                                             data={record}
                                             updateList={() => {
                                                 refresh();
+                                                publishCount();
+                                                draftCount();
                                                 collapse();
                                             }}
                                             closeExpand={() => {

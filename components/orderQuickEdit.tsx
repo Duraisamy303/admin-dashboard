@@ -115,6 +115,7 @@ const OrderQuickEdit = (props: any) => {
     const [updateInvoideLoading, setUpdateInvoideLoading] = useState(false);
 
     const [transactionLoading, setTransactionLoading] = useState(false);
+    const [refError, setRefError] = useState('');
 
     const [invoiceNumber, setInvoiceNumber] = useState('');
 
@@ -307,18 +308,28 @@ const OrderQuickEdit = (props: any) => {
 
     const updatePaymentStatus = async () => {
         try {
-            setTransactionLoading(true);
-            const res = await markAsPaid({
-                variables: {
-                    id: id,
-                    transactionReference: reference,
-                },
-            });
-            getOrderData();
-            Success('Payment status updated');
-            setIsPaymentOpen(false);
-            setTransactionLoading(false);
-            updateList();
+            if (reference == '') {
+                setRefError('This field is required');
+            } else {
+                setTransactionLoading(true);
+                const res = await markAsPaid({
+                    variables: {
+                        id: id,
+                        transactionReference: reference,
+                    },
+                });
+                if (res?.data?.orderMarkAsPaid?.errors?.length > 0) {
+                    Failure(res?.data?.orderMarkAsPaid?.errors[0]?.message);
+                    setIsPaymentOpen(false);
+                    setTransactionLoading(false);
+                } else {
+                    getOrderData();
+                    Success('Payment status updated');
+                    setTransactionLoading(false);
+                    updateList();
+                    setRefError('');
+                }
+            }
         } catch (error) {
             setTransactionLoading(false);
             console.log('error: ', error);
@@ -873,8 +884,9 @@ const OrderQuickEdit = (props: any) => {
                 renderComponent={() => (
                     <div className="p-5 pb-7">
                         <form onSubmit={updateDiscount}>
-                            <div className="flex w-full">
+                            <div className=" w-full">
                                 <input type="text" className="form-input" placeholder="Reference" value={reference} onChange={(e: any) => setReference(e.target.value)} />
+                                {refError && <div className="mt-1 text-danger">{refError}</div>}
                             </div>
 
                             <div className="mt-8 flex items-center justify-end">

@@ -1703,7 +1703,8 @@ const Reports = () => {
                                             id="dateTimeCreated"
                                             name="dateTimeCreated"
                                             className="form-input"
-                                            // max={getCurrentDateTime()}
+                                            max={getCurrentDateTime()}
+                                            // min={mintDateTime(state.orderStartDate)}
                                         />
                                     </div>
                                     <div className="">
@@ -1720,7 +1721,7 @@ const Reports = () => {
                                             name="dateTimeCreated"
                                             className="form-input"
                                             max={getCurrentDateTime()}
-                                            min={mintDateTime(state.orderStartDate)}
+                                            // min={mintDateTime(state.orderStartDate)}
                                         />
                                     </div>
                                 </div>
@@ -2051,7 +2052,7 @@ const Reports = () => {
                                     <div className="cursor-pointer">Export CSV</div>
                                 </div>
                             </div>
-                            {state.analysisDateFilter == 'Custome' && (
+                            {state.analysisDateFilter == 'Custom' && (
                                 <div className="mt-3 flex   items-center gap-4">
                                     <div className="">
                                         <label htmlFor="dateTimeCreated" className="block pr-2 text-sm font-medium text-gray-700">

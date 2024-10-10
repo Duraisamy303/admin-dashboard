@@ -365,7 +365,7 @@ const Editorder = () => {
                 if (orderDetails?.order?.paymentStatus == 'FULLY_CHARGED' || orderDetails?.order?.paymentStatus == 'NOT_CHARGED') {
                     setPaymentStatus(orderDetails?.order?.paymentStatus);
                 } else {
-                    setPaymentStatus(orderDetails?.order?.paymentStatus);
+                    setPaymentStatus(orderDetails?.order?.paymentStatus == 'PARTIALLY_REFUNDED' ? 'FULLY_CHARGED' : orderDetails?.order?.paymentStatus);
                     setRefundStatus(orderDetails?.order?.paymentStatus);
                 }
                 const billing = orderDetails?.order?.billingAddress;

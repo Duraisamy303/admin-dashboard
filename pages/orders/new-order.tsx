@@ -257,7 +257,9 @@ const NewOrder = () => {
             const list = stateData?.addressValidationRules?.countryAreaChoices;
             if (list?.length > 0) {
                 const uniqueStateList = getUniqueStates(list);
-                setState({ stateList: uniqueStateList });
+                setState({ stateList: uniqueStateList, billingAddress: { ...state.billingAddress, state: '' } });
+            } else {
+                setState({ stateList: [], billingAddress: { ...state.billingAddress, state: '' } });
             }
         }
     }, [stateData]);
@@ -268,8 +270,9 @@ const NewOrder = () => {
             const list = shippingStateData?.addressValidationRules?.countryAreaChoices;
             if (list?.length > 0) {
                 const uniqueStateList = getUniqueStates(list);
-
-                setState({ shippingStateList: uniqueStateList });
+                setState({ shippingStateList: uniqueStateList, shippingAddress: { ...state.shippingAddress, state: '' } });
+            } else {
+                setState({ shippingStateList: [], billingAddress: { ...state.billingAddress, state: '' } });
             }
         }
     }, [shippingStateData]);
@@ -895,7 +898,7 @@ const NewOrder = () => {
                 Failure(res?.data?.draftOrderUpdate?.errors[0]?.message);
             } else {
                 updateShippingAmount();
-                getOrderData();
+                await getOrderData();
 
                 Success('Address updated successfully');
             }
@@ -1082,8 +1085,8 @@ const NewOrder = () => {
                                                 value={state.billingAddress?.firstName}
                                                 onChange={handleChange}
                                             />
-                                            {billingErrMsg?.firstName && <div className="mt-1 text-danger">{billingErrMsg.firstName}</div>}
-                                            {/* {state.billingAddress['billing.firstName'] && <div className="mt-1 text-danger">{state.billingAddress['billing.firstName']}</div>} */}
+                                            {/* {billingErrMsg?.firstName && <div className="mt-1 text-danger">{billingErrMsg.firstName}</div>} */}
+                                            {state.billingAddress['billing.firstName'] && <div className="mt-1 text-danger">{state.billingAddress['billing.firstName']}</div>}
                                         </div>
                                         <div className="col-span-6">
                                             <label htmlFor="Lastname" className=" text-sm font-medium text-gray-700">
@@ -1096,7 +1099,7 @@ const NewOrder = () => {
                                                 value={state.billingAddress?.lastName}
                                                 onChange={handleChange}
                                             />
-                                            {billingErrMsg.lastName && <div className="mt-1 text-danger">{billingErrMsg.lastName}</div>}
+                                            {/* {billingErrMsg.lastName && <div className="mt-1 text-danger">{billingErrMsg.lastName}</div>} */}
                                             {state.billingAddress['billing.lastName'] && <div className="mt-1 text-danger">{state.billingAddress['billing.lastName']}</div>}
                                         </div>
                                     </div>
@@ -1113,7 +1116,7 @@ const NewOrder = () => {
                                                 value={state.billingAddress?.company}
                                                 onChange={handleChange}
                                             />
-                                            {billingErrMsg?.company && <div className="mt-1 text-danger">{billingErrMsg.company}</div>}
+                                            {/* {billingErrMsg?.company && <div className="mt-1 text-danger">{billingErrMsg.company}</div>} */}
                                             {state.billingAddress['billing.company'] && <div className="mt-1 text-danger">{state.billingAddress['billing.company']}</div>}
                                         </div>
                                     </div>
@@ -1130,7 +1133,7 @@ const NewOrder = () => {
                                                 value={state.billingAddress?.address_1}
                                                 onChange={handleChange}
                                             />
-                                            {billingErrMsg.address_1 && <div className="mt-1 text-danger">{billingErrMsg.address_1}</div>}
+                                            {/* {billingErrMsg.address_1 && <div className="mt-1 text-danger">{billingErrMsg.address_1}</div>} */}
                                             {state.billingAddress['billing.address_1'] && <div className="mt-1 text-danger">{state.billingAddress['billing.address_1']}</div>}
                                         </div>
                                         {/* <div className="col-span-6">
@@ -1171,31 +1174,44 @@ const NewOrder = () => {
                                                     </option>
                                                 ))}
                                             </select>
-                                            {billingErrMsg.country && <div className="mt-1 text-danger">{billingErrMsg.country}</div>}
+                                            {/* {billingErrMsg.country && <div className="mt-1 text-danger">{billingErrMsg.country}</div>} */}
                                             {state.billingAddress['billing.country'] && <div className="mt-1 text-danger">{state.billingAddress['billing.country']}</div>}
                                         </div>
                                         <div className="col-span-6">
                                             <label htmlFor="state" className=" text-sm font-medium text-gray-700">
                                                 State / Country
                                             </label>
-                                            <select
-                                                className={`form-select mr-3 ${state.billingAddress['billing.state'] && 'border border-danger focus:border-danger'}`}
-                                                id="billingstate"
-                                                name="billing.state"
-                                                value={state.billingAddress?.state}
-                                                onChange={(e) => {
-                                                    handleChange(e);
-                                                }}
-                                            >
-                                                <option value="Select a state">Select a state</option>
-                                                {state.stateList?.map((item: any) => (
-                                                    <option key={item.raw} value={item.raw}>
-                                                        {item.raw}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            {state.stateList?.length > 0 ? (
+                                                <select
+                                                    className={`form-select mr-3 ${state.billingAddress['billing.state'] && 'border border-danger focus:border-danger'}`}
+                                                    id="billingstate"
+                                                    name="billing.state"
+                                                    value={state.billingAddress?.state}
+                                                    onChange={(e) => {
+                                                        handleChange(e);
+                                                    }}
+                                                >
+                                                    <option value="Select a state">Select a state</option>
+                                                    {state.stateList?.map((item: any) => (
+                                                        <option key={item.raw} value={item.raw}>
+                                                            {item.raw}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <input
+                                                    type="text"
+                                                    className={`form-select mr-3 ${state.billingAddress['billing.state'] && 'border border-danger focus:border-danger'}`}
+                                                    id="billingstate"
+                                                    name="billing.state"
+                                                    value={state.billingAddress?.state}
+                                                    onChange={(e) => {
+                                                        handleChange(e);
+                                                    }}
+                                                />
+                                            )}
                                             {billingErrMsg.state && <div className="mt-1 text-danger">{billingErrMsg.state}</div>}
-                                            {state.billingAddress['billing.state'] && <div className="mt-1 text-danger">{state.billingAddress['billing.state']}</div>}
+                                            {/* {state.billingAddress['billing.state'] && <div className="mt-1 text-danger">{state.billingAddress['billing.state']}</div>} */}
                                         </div>
                                     </div>
 
@@ -1211,7 +1227,7 @@ const NewOrder = () => {
                                                 value={state.billingAddress?.city}
                                                 onChange={handleChange}
                                             />
-                                            {billingErrMsg.city && <div className="mt-1 text-danger">{billingErrMsg.city}</div>}
+                                            {/* {billingErrMsg.city && <div className="mt-1 text-danger">{billingErrMsg.city}</div>} */}
                                             {state.billingAddress['billing.city'] && <div className="mt-1 text-danger">{state.billingAddress['billing.city']}</div>}
                                         </div>
                                         <div className="col-span-6">
@@ -1225,7 +1241,7 @@ const NewOrder = () => {
                                                 value={state.billingAddress?.pincode}
                                                 onChange={handleChange}
                                             />
-                                            {billingErrMsg.pincode && <div className="mt-1 text-danger">{billingErrMsg.pincode}</div>}
+                                            {/* {billingErrMsg.pincode && <div className="mt-1 text-danger">{billingErrMsg.pincode}</div>} */}
                                             {state.billingAddress['billing.pincode'] && <div className="mt-1 text-danger">{state.billingAddress['billing.pincode']}</div>}
                                         </div>
                                     </div>
@@ -1259,7 +1275,7 @@ const NewOrder = () => {
                                                 maxLength={10}
                                                 onChange={handleChange}
                                             />
-                                            {billingErrMsg.phone && <div className="mt-1 text-danger">{billingErrMsg.phone}</div>}
+                                            {/* {billingErrMsg.phone && <div className="mt-1 text-danger">{billingErrMsg.phone}</div>} */}
                                             {state.billingAddress['billing.phone'] && <div className="mt-1 text-danger">{state.billingAddress['billing.phone']}</div>}
                                         </div>
                                     </div>
@@ -1359,7 +1375,7 @@ const NewOrder = () => {
                                                 value={state.shippingAddress.firstName}
                                                 onChange={handleShippingChange}
                                             />
-                                            {shippingErrMsg.firstName && <div className="mt-1 text-danger">{shippingErrMsg.firstName}</div>}
+                                            {/* {shippingErrMsg.firstName && <div className="mt-1 text-danger">{shippingErrMsg.firstName}</div>} */}
                                             {state.shippingAddress['shipping.firstName'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.firstName']}</div>}
                                         </div>
                                         <div className="col-span-6">
@@ -1373,7 +1389,7 @@ const NewOrder = () => {
                                                 value={state.shippingAddress.lastName}
                                                 onChange={handleShippingChange}
                                             />
-                                            {shippingErrMsg.lastName && <div className="mt-1 text-danger">{shippingErrMsg.lastName}</div>}
+                                            {/* {shippingErrMsg.lastName && <div className="mt-1 text-danger">{shippingErrMsg.lastName}</div>} */}
                                             {state.shippingAddress['shipping.lastName'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.lastName']}</div>}
                                         </div>
                                     </div>
@@ -1390,7 +1406,7 @@ const NewOrder = () => {
                                                 value={state.shippingAddress.company}
                                                 onChange={handleShippingChange}
                                             />
-                                            {shippingErrMsg.company && <div className="mt-1 text-danger">{shippingErrMsg.company}</div>}
+                                            {/* {shippingErrMsg.company && <div className="mt-1 text-danger">{shippingErrMsg.company}</div>} */}
                                             {state.shippingAddress['shipping.company'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.company']}</div>}
                                         </div>
                                     </div>
@@ -1407,7 +1423,7 @@ const NewOrder = () => {
                                                 value={state.shippingAddress.address_1}
                                                 onChange={handleShippingChange}
                                             />
-                                            {shippingErrMsg.address_1 && <div className="mt-1 text-danger">{shippingErrMsg.address_1}</div>}
+                                            {/* {shippingErrMsg.address_1 && <div className="mt-1 text-danger">{shippingErrMsg.address_1}</div>} */}
                                             {state.shippingAddress['shipping.address_1'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.address_1']}</div>}
                                         </div>
                                         {/* <div className="col-span-6">
@@ -1450,30 +1466,41 @@ const NewOrder = () => {
                                                     </option>
                                                 ))}
                                             </select>
-                                            {shippingErrMsg.country && <div className="mt-1 text-danger">{shippingErrMsg.country}</div>}
+                                            {/* {shippingErrMsg.country && <div className="mt-1 text-danger">{shippingErrMsg.country}</div>} */}
                                             {state.shippingAddress['shipping.country'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.country']}</div>}
                                         </div>
                                         <div className="col-span-6">
                                             <label htmlFor="state" className=" text-sm font-medium text-gray-700">
                                                 State / Country
                                             </label>
-                                            <select
-                                                className={`form-select mr-3 ${state.shippingAddress['shipping.state'] && 'border border-danger focus:border-danger'}`}
-                                                id="shippingstate"
-                                                name="shipping.state"
-                                                value={state.shippingAddress.state}
-                                                onChange={handleShippingChange}
-                                            >
-                                                <option value="Select a state">Select a state</option>
+                                            {state.shippingStateList?.length > 0 ? (
+                                                <select
+                                                    className={`form-select mr-3 ${state.shippingAddress['shipping.state'] && 'border border-danger focus:border-danger'}`}
+                                                    id="shippingstate"
+                                                    name="shipping.state"
+                                                    value={state.shippingAddress.state}
+                                                    onChange={handleShippingChange}
+                                                >
+                                                    <option value="Select a state">Select a state</option>
 
-                                                {state.shippingStateList?.map((item: any) => (
-                                                    <option key={item.raw} value={item.raw}>
-                                                        {item.raw}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                                    {state.shippingStateList?.map((item: any) => (
+                                                        <option key={item.raw} value={item.raw}>
+                                                            {item.raw}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <input
+                                                    className={`form-select mr-3 ${state.shippingAddress['shipping.state'] && 'border border-danger focus:border-danger'}`}
+                                                    id="shippingstate"
+                                                    name="shipping.state"
+                                                    value={state.shippingAddress.state}
+                                                    onChange={handleShippingChange}
+                                                    type="text"
+                                                />
+                                            )}
                                             {shippingErrMsg.state && <div className="mt-1 text-danger">{shippingErrMsg.state}</div>}
-                                            {state.shippingAddress['shipping.state'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.state']}</div>}
+                                            {/* {state.shippingAddress['shipping.state'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.state']}</div>} */}
                                         </div>
                                     </div>
 
@@ -1489,7 +1516,7 @@ const NewOrder = () => {
                                                 value={state.shippingAddress.city}
                                                 onChange={handleShippingChange}
                                             />
-                                            {shippingErrMsg.city && <div className="mt-1 text-danger">{shippingErrMsg.city}</div>}
+                                            {/* {shippingErrMsg.city && <div className="mt-1 text-danger">{shippingErrMsg.city}</div>} */}
                                             {state.shippingAddress['shipping.city'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.city']}</div>}
                                         </div>
                                         <div className="col-span-6">
@@ -1503,7 +1530,7 @@ const NewOrder = () => {
                                                 value={state.shippingAddress.pincode}
                                                 onChange={handleShippingChange}
                                             />
-                                            {shippingErrMsg.pincode && <div className="mt-1 text-danger">{shippingErrMsg.pincode}</div>}
+                                            {/* {shippingErrMsg.pincode && <div className="mt-1 text-danger">{shippingErrMsg.pincode}</div>} */}
                                             {state.shippingAddress['shipping.pincode'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.pincode']}</div>}
                                         </div>
                                     </div>
@@ -1659,13 +1686,11 @@ const NewOrder = () => {
                                         </div>
                                     ))}
 
-                                {productDetails?.order?.shippingMethods?.length > 0 && (
+                                {productDetails?.order?.shippingPrice?.gross?.amount != 0 && (
                                     <div className="mt-4 flex items-center justify-between">
                                         <div>Shipping Rate</div>
                                         <div>
-                                            {`${formatCurrency(productDetails?.order?.shippingMethods[0]?.price?.currency)}${addCommasToNumber(
-                                                productDetails?.order?.shippingMethods[0]?.price?.amount
-                                            )}`}
+                                            {`${formatCurrency(productDetails?.order?.shippingPrice?.gross?.currency)}${addCommasToNumber(productDetails?.order?.shippingPrice?.gross?.amount)}`}
 
                                             {/* {productDetails?.order?.shippingMethods[0]?.price?.currency} {productDetails?.order?.shippingMethods[0]?.price?.amount} */}
                                         </div>

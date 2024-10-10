@@ -1150,16 +1150,20 @@ const ProductAdd = () => {
             };
 
             const { data } = await addCategory({ variables });
-            catListRefetch();
-            setIsOpenCat(false);
-            setCreateCategoryLoader(false);
-            Success('Category created successfully');
-            setselectedCat({ label: data?.categoryCreate?.category?.name, value: data?.categoryCreate?.category?.id });
-            setFormData({
-                name: '',
-                description: '',
-                parentCategory: '',
-            });
+            if (data?.categoryCreate?.errors?.length > 0) {
+                Failure(data?.categoryCreate?.errors[0].message);
+            } else {
+                catListRefetch();
+                setIsOpenCat(false);
+                setCreateCategoryLoader(false);
+                Success('Category created successfully');
+                setselectedCat({ label: data?.categoryCreate?.category?.name, value: data?.categoryCreate?.category?.id });
+                setFormData({
+                    name: '',
+                    description: '',
+                    parentCategory: '',
+                });
+            }
         } catch (error) {
             console.log('error: ', error);
             setCreateCategoryLoader(false);
@@ -2107,30 +2111,31 @@ const ProductAdd = () => {
                             </div> */}
 
                             <div className="grid grid-cols-12 gap-3">
-                                {imageUrl?.length > 0 && imageUrl?.map((item: any, index: any) => (
-                                    <>
-                                        <div
-                                            key={item}
-                                            className="h-15 w-15 relative col-span-4 overflow-hidden bg-black"
-                                            // draggable
-                                            // onDragStart={(e) => handleDragStart(e, item.id, index)}
-                                            // onDragOver={handleDragOver}
-                                            // onDrop={(e) => handleDrop(e, index)}
-                                        >
-                                            {item?.endsWith('.mp4') ? (
-                                                <video controls src={item} className="h-full w-full object-cover">
-                                                    Your browser does not support the video tag.
-                                                </video>
-                                            ) : (
-                                                <img src={item} alt="Product image" className=" h-full w-full" />
-                                            )}
+                                {imageUrl?.length > 0 &&
+                                    imageUrl?.map((item: any, index: any) => (
+                                        <>
+                                            <div
+                                                key={item}
+                                                className="h-15 w-15 relative col-span-4 overflow-hidden bg-black"
+                                                // draggable
+                                                // onDragStart={(e) => handleDragStart(e, item.id, index)}
+                                                // onDragOver={handleDragOver}
+                                                // onDrop={(e) => handleDrop(e, index)}
+                                            >
+                                                {item?.endsWith('.mp4') ? (
+                                                    <video controls src={item} className="h-full w-full object-cover">
+                                                        Your browser does not support the video tag.
+                                                    </video>
+                                                ) : (
+                                                    <img src={item} alt="Product image" className=" h-full w-full" />
+                                                )}
 
-                                            <button className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white" onClick={() => handleRemoveImage(index)}>
-                                                <IconTrashLines />
-                                            </button>
-                                        </div>
-                                    </>
-                                ))}
+                                                <button className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white" onClick={() => handleRemoveImage(index)}>
+                                                    <IconTrashLines />
+                                                </button>
+                                            </div>
+                                        </>
+                                    ))}
                             </div>
 
                             <p

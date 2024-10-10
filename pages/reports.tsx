@@ -358,7 +358,8 @@ const Reports = () => {
                     chart: {
                         height: 350,
                         type: 'line',
-                        zoom: { enabled: true },
+                        zoom: { enabled: false }, // Disable zoom
+                        toolbar: { show: false }, // Disable chart toggle and toolbar
                     },
                     colors: ['#FF0000', '#0000FF', '#FF00FF', '#00FFFF', '#FFFF00', '#FF8000', '#00FF00', '#8000FF'],
                     stroke: { width: [2, 2, 2, 2, 2, 2, 2, 2] },
@@ -369,7 +370,6 @@ const Reports = () => {
                         strokeWidth: 2,
                         hover: { size: 7 },
                     },
-                    // title: { text: 'Metrics Over Time' },
                     dataLabels: { enabled: false },
                     xaxis: {
                         categories: tableData.map((item) => item.date),
@@ -449,7 +449,8 @@ const Reports = () => {
                         chart: {
                             height: 350,
                             type: 'line',
-                            zoom: { enabled: true },
+                            zoom: { enabled: false }, // Disable zoom
+                            toolbar: { show: false }, // Disable menu icons (toolbar)
                         },
                         colors: ['#FF0000', '#0000FF'],
                         stroke: { width: [2, 2] },
@@ -460,7 +461,6 @@ const Reports = () => {
                             strokeWidth: 2,
                             hover: { size: 7 },
                         },
-                        // title: { text: 'Metrics Over Time' },
                         dataLabels: { enabled: false },
                         xaxis: {
                             categories: [],
@@ -475,6 +475,7 @@ const Reports = () => {
                         tooltip: { shared: true },
                     },
                 };
+
                 setState({ orderChartData, tableData: [], tableColumn: [] });
             } else {
                 let startDate: any, endDate: any;
@@ -534,7 +535,8 @@ const Reports = () => {
                         chart: {
                             height: 350,
                             type: 'line',
-                            zoom: { enabled: true },
+                            zoom: { enabled: false },  // Disable zoom
+                            toolbar: { show: false },
                         },
                         colors: ['#FF0000', '#0000FF'],
                         stroke: { width: [2, 2, 2, 2, 2, 2, 2, 2] },
@@ -557,7 +559,7 @@ const Reports = () => {
                             title: { text: 'Values' },
                             min: 0,
                         },
-                        tooltip: { shared: true },
+                        tooltip: { shared: false },
                     },
                 };
 
@@ -769,7 +771,8 @@ const Reports = () => {
                     chart: {
                         height: 350,
                         type: 'line',
-                        zoom: { enabled: true },
+                        zoom: { enabled: false },
+                        toolbar: { show: false }, 
                     },
                     colors: ['#FF0000', '#0000FF'],
                     stroke: { width: [2, 2, 2, 2, 2, 2, 2, 2] },
@@ -1335,6 +1338,10 @@ const Reports = () => {
                     shared: true,
                     intersect: false,
                 },
+                chart: {
+                    zoom: { enabled: false }, // Disable zoom
+                    toolbar: { show: false }, // Remove menu icons (toolbar)
+                  },
             },
         };
         setState({ analysisChartData });

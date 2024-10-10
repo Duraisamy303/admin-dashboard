@@ -147,7 +147,7 @@ const Editorder = () => {
     const [sendGiftCart] = useMutation(SEND_GIFT_CART);
     const [orderFullfilmentRefund, { loading: refundLoading }] = useMutation(ORDER_FULLFILMENT_REFUND);
 
-    const [manuaOrderRefund] = useMutation(CREATE_MANUAL_ORDER_REFUND);
+    const [manuaOrderRefund, { loading: manuaOrderRefundLoading }] = useMutation(CREATE_MANUAL_ORDER_REFUND);
 
     const [orderDrandRefund, { loading: orderDrandRefundLoading }] = useMutation(ORDER_GRAND_REFUND_ORDER);
 
@@ -205,7 +205,6 @@ const Editorder = () => {
 
     const [paymentStatus, setPaymentStatus] = useState('');
     const [refundStatus, setRefundStatus] = useState('');
-    console.log("refundStatus: ", refundStatus);
     const [refError, setRefError] = useState('');
     const [selectedCurrency, setSelectedCurrency] = useState('');
     const [currencyPopup, setCurrencyPopup] = useState('');
@@ -371,10 +370,9 @@ const Editorder = () => {
                     setPaymentStatus(orderDetails?.order?.paymentStatus);
                 } else {
                     setPaymentStatus('FULLY_CHARGED');
-                    
                 }
-                if(orderDetails?.order?.totalRefunded !=0){
-                    setRefundStatus("Partially Refunded");
+                if (orderDetails?.order?.totalRefunded != 0) {
+                    setRefundStatus('Partially Refunded');
                 }
                 const billing = orderDetails?.order?.billingAddress;
                 const shipping = orderDetails?.order?.shippingAddress;
@@ -3104,7 +3102,7 @@ const Editorder = () => {
                                 Cancel
                             </button>
                             <button type="submit" className="btn btn-primary ltr:ml-4 rtl:mr-4" onClick={() => handleRefund()}>
-                                {refundLoading ? <IconLoader /> : 'Confirm'}
+                                {orderDrandRefundLoading || manuaOrderRefundLoading ? <IconLoader /> : 'Confirm'}
                             </button>
                         </div>
                     </div>

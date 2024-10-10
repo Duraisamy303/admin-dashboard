@@ -298,7 +298,6 @@ const Editorder = () => {
         setLoading(true);
         if (orderDetails) {
             if (orderDetails && orderDetails?.order) {
-                console.log("orderDetails: ", orderDetails);
                 //Invoice
                 getRefundData();
 
@@ -702,7 +701,7 @@ const Editorder = () => {
                     },
                 });
                 if (res?.data?.orderFulfill?.errors?.length > 0) {
-                    Failure(res?.data?.orderFulfill?.errors[0]?.message)
+                    Failure(res?.data?.orderFulfill?.errors[0]?.message);
                     setIsOrderOpen(false);
                 } else {
                     setOrderStatus('FULFILLED');
@@ -1191,6 +1190,7 @@ const Editorder = () => {
                         });
                         setManualAmount(null);
                         setManualAmtError('');
+                        Success('Refund amount updated');
                     }
                 }
             } else {
@@ -1237,6 +1237,7 @@ const Editorder = () => {
                                     isStaffUser: true,
                                 },
                             });
+                            Success('Refund amount updated');
                         }
                     }
                 }

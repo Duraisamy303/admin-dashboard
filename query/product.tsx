@@ -17104,135 +17104,136 @@ export const CATEGORY_FILTER_LIST = gql`
 
 export const EXPORT_LIST = gql`
     query OrdersExport($first: Int!, $filter: OrderFilterInput, $sort: OrderSortingInput) {
-        orders(first: $first, filter: $filter, sortBy: $sort) {
-            edges {
-                node {
-                    courierPartner {
-                        name
-                        trackingUrl
-                        id
-                        __typename
-                    }
-                    fulfillments {
-                        id
-                        trackingNumber
-                        __typename
-                    }
-                    shippingAddress {
-                        firstName
-                        lastName
-                        phone
-                        streetAddress1
-                        streetAddress2
-                        countryArea
-                        country {
-                            country
-                            __typename
-                        }
-                        city
-                        __typename
-                    }
-                    userEmail
-                    invoices {
-                        number
-                        url
-                        id
-                        __typename
-                    }
-                    created
-                    paymentStatusDisplay
-                    channel {
-                        currencyCode
-                        __typename
-                    }
-                    total {
-                        gross {
-                            amount
-                            currency
-                            __typename
-                        }
-                        tax {
-                            amount
-                            currency
-                            __typename
-                        }
-                        __typename
-                    }
-                    shippingPrice {
-                        gross {
-                            amount
-                            currency
-                            __typename
-                        }
-                        __typename
-                    }
-                    id
-                    lines {
-                        productName
-                        productSku
-                        totalPrice {
-                            gross {
-                                amount
-                                currency
-                                __typename
-                            }
-                            __typename
-                        }
-                        __typename
-                    }
-                    number
-                    user {
-                        lastName
-                        firstName
-                        __typename
-                    }
-                    updatedAt
-                    status
-                    paymentStatus
-                    __typename
-                    billingAddress {
-                        streetAddress2
-                        streetAddress1
-                        phone
-                        lastName
-                        firstName
-                        countryArea
-                        country {
-                            code
-                            country
-                        }
-                        companyName
-                        cityArea
-                        city
-                    }
-                    discounts {
-                        id
-                        name
-                        reason
-                        type
-                        value
-                        amount {
-                            amount
-                            currency
-                        }
-                    }
-                    totalRefunded {
-                        amount
-                        currency
-                    }
-                }
-                __typename
-            }
-            pageInfo {
-                endCursor
-                hasNextPage
-                hasPreviousPage
-                startCursor
-                __typename
+  orders(first: $first, filter: $filter, sortBy: $sort) {
+    edges {
+      node {
+        courierPartner {
+          name
+          trackingUrl
+          id
+          __typename
+        }
+        fulfillments {
+          id
+          trackingNumber
+          __typename
+        }
+        shippingAddress {
+          firstName
+          lastName
+          phone
+          streetAddress1
+          streetAddress2
+          countryArea
+          country {
+            country
+            __typename
+          }
+          city
+          __typename
+        }
+        userEmail
+        invoices {
+          number
+          url
+          id
+          __typename
+        }
+        created
+        paymentStatusDisplay
+        channel {
+          currencyCode
+          __typename
+        }
+        total {
+          gross {
+            amount
+            currency
+            __typename
+          }
+          tax {
+            amount
+            currency
+            __typename
+          }
+          __typename
+        }
+        shippingPrice {
+          gross {
+            amount
+            currency
+            __typename
+          }
+          __typename
+        }
+        id
+        lines {
+          productName
+          productSku
+          totalPrice {
+            gross {
+              amount
+              currency
+              __typename
             }
             __typename
+          }
+          __typename
         }
+        number
+        user {
+          lastName
+          firstName
+          __typename
+        }
+        updatedAt
+        status
+        paymentStatus
+        __typename
+        billingAddress {
+          streetAddress2
+          streetAddress1
+          phone
+          lastName
+          firstName
+          countryArea
+          country {
+            code
+            country
+          }
+          companyName
+          cityArea
+          city
+        }
+        discounts {
+          id
+          name
+          reason
+          type
+          value
+          amount {
+            amount
+            currency
+          }
+        }
+        totalRefunded {
+          amount
+          currency
+        }
+        origin
+      }
+      __typename
     }
+    pageInfo {
+      endCursor
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      __typename
+    }
+    __typename
+  }
+}
 `;
 
 export const RELATED_PRODUCT = gql`

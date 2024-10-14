@@ -1855,7 +1855,7 @@ const NewOrder = () => {
                 addHeader={'Add Product'}
                 updateHeader={'Update Product'}
                 open={state.addProductOpen}
-                close={() => setState({ addProductOpen: false, productIsEdit: false })}
+                close={() => setState({ addProductOpen: false, productIsEdit: false, search: '' })}
                 renderComponent={() => (
                     <>
                         {state.productIsEdit ? (
@@ -1951,7 +1951,7 @@ const NewOrder = () => {
                                     <div className="flex w-full justify-end gap-3">
                                         <button
                                             onClick={() => {
-                                                setState({ selectedItems: {}, addProductOpen: false });
+                                                setState({ selectedItems: {}, addProductOpen: false, search: '' });
                                             }}
                                             className="rounded border border-black bg-transparent px-4 py-2 font-semibold text-black hover:border-transparent hover:bg-blue-500 hover:text-white"
                                         >

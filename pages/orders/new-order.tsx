@@ -950,7 +950,6 @@ const NewOrder = () => {
             console.log('error: ', error);
         }
     };
-    console.log('state.billingAddress: ', state.billingAddress);
 
     return (
         <>
@@ -1032,13 +1031,14 @@ const NewOrder = () => {
                                                 {state.billingAddress?.address_2} */}
                                                 <br /> {state.billingAddress?.city}
                                                 <br /> {state.billingAddress?.state}
-                                                {/* <br /> {selectedCountry} */}
+                                                <br /> {state.billingAddress?.country}
+                                                <br /> {state.billingAddress?.pincode}
                                             </p>
                                             {state.billingAddress?.email && (
                                                 <>
                                                     <p className="mt-3 font-semibold">Email Address:</p>
                                                     <p>
-                                                        <a href="mailto:mail2inducs@gmail.com" className="text-primary underline">
+                                                        <a href={`mailto:${state.billingAddress?.email}`} className="text-primary underline">
                                                             {state.billingAddress?.email}
                                                         </a>
                                                     </p>
@@ -1048,7 +1048,7 @@ const NewOrder = () => {
                                                 <>
                                                     <p className="mt-3 font-semibold">Phone:</p>
                                                     <p>
-                                                        <a href="tel:01803556656" className="text-primary underline">
+                                                        <a href={`tel:${state.billingAddress?.phone}`} className="text-primary underline">
                                                             {state.billingAddress?.phone}
                                                         </a>
                                                     </p>
@@ -1319,13 +1319,15 @@ const NewOrder = () => {
                                                 {state.shippingAddress?.address_1}
                                                 <br /> {state.shippingAddress?.city}
                                                 <br /> {state.shippingAddress?.state}
-                                                <br /> {state.shippingAddress?.countryArea}
+                                                {/* <br /> {state.shippingAddress?.countryArea} */}
+                                                <br /> {state.shippingAddress?.country}
+                                                <br /> {state.shippingAddress?.pincode}
                                             </p>
                                             {state.shippingAddress?.email && (
                                                 <>
                                                     <p className="mt-3 font-semibold">Email Address:</p>
                                                     <p>
-                                                        <a href="mailto:mail2inducs@gmail.com" className="text-primary underline">
+                                                        <a href={`mailto:${state.shippingAddress?.email}`} className="text-primary underline">
                                                             {state.shippingAddress?.email}
                                                         </a>
                                                     </p>
@@ -1335,7 +1337,7 @@ const NewOrder = () => {
                                                 <>
                                                     <p className="mt-3 font-semibold">Phone:</p>
                                                     <p>
-                                                        <a href="tel:01803556656" className="text-primary underline">
+                                                        <a href={`tel:${state.shippingAddress?.phone}`} className="text-primary underline">
                                                             {state.shippingAddress?.phone}
                                                         </a>
                                                     </p>

@@ -556,7 +556,7 @@ const NewOrder = () => {
                 });
                 updateShippingAmount();
                 getOrderData();
-                setState({ productLoading: false });
+                setState({ productLoading: false, search: '' });
                 Success('New Product Added Successfully');
                 setState({ addProductOpen: false, selectedItems: [] });
             } else {

@@ -381,9 +381,9 @@ export const profilePic = (profile: any) => {
     if (profile) {
         profiles = profile;
     } else if (profile == undefined) {
-        profiles = placeholder;
+        profiles = "/assets/images/placeholder.png";
     } else {
-        profiles = placeholder;
+        profiles = "/assets/images/placeholder.png";
     }
     return profiles;
 };

@@ -806,7 +806,7 @@ const Editorder = () => {
             });
             localStorage.setItem('channel', selectedCurrency);
             setCurrencyLoading(false);
-
+            setSelectedCurrency("")
             setIsOpenChannel(false);
             window.open(`/orders/new-order?orderId=${data?.draftOrderCreate?.order?.id}`);
             // router.push({

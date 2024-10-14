@@ -57,6 +57,7 @@ import * as Yup from 'yup';
 import Select from 'react-select';
 import CommonLoader from '../elements/commonLoader';
 import useDebounce from '@/utils/useDebounce';
+import CustomerSelect from '@/components/CustomerSelect';
 
 const NewOrder = () => {
     const router = useRouter();
@@ -149,7 +150,13 @@ const NewOrder = () => {
         },
     });
 
-    const { data, refetch: customerSearch } = useQuery(CUSTOMER_LIST);
+    const { refetch: customerSearchRefetch } = useQuery(CUSTOMER_LIST, {
+        variables: { channel: 'india-channel' },
+    });
+
+    const fetchCustomer = async (variables) => {
+        return await customerSearchRefetch(variables);
+    };
 
     const { data: countryData } = useQuery(COUNTRY_LIST);
 
@@ -185,11 +192,7 @@ const NewOrder = () => {
         return channel;
     };
 
-    const {
-        data: productData,
-        refetch: productRefetch,
-        loading: refetchLoading,
-    } = useQuery(FILTER_PRODUCT_LIST, {
+    const { data: productData } = useQuery(FILTER_PRODUCT_LIST, {
         variables: {
             after: null,
             first: 20,
@@ -205,34 +208,34 @@ const NewOrder = () => {
 
     const { refetch: productLoadMoreRefetch, loading: productLoadMoreLoading } = useQuery(FILTER_PRODUCT_LIST);
 
-    // For get Customer list
-    useEffect(() => {
-        getCustomer();
-    }, [customer]);
+    // // For get Customer list
+    // useEffect(() => {
+    //     getCustomer();
+    // }, [customer]);
 
-    const getCustomer = () => {
-        try {
-            setState({ loading: true });
-            const funRes = UserDropdownData(customer);
-            setState({ customerList: funRes, loading: false });
-        } catch (error) {
-            setState({ loading: false });
+    // const getCustomer = () => {
+    //     try {
+    //         setState({ loading: true });
+    //         const funRes = UserDropdownData(customer);
+    //         setState({ customerList: funRes, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
 
-            console.log('error: ', error);
-        }
-    };
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-    const getCustomerAddress = () => {
-        try {
-            setState({ loading: true });
-            const funRes = UserDropdownData(customer);
-            setState({ customerList: funRes, loading: false });
-        } catch (error) {
-            setState({ loading: false });
+    // const getCustomerAddress = () => {
+    //     try {
+    //         setState({ loading: true });
+    //         const funRes = UserDropdownData(customer);
+    //         setState({ customerList: funRes, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
 
-            console.log('error: ', error);
-        }
-    };
+    //         console.log('error: ', error);
+    //     }
+    // };
 
     // For get Country list
     useEffect(() => {
@@ -257,9 +260,9 @@ const NewOrder = () => {
             const list = stateData?.addressValidationRules?.countryAreaChoices;
             if (list?.length > 0) {
                 const uniqueStateList = getUniqueStates(list);
-                setState({ stateList: uniqueStateList, billingAddress: { ...state.billingAddress, state: '' } });
+                setState({ stateList: uniqueStateList, billingAddress: state.billingAddress });
             } else {
-                setState({ stateList: [], billingAddress: { ...state.billingAddress, state: '' } });
+                setState({ stateList: [], billingAddress: state.billingAddress });
             }
         }
     }, [stateData]);
@@ -270,19 +273,19 @@ const NewOrder = () => {
             const list = shippingStateData?.addressValidationRules?.countryAreaChoices;
             if (list?.length > 0) {
                 const uniqueStateList = getUniqueStates(list);
-                setState({ shippingStateList: uniqueStateList, shippingAddress: { ...state.shippingAddress, state: '' } });
+                setState({ shippingStateList: uniqueStateList, shippingAddress: state.shippingAddress });
             } else {
-                setState({ shippingStateList: [], billingAddress: { ...state.billingAddress, state: '' } });
+                setState({ shippingStateList: [], billingAddress: state.billingAddress });
             }
         }
     }, [shippingStateData]);
 
-    // Get Specific Customer Address
-    useEffect(() => {
-        if (state.selectedCustomerId) {
-            getCustomerAddress();
-        }
-    }, [customerAddress, state.selectedCustomerId]);
+    // // Get Specific Customer Address
+    // useEffect(() => {
+    //     if (state.selectedCustomerId) {
+    //         getCustomerAddress();
+    //     }
+    // }, [customerAddress, state.selectedCustomerId]);
 
     // Get Order Details
     useEffect(() => {
@@ -474,7 +477,12 @@ const NewOrder = () => {
                     },
                 },
             });
-            getOrderData();
+            await getOrderData({
+                variables: {
+                    id: orderId,
+                    isStaffUser: true,
+                },
+            });
         } catch (error) {
             console.error(error);
         }
@@ -817,25 +825,11 @@ const NewOrder = () => {
     };
 
     const handleChangeCustomer = async (val: any) => {
-        {
-            const selectedCustomerId: any = val.value;
+        if (val) {
+            const selectedCustomerId: any = val?.value;
             setState({ selectedCustomerId: selectedCustomerId, showShippingInputs: true, showBillingInputs: true });
 
             await addressRefetch({ id: selectedCustomerId });
-        }
-    };
-
-    const searchCustomer = async (input) => {
-        try {
-            const res = await customerSearch({
-                first: 100,
-                query: input,
-                after: null,
-            });
-            const funRes = UserDropdownData(res.data);
-            setState({ customerList: funRes });
-        } catch (error) {
-            console.log('error: ', error);
         }
     };
 
@@ -956,6 +950,7 @@ const NewOrder = () => {
             console.log('error: ', error);
         }
     };
+    console.log('state.billingAddress: ', state.billingAddress);
 
     return (
         <>
@@ -981,17 +976,13 @@ const NewOrder = () => {
                                             Customer:
                                         </label>
                                     </div>
-                                    <Select
+
+                                    <CustomerSelect
+                                        queryFunc={fetchCustomer} // Pass the function to fetch categories
+                                        selectedCategory={state.selectedCustomer} // Use 'selectedCategory' instead of 'value'
+                                        onCategoryChange={(val) => handleChangeCustomer(val)} // Use 'onCategoryChange' instead of 'onChange'
                                         placeholder="Select a customer"
-                                        options={state.customerList}
-                                        value={state.selectedCustomer}
-                                        onChange={(val: any) => handleChangeCustomer(val)}
-                                        isSearchable={true}
-                                        onInputChange={(inputValue, { action }) => {
-                                            if (action === 'input-change') {
-                                                searchCustomer(inputValue); // Only pass the actual input value
-                                            }
-                                        }}
+                                        isMulti={false}
                                     />
 
                                     {/* <select

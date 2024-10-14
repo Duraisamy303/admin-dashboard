@@ -8,6 +8,7 @@ import {
     downloadExlcel,
     filterByDates,
     formatCurrency,
+    formatKeysArray,
     formatOptions,
     generateColors,
     generateLineChartLoopData,
@@ -333,12 +334,12 @@ const Reports = () => {
 
             const tableColumn = [
                 { accessor: 'date', title: 'Date' },
-                { accessor: 'noOfOrders', title: 'No Of Orders' },
+                { accessor: 'noOfOrders', title: 'Number Of Orders' },
                 { accessor: 'totalItemsSold', title: 'Total Items Sold' },
                 { accessor: 'couponAmount', title: 'Coupon Amount' },
                 { accessor: 'refundAmount', title: 'Refund Amount' },
                 { accessor: 'shippingAmount', title: 'Shipping Amount' },
-                { accessor: 'productsTotalAmount', title: 'Total Amount' },
+                { accessor: 'productsTotalAmount', title: 'Products Total Amount' },
                 { accessor: 'codAmountList', title: 'COD Amount' },
                 { accessor: 'giftwrapAmountList', title: 'Gift Wrap Amount' },
             ];
@@ -348,7 +349,7 @@ const Reports = () => {
                     { name: 'Total Items Sold', type: 'line', data: tableData.map((item) => item?.totalItemsSold) },
                     { name: 'Shipping Amount', type: 'line', data: tableData.map((item) => item?.shippingAmount) },
                     { name: 'Refund Amount', type: 'line', data: tableData.map((item) => item?.refundAmount) },
-                    { name: 'No Of Orders', type: 'line', data: tableData.map((item) => item?.noOfOrders) },
+                    { name: 'Number Of Orders', type: 'line', data: tableData.map((item) => item?.noOfOrders) },
                     { name: 'Coupon Amount', type: 'line', data: tableData.map((item) => item?.couponAmount) },
                     { name: 'Products Total Amount', type: 'line', data: tableData.map((item) => item?.productsTotalAmount) },
                     { name: 'COD Amount ', type: 'line', data: tableData.map((item) => item?.codAmountList) },
@@ -1485,28 +1486,29 @@ const Reports = () => {
             if (state.orderSubMenu == 'Sales by category') {
                 const excelData = state.tableData?.map((item) => {
                     const res = { Date: item.date };
-
-                    if (state.tableColumn?.[1]?.title) {
-                        res[state.tableColumn[1].title] = item?.value1;
-                    }
+                    state.tableColumn?.forEach((column) => {
+                        if (column.title !== 'Date') {
+                            res[column.title] = item[column.title];
+                        }
+                    });
 
                     return res;
                 });
                 if (excelData.length > 0) {
-                    downloadExlcel(excelData, label);
+                    downloadExlcel(formatKeysArray(excelData), label);
                 } else {
                     Failure('No Excel data found');
                 }
             } else {
                 if (state.tableData.length > 0) {
-                    downloadExlcel(state.tableData, label);
+                    downloadExlcel(formatKeysArray(state.tableData), label);
                 } else {
                     Failure('No Excel data found');
                 }
             }
         } else if (type === 'Customers') {
             if (state.customerTable?.length > 0) {
-                downloadExlcel(state.customerTable, label);
+                downloadExlcel(formatKeysArray(state.customerTable), label);
             } else {
                 Failure('No Excel data found');
             }

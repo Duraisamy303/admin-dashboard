@@ -1489,28 +1489,35 @@ export const updateOrderLinesWithRefund = (data) => {
     return order.lines;
 };
 
-export const processOrder = (order) => {
-    const updatedLines = order.lines.map((line) => {
-        const refundedQuantity = order.fulfillments
-            .filter((fulfillment) => fulfillment.status === 'REFUNDED')
-            .flatMap((fulfillment) =>
-                fulfillment.lines.map((fulfillmentLine) => {
-                    if (fulfillmentLine.orderLine.id === line.id) {
-                        return fulfillmentLine.quantity;
-                    }
-                    return 0;
-                })
-            )
-            .reduce((acc, qty) => acc + qty, 0);
+export const formatKeysArray = (arr) => {
+    return arr?.map((obj) => {
+        const formattedObj = {};
+        Object.keys(obj).forEach((key) => {
+            let formattedKey;
 
-        // Calculate the new quantity
-        const newQuantity = line.quantity - refundedQuantity;
+            // Check for specific key replacements
+            if (key === 'noOfOrders') {
+                formattedKey = 'Number Of Orders';
+            } else if (key === 'giftwrapAmountList') {
+                formattedKey = 'Gift Wrap Amount';
+            } else if (key === 'codAmountList') {
+                formattedKey = 'COD Amount';
+            } else if (key === 'Dates') {
+                formattedKey = 'Date';
+            } else {
+                // Remove unwanted characters like '--' or non-alphanumeric characters
+                formattedKey = key
+                    .replace(/--/g, '') // Remove double dashes
+                    .replace(/_/g, ' ') // Replace underscores with spaces
+                    .replace(/[^a-zA-Z0-9 ]/g, '') // Remove any other non-alphanumeric characters
+                    .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+                    .replace(/\s+/g, ' ') // Remove extra spaces
+                    .replace(/^./, (str) => str.toUpperCase()); // Capitalize the first letter
+            }
 
-        return {
-            ...line,
-            quantity: newQuantity < 0 ? 0 : newQuantity, // Ensure quantity doesn't go below 0
-        };
+            // Add the formatted key to the new object
+            formattedObj[formattedKey] = obj[key];
+        });
+        return formattedObj;
     });
-
-    return updatedLines;
 };

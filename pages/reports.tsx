@@ -298,28 +298,28 @@ const Reports = () => {
 
             const salesByDate = [
                 {
-                    name: 'Orders placed',
+                    name: 'Orders Placed',
                     value: response.noOfOrderListCount,
                 },
 
                 {
-                    name: 'Total items sold',
+                    name: 'Total Items Sold',
                     value: response.totalItemsSoldListCount,
                 },
                 {
-                    name: 'Product total amount',
+                    name: 'Products Total Amount',
                     value: `${formatCurrency('INR')}${addReportCommasToNumber(response.productsTotalAmountTotal)}`,
                 },
                 {
-                    name: `Refunded 0 orders (0 items)`,
+                    name: `Refunded`,
                     value: `${formatCurrency('INR')}${addReportCommasToNumber(response.refundAmountListTotal)}`,
                 },
                 {
-                    name: 'Charged for shipping',
+                    name: 'Charged For Shipping',
                     value: `${formatCurrency('INR')}${addReportCommasToNumber(response.shippingAmountListTotal)}`,
                 },
                 {
-                    name: 'Worth of coupons used',
+                    name: 'Worth Of Coupons Used',
                     value: `${formatCurrency('INR')}${addReportCommasToNumber(response.couponAmountListTotal)}`,
                 },
                 {

@@ -1152,6 +1152,7 @@ const ProductAdd = () => {
             const { data } = await addCategory({ variables });
             if (data?.categoryCreate?.errors?.length > 0) {
                 Failure(data?.categoryCreate?.errors[0].message);
+                setCreateCategoryLoader(false);
             } else {
                 catListRefetch();
                 setIsOpenCat(false);

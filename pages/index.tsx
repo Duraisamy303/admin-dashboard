@@ -1395,7 +1395,7 @@ const Index = () => {
                                                     if (row.status == 'Draft') {
                                                         Failure('Product is Draft !');
                                                     } else {
-                                                        window.open(`http://www1.prade.in/product-details/${row.id}`, '_blank'); // '_blank' parameter opens the link in a new tab
+                                                        window.open(`http://www1.prade.in/product-details/${row?.slug}`, '_blank'); // '_blank' parameter opens the link in a new tab
                                                     }
                                                 }}
                                             >

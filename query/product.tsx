@@ -4290,6 +4290,31 @@ export const CREATE_SHIPPING = gql`
     }
 `;
 
+
+export const USER_INFO = gql`
+    query {
+    me {
+      id
+      email
+      firstName
+      lastName
+      
+    }
+  }
+`;
+
+export const LOGOUT = gql`
+    mutation {
+        tokensDeactivateAll {
+          errors {
+            field
+            message
+            code
+          }
+        }
+      }
+`;
+
 export const UPDATE_SHIPPING_COST = gql`
     mutation OrderShippingMethodUpdate($id: ID!, $input: OrderUpdateShippingInput!) {
         orderUpdateShipping(order: $id, input: $input) {

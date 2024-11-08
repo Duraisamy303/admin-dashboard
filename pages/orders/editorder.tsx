@@ -2003,7 +2003,7 @@ const Editorder = () => {
                                                     {item?.unitPrice?.net?.currency == 'USD' ? (
                                                         <td>{`${formatCurrency(item?.unitPrice?.net?.currency)}${addCommasToNumber(item?.unitPrice?.net?.amount)}`} </td>
                                                     ) : (
-                                                        <td>{`${formatCurrency(item?.unitPrice?.net?.currency)}${roundOff(item?.unitPrice?.net?.amount)}`} </td>
+                                                        <td>{`${formatCurrency(item?.unitPrice?.net?.currency)}${addCommasToNumber(item?.unitPrice?.net?.amount)}`} </td>
                                                     )}
                                                     <td>
                                                         <div>× {item?.quantity}</div>

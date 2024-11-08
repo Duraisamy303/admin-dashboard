@@ -2049,7 +2049,7 @@ const Editorder = () => {
                                 <div className="sm:w-2/5">
                                     <div className="flex items-center justify-between">
                                         <div>Items Subtotal:</div>
-                                        <div>{`${formatCurrency(orderData?.subtotal?.gross?.currency)}${addCommasToNumber(orderData?.subtotal?.gross?.amount)}`}</div>
+                                        <div>{`${formatCurrency(orderData?.subtotal?.net?.currency)}${addCommasToNumber(orderData?.subtotal?.net?.amount)}`}</div>
                                     </div>
                                     {orderDetails?.order?.giftCards?.length > 0 && (
                                         <div className="mt-4 flex  justify-between">

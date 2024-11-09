@@ -1639,7 +1639,7 @@ const NewOrder = () => {
                             <div className="mb-6 sm:mb-0"></div>
                             <div className="sm:w-2/5">
                                 <div className="flex items-center justify-between">
-                                    <div>Subtotal</div>
+                                    <div>Items Subtotal:</div>
                                     <div>
                                         {`${formatCurrency(productDetails?.order?.subtotal?.gross?.currency)}${addCommasToNumber(productDetails?.order?.subtotal?.gross?.amount)}`}
 
@@ -1652,7 +1652,7 @@ const NewOrder = () => {
                                             <div className="mt-4 flex items-center justify-between">
                                                 <div>SGST</div>
                                                 <div>
-                                                    {`${formatCurrency(productDetails?.order?.subtotal?.gross?.currency)}${addCommasToNumber(productDetails?.order?.subtotal?.gross?.amount / 2)}`}
+                                                    {`${formatCurrency(productDetails?.order?.total?.gross?.currency)}${addCommasToNumber(productDetails?.order?.total?.tax?.amount / 2)}`}
 
                                                     {/* {productDetails?.order?.subtotal?.gross?.currency} {productDetails?.order?.subtotal?.gross?.amount} */}
                                                 </div>
@@ -1660,7 +1660,7 @@ const NewOrder = () => {
                                             <div className="mt-4 flex items-center justify-between">
                                                 <div>CSGT</div>
                                                 <div>
-                                                    {`${formatCurrency(productDetails?.order?.subtotal?.gross?.currency)}${addCommasToNumber(productDetails?.order?.subtotal?.gross?.amount / 2)}`}
+                                                    {`${formatCurrency(productDetails?.order?.total?.gross?.currency)}${addCommasToNumber(productDetails?.order?.total?.tax?.amount / 2)}`}
 
                                                     {/* {productDetails?.order?.subtotal?.gross?.currency} {productDetails?.order?.subtotal?.gross?.amount} */}
                                                 </div>
@@ -1670,7 +1670,7 @@ const NewOrder = () => {
                                         <div className="mt-4 flex items-center justify-between">
                                             <div>IGST</div>
                                             <div>
-                                                {`${formatCurrency(productDetails?.order?.subtotal?.gross?.currency)}${addCommasToNumber(productDetails?.order?.subtotal?.gross?.amount)}`}
+                                                {`${formatCurrency(productDetails?.order?.total?.gross?.currency)}${addCommasToNumber(productDetails?.order?.total?.gross?.amount)}`}
 
                                                 {/* {`${formatCurrency(productDetails?.order?.subtotal?.gross?.currency)}${addCommasToNumber(productDetails?.subtotal?.total?.gross?.amount)}`} */}
 
@@ -1724,7 +1724,7 @@ const NewOrder = () => {
 
                                         <div className="pl-8 text-sm">
                                             (includes {productDetails?.order?.total?.tax?.currency == 'USD' ? '$' : '₹'}
-                                            {roundOff(productDetails?.order?.total?.tax?.amount)} GST)
+                                            {addCommasToNumber(productDetails?.order?.total?.tax?.amount)} GST)
                                         </div>
                                     </div>
                                 </div>

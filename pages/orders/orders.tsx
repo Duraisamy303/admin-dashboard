@@ -113,8 +113,7 @@ const AbandonedCarts = () => {
 
     const { refetch: orderRefetch, loading: refetchLoading } = useQuery(ORDER_LIST);
 
-    const { refetch: orderCountRefetch} = useQuery(ORDER_LIST);
-
+    const { refetch: orderCountRefetch } = useQuery(ORDER_LIST);
 
     const [fetchNextPage] = useLazyQuery(ORDER_LIST, {
         onCompleted: (data) => {
@@ -206,7 +205,7 @@ const AbandonedCarts = () => {
 
     const orderNumber = (item: any) => {
         let label = '';
-        if (item?.node?.user !== null) {
+        if (item?.node?.user !== null && item.node.user?.firstName !== '' && item.node.user?.lastName !== '') {
             label = `#${item?.node?.number} ${item?.node?.user?.firstName} ${item?.node?.user?.lastName}`;
         } else {
             label = `#${item?.node?.number} ${item.node?.billingAddress?.firstName} ${item.node?.billingAddress?.lastName}`;
@@ -245,7 +244,7 @@ const AbandonedCarts = () => {
                 first: PAGE_SIZE,
                 after: null,
             });
-            getTotalCounts()
+            getTotalCounts();
             setData(data);
         } catch (error) {
             console.log('error: ', error);

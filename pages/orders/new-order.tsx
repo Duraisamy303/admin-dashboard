@@ -55,6 +55,9 @@ import { useDispatch } from 'react-redux';
 import Swal from 'sweetalert2';
 import * as Yup from 'yup';
 import Select from 'react-select';
+import CommonLoader from '../elements/commonLoader';
+import useDebounce from '@/utils/useDebounce';
+import CustomerSelect from '@/components/CustomerSelect';
 
 const NewOrder = () => {
     const router = useRouter();
@@ -147,7 +150,13 @@ const NewOrder = () => {
         },
     });
 
-    const { data, refetch: customerSearch } = useQuery(CUSTOMER_LIST);
+    const { refetch: customerSearchRefetch } = useQuery(CUSTOMER_LIST, {
+        variables: { channel: 'india-channel' },
+    });
+
+    const fetchCustomer = async (variables) => {
+        return await customerSearchRefetch(variables);
+    };
 
     const { data: countryData } = useQuery(COUNTRY_LIST);
 
@@ -183,7 +192,7 @@ const NewOrder = () => {
         return channel;
     };
 
-    const { data: productData, refetch: productRefetch , loading: refetchLoading } = useQuery(FILTER_PRODUCT_LIST, {
+    const { data: productData } = useQuery(FILTER_PRODUCT_LIST, {
         variables: {
             after: null,
             first: 20,
@@ -197,34 +206,36 @@ const NewOrder = () => {
         },
     });
 
-    // For get Customer list
-    useEffect(() => {
-        getCustomer();
-    }, [customer]);
+    const { refetch: productLoadMoreRefetch, loading: productLoadMoreLoading } = useQuery(FILTER_PRODUCT_LIST);
 
-    const getCustomer = () => {
-        try {
-            setState({ loading: true });
-            const funRes = UserDropdownData(customer);
-            setState({ customerList: funRes, loading: false });
-        } catch (error) {
-            setState({ loading: false });
+    // // For get Customer list
+    // useEffect(() => {
+    //     getCustomer();
+    // }, [customer]);
 
-            console.log('error: ', error);
-        }
-    };
+    // const getCustomer = () => {
+    //     try {
+    //         setState({ loading: true });
+    //         const funRes = UserDropdownData(customer);
+    //         setState({ customerList: funRes, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
 
-    const getCustomerAddress = () => {
-        try {
-            setState({ loading: true });
-            const funRes = UserDropdownData(customer);
-            setState({ customerList: funRes, loading: false });
-        } catch (error) {
-            setState({ loading: false });
+    //         console.log('error: ', error);
+    //     }
+    // };
 
-            console.log('error: ', error);
-        }
-    };
+    // const getCustomerAddress = () => {
+    //     try {
+    //         setState({ loading: true });
+    //         const funRes = UserDropdownData(customer);
+    //         setState({ customerList: funRes, loading: false });
+    //     } catch (error) {
+    //         setState({ loading: false });
+
+    //         console.log('error: ', error);
+    //     }
+    // };
 
     // For get Country list
     useEffect(() => {
@@ -249,7 +260,9 @@ const NewOrder = () => {
             const list = stateData?.addressValidationRules?.countryAreaChoices;
             if (list?.length > 0) {
                 const uniqueStateList = getUniqueStates(list);
-                setState({ stateList: uniqueStateList });
+                setState({ stateList: uniqueStateList, billingAddress: state.billingAddress });
+            } else {
+                setState({ stateList: [], billingAddress: state.billingAddress });
             }
         }
     }, [stateData]);
@@ -260,18 +273,19 @@ const NewOrder = () => {
             const list = shippingStateData?.addressValidationRules?.countryAreaChoices;
             if (list?.length > 0) {
                 const uniqueStateList = getUniqueStates(list);
-
-                setState({ shippingStateList: uniqueStateList });
+                setState({ shippingStateList: uniqueStateList, shippingAddress: state.shippingAddress });
+            } else {
+                setState({ shippingStateList: [], billingAddress: state.billingAddress });
             }
         }
     }, [shippingStateData]);
 
-    // Get Specific Customer Address
-    useEffect(() => {
-        if (state.selectedCustomerId) {
-            getCustomerAddress();
-        }
-    }, [customerAddress, state.selectedCustomerId]);
+    // // Get Specific Customer Address
+    // useEffect(() => {
+    //     if (state.selectedCustomerId) {
+    //         getCustomerAddress();
+    //     }
+    // }, [customerAddress, state.selectedCustomerId]);
 
     // Get Order Details
     useEffect(() => {
@@ -318,13 +332,23 @@ const NewOrder = () => {
         getProductList();
     }, [productData]);
 
-    useEffect(() => {
-        handleSearch();
-    }, [state.search]);
+    const debouncedSearchTerm = useDebounce(state.search, 500); // Debounce with a 500ms delay
 
-    const handleSearch = async () => {
+    useEffect(() => {
+        if (debouncedSearchTerm) {
+            handleSearch(debouncedSearchTerm);
+        } else {
+            getProductList();
+        }
+    }, [debouncedSearchTerm]);
+
+    // useEffect(() => {
+    //     handleSearch();
+    // }, [state.search]);
+
+    const handleSearch = async (searchTerm: string) => {
         try {
-            if (state.search !== '' && state.search !== undefined && state.search !== null) {
+            if (searchTerm) {
                 let channel = '';
                 if (channels() == 'INR') {
                     channel = 'india-channel';
@@ -334,9 +358,12 @@ const NewOrder = () => {
                 const res = await searchProductRefetch({
                     channel,
                     query: state.search,
+                    first: 20,
+                    after: null,
                 });
+                const pageInfo = res?.data?.products?.pageInfo;
 
-                setState({ productList: res?.data?.products?.edges?.map((item: any) => item.node) });
+                setState({ productList: res?.data?.products?.edges?.map((item: any) => item.node), endCursor: pageInfo?.endCursor, hasNextPage: pageInfo?.hasNextPage });
             } else {
                 getProductList();
             }
@@ -450,7 +477,12 @@ const NewOrder = () => {
                     },
                 },
             });
-            getOrderData();
+            await getOrderData({
+                variables: {
+                    id: orderId,
+                    isStaffUser: true,
+                },
+            });
         } catch (error) {
             console.error(error);
         }
@@ -524,7 +556,7 @@ const NewOrder = () => {
                 });
                 updateShippingAmount();
                 getOrderData();
-                setState({ productLoading: false });
+                setState({ productLoading: false, search: '' });
                 Success('New Product Added Successfully');
                 setState({ addProductOpen: false, selectedItems: [] });
             } else {
@@ -639,8 +671,13 @@ const NewOrder = () => {
                     },
                 },
             });
-            getOrderData();
-            setState({ coupenOption: 'percentage', isOpenCoupen: false, percentcoupenValue: '', fixedcoupenValue: '' });
+            console.log('res: ', res);
+            if (res?.data?.orderDiscountAdd?.errors?.length > 0) {
+                Failure(res?.data?.orderDiscountAdd?.errors[0]?.message);
+            } else {
+                getOrderData();
+                setState({ coupenOption: 'percentage', isOpenCoupen: false, percentcoupenValue: '', fixedcoupenValue: '' });
+            }
             // setIsOpenCoupen(false);
             // setFixedCoupenValue('');
             // setPercentCoupenValue('');
@@ -788,25 +825,11 @@ const NewOrder = () => {
     };
 
     const handleChangeCustomer = async (val: any) => {
-        {
-            const selectedCustomerId: any = val.value;
+        if (val) {
+            const selectedCustomerId: any = val?.value;
             setState({ selectedCustomerId: selectedCustomerId, showShippingInputs: true, showBillingInputs: true });
 
             await addressRefetch({ id: selectedCustomerId });
-        }
-    };
-
-    const searchCustomer = async (input) => {
-        try {
-            const res = await customerSearch({
-                first: 100,
-                query: input,
-                after: null,
-            });
-            const funRes = UserDropdownData(res.data);
-            setState({ customerList: funRes });
-        } catch (error) {
-            console.log('error: ', error);
         }
     };
 
@@ -869,7 +892,7 @@ const NewOrder = () => {
                 Failure(res?.data?.draftOrderUpdate?.errors[0]?.message);
             } else {
                 updateShippingAmount();
-                getOrderData();
+                await getOrderData();
 
                 Success('Address updated successfully');
             }
@@ -884,7 +907,7 @@ const NewOrder = () => {
     const loadMoreProducts = async () => {
         try {
             if (state.hasNextPage) {
-                const newProducts = await productRefetch({
+                const newProducts = await productLoadMoreRefetch({
                     after: state.endCursor,
                     first: 20,
                     query: '',
@@ -898,6 +921,30 @@ const NewOrder = () => {
                 setState({ endCursor: newProducts?.data?.search?.pageInfo?.endCursor, hasNextPage: newProducts?.data?.search?.pageInfo?.hasNextPage });
                 const funRes = await productsDropdown(newProducts?.data?.search?.edges);
                 setState({ productList: [...state.productList, ...funRes], loading: false });
+            }
+        } catch (error) {
+            console.log('error: ', error);
+        }
+    };
+
+    const loadMoreSearchProduct = async () => {
+        try {
+            if (state.hasNextPage) {
+                let channel = '';
+                if (channels() == 'INR') {
+                    channel = 'india-channel';
+                } else {
+                    channel = 'default-channel';
+                }
+                const res = await searchProductRefetch({
+                    channel,
+                    query: state.search,
+                    first: 20,
+                    after: state.endCursor,
+                });
+
+                const funRes = await productsDropdown(res?.data?.products?.edges);
+                setState({ productList: [...state.productList, ...funRes], endCursor: res?.data?.products?.pageInfo?.endCursor, hasNextPage: res?.data?.products?.pageInfo?.hasNextPage });
             }
         } catch (error) {
             console.log('error: ', error);
@@ -928,17 +975,13 @@ const NewOrder = () => {
                                             Customer:
                                         </label>
                                     </div>
-                                    <Select
+
+                                    <CustomerSelect
+                                        queryFunc={fetchCustomer} // Pass the function to fetch categories
+                                        selectedCategory={state.selectedCustomer} // Use 'selectedCategory' instead of 'value'
+                                        onCategoryChange={(val) => handleChangeCustomer(val)} // Use 'onCategoryChange' instead of 'onChange'
                                         placeholder="Select a customer"
-                                        options={state.customerList}
-                                        value={state.selectedCustomer}
-                                        onChange={(val: any) => handleChangeCustomer(val)}
-                                        isSearchable={true}
-                                        onInputChange={(inputValue, { action }) => {
-                                            if (action === 'input-change') {
-                                                searchCustomer(inputValue); // Only pass the actual input value
-                                            }
-                                        }}
+                                        isMulti={false}
                                     />
 
                                     {/* <select
@@ -988,13 +1031,14 @@ const NewOrder = () => {
                                                 {state.billingAddress?.address_2} */}
                                                 <br /> {state.billingAddress?.city}
                                                 <br /> {state.billingAddress?.state}
-                                                {/* <br /> {selectedCountry} */}
+                                                <br /> {state.billingAddress?.country}
+                                                <br /> {state.billingAddress?.pincode}
                                             </p>
                                             {state.billingAddress?.email && (
                                                 <>
                                                     <p className="mt-3 font-semibold">Email Address:</p>
                                                     <p>
-                                                        <a href="mailto:mail2inducs@gmail.com" className="text-primary underline">
+                                                        <a href={`mailto:${state.billingAddress?.email}`} className="text-primary underline">
                                                             {state.billingAddress?.email}
                                                         </a>
                                                     </p>
@@ -1004,7 +1048,7 @@ const NewOrder = () => {
                                                 <>
                                                     <p className="mt-3 font-semibold">Phone:</p>
                                                     <p>
-                                                        <a href="tel:01803556656" className="text-primary underline">
+                                                        <a href={`tel:${state.billingAddress?.phone}`} className="text-primary underline">
                                                             {state.billingAddress?.phone}
                                                         </a>
                                                     </p>
@@ -1032,8 +1076,8 @@ const NewOrder = () => {
                                                 value={state.billingAddress?.firstName}
                                                 onChange={handleChange}
                                             />
-                                            {billingErrMsg?.firstName && <div className="mt-1 text-danger">{billingErrMsg.firstName}</div>}
-                                            {/* {state.billingAddress['billing.firstName'] && <div className="mt-1 text-danger">{state.billingAddress['billing.firstName']}</div>} */}
+                                            {/* {billingErrMsg?.firstName && <div className="mt-1 text-danger">{billingErrMsg.firstName}</div>} */}
+                                            {state.billingAddress['billing.firstName'] && <div className="mt-1 text-danger">{state.billingAddress['billing.firstName']}</div>}
                                         </div>
                                         <div className="col-span-6">
                                             <label htmlFor="Lastname" className=" text-sm font-medium text-gray-700">
@@ -1046,7 +1090,7 @@ const NewOrder = () => {
                                                 value={state.billingAddress?.lastName}
                                                 onChange={handleChange}
                                             />
-                                            {billingErrMsg.lastName && <div className="mt-1 text-danger">{billingErrMsg.lastName}</div>}
+                                            {/* {billingErrMsg.lastName && <div className="mt-1 text-danger">{billingErrMsg.lastName}</div>} */}
                                             {state.billingAddress['billing.lastName'] && <div className="mt-1 text-danger">{state.billingAddress['billing.lastName']}</div>}
                                         </div>
                                     </div>
@@ -1063,7 +1107,7 @@ const NewOrder = () => {
                                                 value={state.billingAddress?.company}
                                                 onChange={handleChange}
                                             />
-                                            {billingErrMsg?.company && <div className="mt-1 text-danger">{billingErrMsg.company}</div>}
+                                            {/* {billingErrMsg?.company && <div className="mt-1 text-danger">{billingErrMsg.company}</div>} */}
                                             {state.billingAddress['billing.company'] && <div className="mt-1 text-danger">{state.billingAddress['billing.company']}</div>}
                                         </div>
                                     </div>
@@ -1080,7 +1124,7 @@ const NewOrder = () => {
                                                 value={state.billingAddress?.address_1}
                                                 onChange={handleChange}
                                             />
-                                            {billingErrMsg.address_1 && <div className="mt-1 text-danger">{billingErrMsg.address_1}</div>}
+                                            {/* {billingErrMsg.address_1 && <div className="mt-1 text-danger">{billingErrMsg.address_1}</div>} */}
                                             {state.billingAddress['billing.address_1'] && <div className="mt-1 text-danger">{state.billingAddress['billing.address_1']}</div>}
                                         </div>
                                         {/* <div className="col-span-6">
@@ -1121,31 +1165,44 @@ const NewOrder = () => {
                                                     </option>
                                                 ))}
                                             </select>
-                                            {billingErrMsg.country && <div className="mt-1 text-danger">{billingErrMsg.country}</div>}
+                                            {/* {billingErrMsg.country && <div className="mt-1 text-danger">{billingErrMsg.country}</div>} */}
                                             {state.billingAddress['billing.country'] && <div className="mt-1 text-danger">{state.billingAddress['billing.country']}</div>}
                                         </div>
                                         <div className="col-span-6">
                                             <label htmlFor="state" className=" text-sm font-medium text-gray-700">
                                                 State / Country
                                             </label>
-                                            <select
-                                                className={`form-select mr-3 ${state.billingAddress['billing.state'] && 'border border-danger focus:border-danger'}`}
-                                                id="billingstate"
-                                                name="billing.state"
-                                                value={state.billingAddress?.state}
-                                                onChange={(e) => {
-                                                    handleChange(e);
-                                                }}
-                                            >
-                                                <option value="Select a state">Select a state</option>
-                                                {state.stateList?.map((item: any) => (
-                                                    <option key={item.raw} value={item.raw}>
-                                                        {item.raw}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            {state.stateList?.length > 0 ? (
+                                                <select
+                                                    className={`form-select mr-3 ${state.billingAddress['billing.state'] && 'border border-danger focus:border-danger'}`}
+                                                    id="billingstate"
+                                                    name="billing.state"
+                                                    value={state.billingAddress?.state}
+                                                    onChange={(e) => {
+                                                        handleChange(e);
+                                                    }}
+                                                >
+                                                    <option value="Select a state">Select a state</option>
+                                                    {state.stateList?.map((item: any) => (
+                                                        <option key={item.raw} value={item.raw}>
+                                                            {item.raw}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <input
+                                                    type="text"
+                                                    className={`form-select mr-3 ${state.billingAddress['billing.state'] && 'border border-danger focus:border-danger'}`}
+                                                    id="billingstate"
+                                                    name="billing.state"
+                                                    value={state.billingAddress?.state}
+                                                    onChange={(e) => {
+                                                        handleChange(e);
+                                                    }}
+                                                />
+                                            )}
                                             {billingErrMsg.state && <div className="mt-1 text-danger">{billingErrMsg.state}</div>}
-                                            {state.billingAddress['billing.state'] && <div className="mt-1 text-danger">{state.billingAddress['billing.state']}</div>}
+                                            {/* {state.billingAddress['billing.state'] && <div className="mt-1 text-danger">{state.billingAddress['billing.state']}</div>} */}
                                         </div>
                                     </div>
 
@@ -1161,7 +1218,7 @@ const NewOrder = () => {
                                                 value={state.billingAddress?.city}
                                                 onChange={handleChange}
                                             />
-                                            {billingErrMsg.city && <div className="mt-1 text-danger">{billingErrMsg.city}</div>}
+                                            {/* {billingErrMsg.city && <div className="mt-1 text-danger">{billingErrMsg.city}</div>} */}
                                             {state.billingAddress['billing.city'] && <div className="mt-1 text-danger">{state.billingAddress['billing.city']}</div>}
                                         </div>
                                         <div className="col-span-6">
@@ -1175,7 +1232,7 @@ const NewOrder = () => {
                                                 value={state.billingAddress?.pincode}
                                                 onChange={handleChange}
                                             />
-                                            {billingErrMsg.pincode && <div className="mt-1 text-danger">{billingErrMsg.pincode}</div>}
+                                            {/* {billingErrMsg.pincode && <div className="mt-1 text-danger">{billingErrMsg.pincode}</div>} */}
                                             {state.billingAddress['billing.pincode'] && <div className="mt-1 text-danger">{state.billingAddress['billing.pincode']}</div>}
                                         </div>
                                     </div>
@@ -1209,7 +1266,7 @@ const NewOrder = () => {
                                                 maxLength={10}
                                                 onChange={handleChange}
                                             />
-                                            {billingErrMsg.phone && <div className="mt-1 text-danger">{billingErrMsg.phone}</div>}
+                                            {/* {billingErrMsg.phone && <div className="mt-1 text-danger">{billingErrMsg.phone}</div>} */}
                                             {state.billingAddress['billing.phone'] && <div className="mt-1 text-danger">{state.billingAddress['billing.phone']}</div>}
                                         </div>
                                     </div>
@@ -1262,13 +1319,15 @@ const NewOrder = () => {
                                                 {state.shippingAddress?.address_1}
                                                 <br /> {state.shippingAddress?.city}
                                                 <br /> {state.shippingAddress?.state}
-                                                <br /> {state.shippingAddress?.countryArea}
+                                                {/* <br /> {state.shippingAddress?.countryArea} */}
+                                                <br /> {state.shippingAddress?.country}
+                                                <br /> {state.shippingAddress?.pincode}
                                             </p>
                                             {state.shippingAddress?.email && (
                                                 <>
                                                     <p className="mt-3 font-semibold">Email Address:</p>
                                                     <p>
-                                                        <a href="mailto:mail2inducs@gmail.com" className="text-primary underline">
+                                                        <a href={`mailto:${state.shippingAddress?.email}`} className="text-primary underline">
                                                             {state.shippingAddress?.email}
                                                         </a>
                                                     </p>
@@ -1278,7 +1337,7 @@ const NewOrder = () => {
                                                 <>
                                                     <p className="mt-3 font-semibold">Phone:</p>
                                                     <p>
-                                                        <a href="tel:01803556656" className="text-primary underline">
+                                                        <a href={`tel:${state.shippingAddress?.phone}`} className="text-primary underline">
                                                             {state.shippingAddress?.phone}
                                                         </a>
                                                     </p>
@@ -1309,7 +1368,7 @@ const NewOrder = () => {
                                                 value={state.shippingAddress.firstName}
                                                 onChange={handleShippingChange}
                                             />
-                                            {shippingErrMsg.firstName && <div className="mt-1 text-danger">{shippingErrMsg.firstName}</div>}
+                                            {/* {shippingErrMsg.firstName && <div className="mt-1 text-danger">{shippingErrMsg.firstName}</div>} */}
                                             {state.shippingAddress['shipping.firstName'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.firstName']}</div>}
                                         </div>
                                         <div className="col-span-6">
@@ -1323,7 +1382,7 @@ const NewOrder = () => {
                                                 value={state.shippingAddress.lastName}
                                                 onChange={handleShippingChange}
                                             />
-                                            {shippingErrMsg.lastName && <div className="mt-1 text-danger">{shippingErrMsg.lastName}</div>}
+                                            {/* {shippingErrMsg.lastName && <div className="mt-1 text-danger">{shippingErrMsg.lastName}</div>} */}
                                             {state.shippingAddress['shipping.lastName'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.lastName']}</div>}
                                         </div>
                                     </div>
@@ -1340,7 +1399,7 @@ const NewOrder = () => {
                                                 value={state.shippingAddress.company}
                                                 onChange={handleShippingChange}
                                             />
-                                            {shippingErrMsg.company && <div className="mt-1 text-danger">{shippingErrMsg.company}</div>}
+                                            {/* {shippingErrMsg.company && <div className="mt-1 text-danger">{shippingErrMsg.company}</div>} */}
                                             {state.shippingAddress['shipping.company'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.company']}</div>}
                                         </div>
                                     </div>
@@ -1357,7 +1416,7 @@ const NewOrder = () => {
                                                 value={state.shippingAddress.address_1}
                                                 onChange={handleShippingChange}
                                             />
-                                            {shippingErrMsg.address_1 && <div className="mt-1 text-danger">{shippingErrMsg.address_1}</div>}
+                                            {/* {shippingErrMsg.address_1 && <div className="mt-1 text-danger">{shippingErrMsg.address_1}</div>} */}
                                             {state.shippingAddress['shipping.address_1'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.address_1']}</div>}
                                         </div>
                                         {/* <div className="col-span-6">
@@ -1400,30 +1459,41 @@ const NewOrder = () => {
                                                     </option>
                                                 ))}
                                             </select>
-                                            {shippingErrMsg.country && <div className="mt-1 text-danger">{shippingErrMsg.country}</div>}
+                                            {/* {shippingErrMsg.country && <div className="mt-1 text-danger">{shippingErrMsg.country}</div>} */}
                                             {state.shippingAddress['shipping.country'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.country']}</div>}
                                         </div>
                                         <div className="col-span-6">
                                             <label htmlFor="state" className=" text-sm font-medium text-gray-700">
                                                 State / Country
                                             </label>
-                                            <select
-                                                className={`form-select mr-3 ${state.shippingAddress['shipping.state'] && 'border border-danger focus:border-danger'}`}
-                                                id="shippingstate"
-                                                name="shipping.state"
-                                                value={state.shippingAddress.state}
-                                                onChange={handleShippingChange}
-                                            >
-                                                <option value="Select a state">Select a state</option>
+                                            {state.shippingStateList?.length > 0 ? (
+                                                <select
+                                                    className={`form-select mr-3 ${state.shippingAddress['shipping.state'] && 'border border-danger focus:border-danger'}`}
+                                                    id="shippingstate"
+                                                    name="shipping.state"
+                                                    value={state.shippingAddress.state}
+                                                    onChange={handleShippingChange}
+                                                >
+                                                    <option value="Select a state">Select a state</option>
 
-                                                {state.shippingStateList?.map((item: any) => (
-                                                    <option key={item.raw} value={item.raw}>
-                                                        {item.raw}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                                    {state.shippingStateList?.map((item: any) => (
+                                                        <option key={item.raw} value={item.raw}>
+                                                            {item.raw}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <input
+                                                    className={`form-select mr-3 ${state.shippingAddress['shipping.state'] && 'border border-danger focus:border-danger'}`}
+                                                    id="shippingstate"
+                                                    name="shipping.state"
+                                                    value={state.shippingAddress.state}
+                                                    onChange={handleShippingChange}
+                                                    type="text"
+                                                />
+                                            )}
                                             {shippingErrMsg.state && <div className="mt-1 text-danger">{shippingErrMsg.state}</div>}
-                                            {state.shippingAddress['shipping.state'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.state']}</div>}
+                                            {/* {state.shippingAddress['shipping.state'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.state']}</div>} */}
                                         </div>
                                     </div>
 
@@ -1439,7 +1509,7 @@ const NewOrder = () => {
                                                 value={state.shippingAddress.city}
                                                 onChange={handleShippingChange}
                                             />
-                                            {shippingErrMsg.city && <div className="mt-1 text-danger">{shippingErrMsg.city}</div>}
+                                            {/* {shippingErrMsg.city && <div className="mt-1 text-danger">{shippingErrMsg.city}</div>} */}
                                             {state.shippingAddress['shipping.city'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.city']}</div>}
                                         </div>
                                         <div className="col-span-6">
@@ -1453,7 +1523,7 @@ const NewOrder = () => {
                                                 value={state.shippingAddress.pincode}
                                                 onChange={handleShippingChange}
                                             />
-                                            {shippingErrMsg.pincode && <div className="mt-1 text-danger">{shippingErrMsg.pincode}</div>}
+                                            {/* {shippingErrMsg.pincode && <div className="mt-1 text-danger">{shippingErrMsg.pincode}</div>} */}
                                             {state.shippingAddress['shipping.pincode'] && <div className="mt-1 text-danger">{state.shippingAddress['shipping.pincode']}</div>}
                                         </div>
                                     </div>
@@ -1569,7 +1639,7 @@ const NewOrder = () => {
                             <div className="mb-6 sm:mb-0"></div>
                             <div className="sm:w-2/5">
                                 <div className="flex items-center justify-between">
-                                    <div>Subtotal</div>
+                                    <div>Items Subtotal:</div>
                                     <div>
                                         {`${formatCurrency(productDetails?.order?.subtotal?.gross?.currency)}${addCommasToNumber(productDetails?.order?.subtotal?.gross?.amount)}`}
 
@@ -1582,7 +1652,7 @@ const NewOrder = () => {
                                             <div className="mt-4 flex items-center justify-between">
                                                 <div>SGST</div>
                                                 <div>
-                                                    {`${formatCurrency(productDetails?.order?.subtotal?.gross?.currency)}${addCommasToNumber(productDetails?.order?.subtotal?.gross?.amount / 2)}`}
+                                                    {`${formatCurrency(productDetails?.order?.total?.gross?.currency)}${addCommasToNumber(productDetails?.order?.total?.tax?.amount / 2)}`}
 
                                                     {/* {productDetails?.order?.subtotal?.gross?.currency} {productDetails?.order?.subtotal?.gross?.amount} */}
                                                 </div>
@@ -1590,7 +1660,7 @@ const NewOrder = () => {
                                             <div className="mt-4 flex items-center justify-between">
                                                 <div>CSGT</div>
                                                 <div>
-                                                    {`${formatCurrency(productDetails?.order?.subtotal?.gross?.currency)}${addCommasToNumber(productDetails?.order?.subtotal?.gross?.amount / 2)}`}
+                                                    {`${formatCurrency(productDetails?.order?.total?.gross?.currency)}${addCommasToNumber(productDetails?.order?.total?.tax?.amount / 2)}`}
 
                                                     {/* {productDetails?.order?.subtotal?.gross?.currency} {productDetails?.order?.subtotal?.gross?.amount} */}
                                                 </div>
@@ -1600,7 +1670,7 @@ const NewOrder = () => {
                                         <div className="mt-4 flex items-center justify-between">
                                             <div>IGST</div>
                                             <div>
-                                                {`${formatCurrency(productDetails?.order?.subtotal?.gross?.currency)}${addCommasToNumber(productDetails?.order?.subtotal?.gross?.amount)}`}
+                                                {`${formatCurrency(productDetails?.order?.total?.gross?.currency)}${addCommasToNumber(productDetails?.order?.total?.gross?.amount)}`}
 
                                                 {/* {`${formatCurrency(productDetails?.order?.subtotal?.gross?.currency)}${addCommasToNumber(productDetails?.subtotal?.total?.gross?.amount)}`} */}
 
@@ -1609,13 +1679,11 @@ const NewOrder = () => {
                                         </div>
                                     ))}
 
-                                {productDetails?.order?.shippingMethods?.length > 0 && (
+                                {productDetails?.order?.shippingPrice?.gross?.amount != 0 && (
                                     <div className="mt-4 flex items-center justify-between">
                                         <div>Shipping Rate</div>
                                         <div>
-                                            {`${formatCurrency(productDetails?.order?.shippingMethods[0]?.price?.currency)}${addCommasToNumber(
-                                                productDetails?.order?.shippingMethods[0]?.price?.amount
-                                            )}`}
+                                            {`${formatCurrency(productDetails?.order?.shippingPrice?.gross?.currency)}${addCommasToNumber(productDetails?.order?.shippingPrice?.gross?.amount)}`}
 
                                             {/* {productDetails?.order?.shippingMethods[0]?.price?.currency} {productDetails?.order?.shippingMethods[0]?.price?.amount} */}
                                         </div>
@@ -1656,7 +1724,7 @@ const NewOrder = () => {
 
                                         <div className="pl-8 text-sm">
                                             (includes {productDetails?.order?.total?.tax?.currency == 'USD' ? '$' : '₹'}
-                                            {roundOff(productDetails?.order?.total?.tax?.amount)} GST)
+                                            {addCommasToNumber(productDetails?.order?.total?.tax?.amount)} GST)
                                         </div>
                                     </div>
                                 </div>
@@ -1789,7 +1857,7 @@ const NewOrder = () => {
                 addHeader={'Add Product'}
                 updateHeader={'Update Product'}
                 open={state.addProductOpen}
-                close={() => setState({ addProductOpen: false, productIsEdit: false })}
+                close={() => setState({ addProductOpen: false, productIsEdit: false, search: '' })}
                 renderComponent={() => (
                     <>
                         {state.productIsEdit ? (
@@ -1815,80 +1883,89 @@ const NewOrder = () => {
                                 </div>
                             </div>
                         ) : (
-                            <div className="h-[700px] p-5 ">
+                            <div className="h-[700px] p-5">
                                 <div className="p-3">
                                     <input type="text" className="form-input w-full p-3" placeholder="Search..." value={state.search} onChange={(e) => setState({ search: e.target.value })} />
                                 </div>
-                                <div className="h-[550px] overflow-scroll">
-                                    {/* Product list */}
-                                    {state.productList?.map(({ name, variants, thumbnail }: any) => (
-                                        <div key={name}>
-                                            <div className="flex gap-3">
-                                                <input
-                                                    type="checkbox"
-                                                    className="form-checkbox"
-                                                    checked={state.selectedItems[name] && Object.values(state.selectedItems[name])?.every((value) => value)}
-                                                    onChange={() => handleHeadingSelect(name)}
-                                                />
-                                                <img src={profilePic(thumbnail?.url)} height={30} width={30} alt={name} />
-                                                <div>{name}</div>
-                                            </div>
-                                            <ul>
-                                                {variants?.map(({ name: variantName, sku, costPrice, pricing }: any) => (
-                                                    <li key={variantName} style={{ paddingLeft: '10px', padding: '20px' }}>
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    className="form-checkbox"
-                                                                    checked={state.selectedItems[name]?.[variantName]}
-                                                                    onChange={() => handleSubHeadingSelect(name, variantName)}
-                                                                />
-                                                                <div>
-                                                                    <div> {variantName}</div>
-                                                                    <div> {sku}</div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex">
-                                                                <div>
-                                                                    {/* <div> {costPrice}</div> */}
-                                                                    <div> {`${formatCurrency(pricing?.price?.gross?.currency)}${addCommasToNumber(pricing?.price?.gross?.amount)}`}</div>
 
-                                                                    {/* <div> {pricing?.price?.gross?.amount}</div> */}
+                                {productLoadMoreLoading ? (
+                                    <CommonLoader />
+                                ) : (
+                                    <div className="h-[550px] overflow-auto">
+                                        {/* Product list */}
+                                        {state.productList?.map(({ name, variants, thumbnail }: any) => (
+                                            <div key={name}>
+                                                <div className="flex gap-3">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="form-checkbox"
+                                                        checked={state.selectedItems[name] && Object.values(state.selectedItems[name])?.every((value) => value)}
+                                                        onChange={() => handleHeadingSelect(name)}
+                                                    />
+                                                    <img src={profilePic(thumbnail?.url)} height={30} width={30} alt={name} />
+                                                    <div>{name}</div>
+                                                </div>
+                                                <ul>
+                                                    {variants?.map(({ name: variantName, sku, costPrice, pricing }: any) => (
+                                                        <li key={variantName} className="py-5 pl-4">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        className="form-checkbox"
+                                                                        checked={state.selectedItems[name]?.[variantName]}
+                                                                        onChange={() => handleSubHeadingSelect(name, variantName)}
+                                                                    />
+                                                                    <div>
+                                                                        <div>{variantName}</div>
+                                                                        <div>{sku}</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex">
+                                                                    <div>
+                                                                        <div>{`${formatCurrency(pricing?.price?.gross?.currency)}${addCommasToNumber(pricing?.price?.gross?.amount)}`}</div>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    ))}
-                                </div>
-                                {state.hasNextPage && (
-                                    <div className="mt-4 flex justify-center">
-                                        <button
-                                            onClick={loadMoreProducts}
-                                            className="rounded border border-blue-500 bg-transparent px-4 py-2 font-semibold text-blue-500 hover:border-transparent hover:bg-blue-500 hover:text-white"
-                                        >
-                                            {refetchLoading ? <IconLoader /> : 'Load More'}
-                                        </button>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        ))}
+                                        {state.hasNextPage && (
+                                            <div className="flex w-full justify-center">
+                                                <button
+                                                    onClick={state.search == '' ? loadMoreProducts : loadMoreSearchProduct}
+                                                    className="rounded border border-blue-500 bg-transparent px-4 py-2 font-semibold text-blue-500 hover:border-transparent hover:bg-blue-500 hover:text-white"
+                                                >
+                                                    {productLoadMoreLoading ? <IconLoader /> : 'Load More'}
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
-                                <div className="flex justify-end gap-5 pt-2">
-                                    <button
-                                        onClick={() => {
-                                            setState({ selectedItems: {}, addProductOpen: false });
-                                        }}
-                                        className="rounded border border-black bg-transparent px-4 py-2 font-semibold text-black hover:border-transparent hover:bg-blue-500 hover:text-white"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={() => addProducts()}
-                                        className="rounded border border-blue-500 bg-transparent px-4 py-2 font-semibold text-blue-500 hover:border-transparent hover:bg-blue-500 hover:text-white"
-                                    >
-                                        {state.productLoading ? <IconLoader /> : 'Confirm'}
-                                    </button>
+
+                                {/* Button section */}
+                                <div className="mb-5 flex flex-col items-center gap-5 pt-1">
+                                    {/* Load More Button */}
+
+                                    {/* Action Buttons */}
+                                    <div className="flex w-full justify-end gap-3">
+                                        <button
+                                            onClick={() => {
+                                                setState({ selectedItems: {}, addProductOpen: false, search: '' });
+                                            }}
+                                            className="rounded border border-black bg-transparent px-4 py-2 font-semibold text-black hover:border-transparent hover:bg-blue-500 hover:text-white"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={() => addProducts()}
+                                            className="rounded border border-blue-500 bg-transparent px-4 py-2 font-semibold text-blue-500 hover:border-transparent hover:bg-blue-500 hover:text-white"
+                                        >
+                                            {state.productLoading ? <IconLoader /> : 'Confirm'}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}

@@ -96,7 +96,24 @@ const AbandonedCarts = () => {
         },
     });
 
+    const {} = useQuery(ORDER_LIST, {
+        variables: {
+            first: PAGE_SIZE,
+            after: null,
+            sort: {
+                direction: 'DESC',
+                field: 'NUMBER',
+            },
+            filter: {},
+        },
+        onCompleted: (data) => {
+            setTotal(data?.orders?.totalCount);
+        },
+    });
+
     const { refetch: orderRefetch, loading: refetchLoading } = useQuery(ORDER_LIST);
+
+    const { refetch: orderCountRefetch } = useQuery(ORDER_LIST);
 
     const [fetchNextPage] = useLazyQuery(ORDER_LIST, {
         onCompleted: (data) => {
@@ -126,7 +143,7 @@ const AbandonedCarts = () => {
 
         for (let { type, filter } of filters) {
             try {
-                const { data } = await orderRefetch({
+                const { data } = await orderCountRefetch({
                     channel: 'india-channel',
                     first: PAGE_SIZE,
                     after: null,
@@ -188,7 +205,7 @@ const AbandonedCarts = () => {
 
     const orderNumber = (item: any) => {
         let label = '';
-        if (item?.node?.user !== null) {
+        if (item?.node?.user !== null && item.node.user?.firstName !== '' && item.node.user?.lastName !== '') {
             label = `#${item?.node?.number} ${item?.node?.user?.firstName} ${item?.node?.user?.lastName}`;
         } else {
             label = `#${item?.node?.number} ${item.node?.billingAddress?.firstName} ${item.node?.billingAddress?.lastName}`;
@@ -203,7 +220,7 @@ const AbandonedCarts = () => {
             date: dayjs(item?.node?.created).format('MMM D, YYYY'),
             total: `${item?.node?.total.gross.currency} ${addCommasToNumber(item?.node?.total.gross.amount)}`,
             status: OrderStatus(item?.node?.status),
-            paymentStatus: PaymentStatus(item?.node?.paymentStatus),
+            paymentStatus: PaymentStatus(item?.node?.paymentStatus, item?.node?.origin, item?.node?.totalRefunded),
             invoice: item?.node?.invoices?.length > 0 ? item?.node?.invoices[0]?.number : '-',
             shipmentTracking: item?.node?.fulfillments?.length > 0 ? `${item?.node?.courierPartner?.name}\n${item?.node?.fulfillments[0]?.trackingNumber}` : '-',
             ...item,
@@ -218,7 +235,6 @@ const AbandonedCarts = () => {
         setEndCursor(pageInfo?.endCursor || null);
         setHasNextPage(pageInfo?.hasNextPage || false);
         setHasPreviousPage(pageInfo?.hasPreviousPage || false);
-        setTotal(data?.orders?.totalCount);
     };
 
     const refresh = async () => {
@@ -228,8 +244,7 @@ const AbandonedCarts = () => {
                 first: PAGE_SIZE,
                 after: null,
             });
-            console.log('data: ', data);
-
+            getTotalCounts();
             setData(data);
         } catch (error) {
             console.log('error: ', error);
@@ -573,7 +588,20 @@ const AbandonedCarts = () => {
                                     render: (row) => (
                                         <>
                                             <Tippy content="Edit">
-                                                <button type="button" onClick={() => window.open(`/orders/editorder?id=${row.id}`, '_blank')}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (row?.origin == 'CHECKOUT') {
+                                                            if (row?.transactions?.length > 0) {
+                                                                window.open(`/orders/editorders?id=${row.id}`, '_blank');
+                                                            } else {
+                                                                window.open(`/orders/editorder?id=${row.id}`, '_blank');
+                                                            }
+                                                        } else {
+                                                            window.open(`/orders/editorder?id=${row.id}`, '_blank');
+                                                        }
+                                                    }}
+                                                >
                                                     <IconPencil className="ltr:mr-2 rtl:ml-2" />
                                                 </button>
                                             </Tippy>

@@ -3,6 +3,7 @@ import {
     CREATE_PRODUCT,
     CREATE_VARIANT,
     DELETE_PRODUCTS,
+    NEW_PARENT_CATEGORY_LIST,
     PARENT_CATEGORY_LIST,
     PRODUCT_FULL_DETAILS,
     PRODUCT_LIST_TAGS,
@@ -38,6 +39,8 @@ import Select from 'react-select';
 import IconMenuReport from '@/components/Icon/Menu/IconMenuReport';
 import IconX from '@/components/Icon/IconX';
 import ErrorMessage from '@/components/Layouts/ErrorMessage';
+import CategorySelect from '@/components/CategorySelect';
+import TagSelect from '@/components/TagSelect';
 
 const Index = () => {
     const PAGE_SIZE = 20;
@@ -53,7 +56,7 @@ const Index = () => {
     const [publish, setPublish] = useState(0);
     const [draft, setDraft] = useState(0);
     const [search, setSearch] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState(null);
     const [status, setStatus] = useState('');
     const [parentLists, setParentLists] = useState([]);
     const [categoryOption, setCategoryOption] = useState([]);
@@ -125,13 +128,24 @@ const Index = () => {
     const { refetch: refreshfetch } = useQuery(UPDATED_PRODUCT_PAGINATION);
     const [updateProduct] = useMutation(UPDATE_PRODUCT);
     const [updateVariant] = useMutation(UPDATE_VARIANT);
+    const { data: productCat, refetch: categorySearchRefetch } = useQuery(NEW_PARENT_CATEGORY_LIST);
 
     const { data: parentList } = useQuery(PARENT_CATEGORY_LIST, {
         variables: { channel: 'india-channel' },
     });
     const { data: tagsList, refetch: tagListRefetch } = useQuery(PRODUCT_LIST_TAGS, {
-        variables: { channel: 'india-channel' },
+        variables: { channel: 'india-channel', first: 100 },
     });
+
+    const { refetch: tagRefetch, loading: tagloading } = useQuery(PRODUCT_LIST_TAGS);
+
+    const fetchCategories = async (variables) => {
+        return await categorySearchRefetch(variables);
+    };
+
+    const fetchTag = async (variables) => {
+        return await tagRefetch(variables);
+    };
 
     const tableRef = useRef(null);
 
@@ -187,7 +201,6 @@ const Index = () => {
     useEffect(() => {
         publishCount();
         draftCount();
-        totalCount();
     }, []);
 
     const { loading: getLoading, refetch: fetchLowStockList } = useQuery(UPDATED_PRODUCT_PAGINATION, {
@@ -196,7 +209,7 @@ const Index = () => {
             first: PAGE_SIZE,
             after: null,
             search: search,
-            filter: buildFilter(selectedCategory, status),
+            filter: buildFilter(selectedCategory?.value, status),
         },
         onCompleted: (data) => {
             const products = data?.products?.edges || [];
@@ -205,6 +218,19 @@ const Index = () => {
             setEndCursor(data?.products?.pageInfo?.endCursor || null);
             setHasNextPage(data?.products?.pageInfo?.hasNextPage || false);
             setHasPreviousPage(data?.products?.pageInfo?.hasPreviousPage || false);
+        },
+    });
+
+    const { data: productsCount } = useQuery(UPDATED_PRODUCT_PAGINATION, {
+        variables: {
+            channel: 'india-channel',
+            first: PAGE_SIZE,
+            after: null,
+            search: '',
+            filter: {},
+        },
+        onCompleted: (data) => {
+            setTotal(data?.products?.totalCount);
         },
     });
 
@@ -246,21 +272,6 @@ const Index = () => {
             });
 
             setPublish(data?.products?.totalCount);
-        } catch (error) {
-            console.log('error: ', error);
-        }
-    };
-
-    const totalCount = async () => {
-        try {
-            const { data } = await refreshfetch({
-                channel: 'india-channel',
-                first: PAGE_SIZE,
-                after: null,
-                search: '',
-            });
-
-            setTotal(data?.products?.totalCount);
         } catch (error) {
             console.log('error: ', error);
         }
@@ -385,7 +396,7 @@ const Index = () => {
                 first: PAGE_SIZE,
                 after: endCursor,
                 search: search,
-                filter: buildFilter(selectedCategory, status),
+                filter: buildFilter(selectedCategory?.value, status),
             },
         });
     };
@@ -397,7 +408,7 @@ const Index = () => {
                 last: PAGE_SIZE,
                 before: startCursor,
                 search: search,
-                filter: buildFilter(selectedCategory, status),
+                filter: buildFilter(selectedCategory?.value, status),
             },
         });
     };
@@ -410,20 +421,20 @@ const Index = () => {
                 first: PAGE_SIZE,
                 after: null,
                 search: e,
-                filter: buildFilter(selectedCategory, status),
+                filter: buildFilter(selectedCategory?.value, status),
             },
         });
     };
 
     const handleCategoryChange = (e) => {
-        setSelectedCategory(e.target.value);
+        setSelectedCategory(e);
         fetchLowStockList({
             variables: {
                 channel: 'india-channel',
                 first: PAGE_SIZE,
                 after: null,
                 search: search,
-                filter: buildFilter(e.target.value, status),
+                filter: buildFilter(e?.value, status),
             },
         });
     };
@@ -436,7 +447,7 @@ const Index = () => {
                 first: PAGE_SIZE,
                 after: null,
                 search: search,
-                filter: buildFilter(selectedCategory, selectedStatus),
+                filter: buildFilter(selectedCategory?.value, selectedStatus),
             },
         });
     };
@@ -492,7 +503,7 @@ const Index = () => {
                         first: PAGE_SIZE,
                         after: null,
                         search: search,
-                        filter: buildFilter(selectedCategory, status),
+                        filter: buildFilter(selectedCategory?.value, status),
                     },
                 });
                 Swal.fire('Deleted!', 'Your files have been deleted.', 'success');
@@ -714,8 +725,8 @@ const Index = () => {
                     channelListings: [
                         {
                             channelId: 'Q2hhbm5lbDoy',
-                            price: item.channelListings[0]?.price?.amount ? item.channelListings[0]?.price?.amount : '',
-                            costPrice: item.channelListings[0]?.costPrice?.amount ? item.channelListings[0]?.costPrice?.amount : '',
+                            price: item.channelListings[0]?.price?.amount ? item.channelListings[0]?.price?.amount : 0,
+                            costPrice: item.channelListings[0]?.costPrice?.amount ? item.channelListings[0]?.costPrice?.amount : 0,
                         },
                     ],
                     stocks: [
@@ -1208,7 +1219,15 @@ const Index = () => {
 
                 {/* Category Dropdown */}
                 <div className="flex-1">
-                    <select className="form-select w-full" value={selectedCategory} onChange={handleCategoryChange}>
+                    <CategorySelect
+                        queryFunc={fetchCategories} // Pass the function to fetch categories
+                        selectedCategory={selectedCategory} // Use 'selectedCategory' instead of 'value'
+                        onCategoryChange={(data) => handleCategoryChange(data)} // Use 'onCategoryChange' instead of 'onChange'
+                        placeholder="Select category"
+                        isMulti={false}
+                        clearable={true}
+                    />
+                    {/* <select className="form-select w-full" value={selectedCategory} onChange={handleCategoryChange}>
                         <option value="">Select a Category</option>
                         {parentLists.map((parent) => (
                             <React.Fragment key={parent.id}>
@@ -1220,7 +1239,7 @@ const Index = () => {
                                 ))}
                             </React.Fragment>
                         ))}
-                    </select>
+                    </select> */}
                 </div>
 
                 {/* Status Dropdown */}
@@ -1302,6 +1321,9 @@ const Index = () => {
                 ) : (
                     <DataTable
                         className="table-hover whitespace-nowrap"
+                        style={{
+                            overflow: 'visible',
+                        }}
                         records={recordsData}
                         columns={[
                             {
@@ -1373,7 +1395,7 @@ const Index = () => {
                                                     if (row.status == 'Draft') {
                                                         Failure('Product is Draft !');
                                                     } else {
-                                                        window.open(`http://www1.prade.in/product-details/${row.id}`, '_blank'); // '_blank' parameter opens the link in a new tab
+                                                        window.open(`http://www1.prade.in/product-details/${row?.slug}`, '_blank'); // '_blank' parameter opens the link in a new tab
                                                     }
                                                 }}
                                             >
@@ -1406,6 +1428,8 @@ const Index = () => {
                                             data={record}
                                             updateList={() => {
                                                 refresh();
+                                                publishCount();
+                                                draftCount();
                                                 collapse();
                                             }}
                                             closeExpand={() => {
@@ -1487,7 +1511,7 @@ const Index = () => {
                                                     <Select value={initialCatVal} onChange={(e: any) => setInitialCatVal(e)} options={initialCatOption} placeholder="Select categories..." />
                                                     {initialCatVal?.value == 'change to' && (
                                                         <div className="mt-4">
-                                                            <Select
+                                                            {/* <Select
                                                                 isMulti
                                                                 value={selectedCat}
                                                                 onChange={(e: any) => {
@@ -1497,6 +1521,16 @@ const Index = () => {
                                                                 options={categoryOption}
                                                                 placeholder="Select categories..."
                                                                 // className="form-select"
+                                                            /> */}
+                                                            <CategorySelect
+                                                                queryFunc={fetchCategories} // Pass the function to fetch categories
+                                                                placeholder="Select categories"
+                                                                // title="Categories"
+                                                                selectedCategory={selectedCat}
+                                                                onCategoryChange={(e: any) => {
+                                                                    setSelectedCat(e);
+                                                                    setBulkCatError('');
+                                                                }}
                                                             />
                                                             {bulkCatError && <ErrorMessage message={bulkCatError} />}
                                                         </div>
@@ -1510,14 +1544,16 @@ const Index = () => {
                                                     <Select value={initialTagVal} onChange={(e: any) => setInitialTagVal(e)} options={initialCatOption} placeholder="Select categories..." />
                                                     {initialTagVal?.value == 'change to' && (
                                                         <div className="mt-4">
-                                                            <Select
+                                                            <TagSelect loading={tagloading} queryFunc={fetchTag} selectedCategory={selectedTag} onCategoryChange={(data) => setSelectedTag(data)} />
+
+                                                            {/* <Select
                                                                 placeholder="Select Tags"
                                                                 options={tagOption}
                                                                 value={selectedTag}
                                                                 onChange={(data: any) => setSelectedTag(data)}
                                                                 isSearchable={true}
                                                                 isMulti
-                                                            />
+                                                            /> */}
                                                         </div>
                                                     )}
                                                 </div>

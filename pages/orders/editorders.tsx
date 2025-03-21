@@ -33,6 +33,9 @@ import {
     UNFULFILLMENT_ORDER,
     REFUND_DATA,
     ORDER_FULLFILMENT_REFUND,
+    ORDER_GRAND_REFUND_ORDER,
+    CREATE_MANUAL_ORDER_REFUND,
+    ORDER_DETAILS_GRAND_REFUND,
 } from '@/query/product';
 import { Loader } from '@mantine/core';
 import moment from 'moment';
@@ -40,8 +43,6 @@ import { Field, Form, Formik } from 'formik';
 import * as Yup from 'yup';
 import { useMutation } from '@apollo/client';
 import {
-    DraftFullfillQuantity,
-    DraftQuantity,
     Failure,
     FullfillQuantity,
     NotesMsg,
@@ -59,7 +60,6 @@ import {
     roundOff,
     sampleParams,
     showDeleteAlert,
-    updateOrderLinesWithRefund,
 } from '@/utils/functions';
 import Swal from 'sweetalert2';
 import IconPencil from '@/components/Icon/IconPencil';
@@ -147,6 +147,10 @@ const Editorder = () => {
     const [sendGiftCart] = useMutation(SEND_GIFT_CART);
     const [orderFullfilmentRefund, { loading: refundLoading }] = useMutation(ORDER_FULLFILMENT_REFUND);
 
+    const [manuaOrderRefund, { loading: manuaOrderRefundLoading }] = useMutation(CREATE_MANUAL_ORDER_REFUND);
+
+    const [orderDrandRefund, { loading: orderDrandRefundLoading }] = useMutation(ORDER_GRAND_REFUND_ORDER);
+
     // updateFullfillStatus
 
     const {
@@ -161,6 +165,8 @@ const Editorder = () => {
     });
 
     const { refetch: refundDataRefetch } = useQuery(REFUND_DATA);
+
+    const { refetch: orderDetailsGrandRefund } = useQuery(ORDER_DETAILS_GRAND_REFUND);
 
     const [lines, setLines] = useState([]);
     const [isGiftWrap, setIsGiftWrap] = useState([]);
@@ -185,7 +191,6 @@ const Editorder = () => {
     const [updateInvoideLoading, setUpdateInvoideLoading] = useState(false);
 
     const [transactionLoading, setTransactionLoading] = useState(false);
-    const [refError, setRefError] = useState('');
 
     const [isUpdateQty, setIsUpdateQty] = useState(false);
     const [productQuantity, setProductQuantity] = useState('');
@@ -200,7 +205,7 @@ const Editorder = () => {
 
     const [paymentStatus, setPaymentStatus] = useState('');
     const [refundStatus, setRefundStatus] = useState('');
-
+    const [refError, setRefError] = useState('');
     const [selectedCurrency, setSelectedCurrency] = useState('');
     const [currencyPopup, setCurrencyPopup] = useState('');
     const [currencyLoading, setCurrencyLoading] = useState(false);
@@ -241,7 +246,7 @@ const Editorder = () => {
     const [loading, setLoading] = useState(false);
     const [refundData, setRefundData] = useState(null);
     const [refundProduct, setRefundProduct] = useState(null);
-    const [alreadyRefundProduct, setAlreadyRefundProduct] = useState([]);
+    console.log('refundProduct: ', refundProduct);
     const [disableLines, setDisableLines] = useState(false);
     const [initialQuantity, setInitialQuantity] = useState(false);
     const [confirmLoading, setConfirmLoading] = useState(false);
@@ -275,9 +280,9 @@ const Editorder = () => {
         getOrderData();
     }, [orderDetails]);
 
-    // useEffect(() => {
-    //     getRefundData();
-    // }, [id]);
+    useEffect(() => {
+        getRefundData();
+    }, [id]);
 
     useEffect(() => {
         getCustomer();
@@ -364,8 +369,10 @@ const Editorder = () => {
                 if (orderDetails?.order?.paymentStatus == 'FULLY_CHARGED' || orderDetails?.order?.paymentStatus == 'NOT_CHARGED') {
                     setPaymentStatus(orderDetails?.order?.paymentStatus);
                 } else {
-                    setPaymentStatus(orderDetails?.order?.paymentStatus == 'PARTIALLY_REFUNDED' ? 'FULLY_CHARGED' : orderDetails?.order?.paymentStatus);
-                    setRefundStatus(orderDetails?.order?.paymentStatus);
+                    setPaymentStatus('FULLY_CHARGED');
+                }
+                if (orderDetails?.order?.totalRefunded != 0) {
+                    setRefundStatus('Partially Refunded');
                 }
                 const billing = orderDetails?.order?.billingAddress;
                 const shipping = orderDetails?.order?.shippingAddress;
@@ -426,79 +433,87 @@ const Editorder = () => {
 
     const getRefundData = async () => {
         try {
-            const res = await refundDataRefetch({
-                orderId: id,
+            const res = await orderDetailsGrandRefund({
+                id: id,
+                PERMISSION_HANDLE_CHECKOUTS: true,
+                PERMISSION_HANDLE_PAYMENTS: true,
+                PERMISSION_HANDLE_TAXES: true,
+                PERMISSION_IMPERSONATE_USER: true,
+                PERMISSION_MANAGE_APPS: true,
+                PERMISSION_MANAGE_CHANNELS: true,
+                PERMISSION_MANAGE_CHECKOUTS: true,
+                PERMISSION_MANAGE_DISCOUNTS: true,
+                PERMISSION_MANAGE_GIFT_CARD: true,
+                PERMISSION_MANAGE_MENUS: true,
+                PERMISSION_MANAGE_OBSERVABILITY: true,
+                PERMISSION_MANAGE_ORDERS: true,
+                PERMISSION_MANAGE_ORDERS_IMPORT: true,
+                PERMISSION_MANAGE_PAGES: true,
+                PERMISSION_MANAGE_PAGE_TYPES_AND_ATTRIBUTES: true,
+                PERMISSION_MANAGE_PLUGINS: true,
+                PERMISSION_MANAGE_PRODUCTS: true,
+                PERMISSION_MANAGE_PRODUCT_TYPES_AND_ATTRIBUTES: true,
+                PERMISSION_MANAGE_SETTINGS: true,
+                PERMISSION_MANAGE_SHIPPING: true,
+                PERMISSION_MANAGE_STAFF: true,
+                PERMISSION_MANAGE_TAXES: true,
+                PERMISSION_MANAGE_TRANSLATIONS: true,
+                PERMISSION_MANAGE_USERS: true,
             });
-            console.log('res: ', res);
+            console.log('res?.data?.order: ', res?.data?.order);
 
             setRefundData(res?.data?.order);
 
-            if (res?.data?.order?.status == 'UNFULFILLED') {
-                if (res?.data?.order?.lines?.length > 0) {
-                    const exceptRefundProduct = res?.data?.order?.lines
-                        .filter((item) => item.quantityToFulfill !== 0)
-                        .map((item) => ({
-                            ...item,
-                            quantity: item.quantityToFulfill, // Replace quantity with quantityToFulfill
-                        }));
-                    const initialQuantity = exceptRefundProduct.reduce((acc, item) => {
-                        acc[item.id] = item.quantityToFulfill;
-                        return acc;
-                    }, {});
-
-                    setInitialQuantity(initialQuantity);
-                    setRefundProduct({ lines: exceptRefundProduct });
-
-                    const alreadyRefundProduct = getRefundedLines(res?.data?.order?.fulfillments);
-                    if (alreadyRefundProduct?.length > 0) {
-                        setAlreadyRefundProduct(alreadyRefundProduct);
-                    }
-                    let disableLines = false;
-                    if (res?.data?.order?.fulfillments?.length > 0) {
-                        const refundProduct = res?.data?.order?.fulfillments?.filter((item) => item.status == 'REFUNDED');
-                        disableLines = refundProduct?.some((item) => item.lines.length === 0);
-                    }
-
-                    setDisableLines(disableLines);
-                }
+            let filterByRefundData;
+            //checkout fillfilment order
+            if (res?.data?.order?.fulfillments?.length > 0) {
+                filterByRefundData = res?.data?.order?.fulfillments?.find((item) => item.status == 'FULFILLED');
             } else {
-                if (res?.data?.order?.fulfillments?.length > 0) {
-                    const filter = res?.data?.order?.fulfillments?.find((item) => item.status == 'FULFILLED');
-                    console.log('filter: ', filter);
-                    setRefundProduct(filter);
+                //checkout no fillfilment order
 
-                    const initialQuantity = filter?.lines?.reduce((acc, item) => {
-                        acc[item.id] = item.quantity;
-                        return acc;
-                    }, {});
-
-                    setInitialQuantity(initialQuantity);
-
-                    const alreadyRefundProduct = getRefundedLines(res?.data?.order?.fulfillments);
-                    if (alreadyRefundProduct?.length > 0) {
-                        setAlreadyRefundProduct(alreadyRefundProduct);
-                    }
-                }
-
-                let disableLines = false;
-                if (res?.data?.order?.fulfillments?.length > 0) {
-                    const refundProduct = res?.data?.order?.fulfillments?.filter((item) => item.status == 'REFUNDED');
-                    disableLines = refundProduct?.some((item) => item.lines.length === 0);
-                }
-
-                setDisableLines(disableLines);
+                let lines = res?.data?.order?.lines;
+                console.log('lines: ', lines);
+                filterByRefundData = {
+                    lines,
+                };
             }
+            let remainingQuantity;
+            if (res?.data?.order?.fulfillments?.length > 0) {
+                remainingQuantity = FullfillQuantity(filterByRefundData, res?.data?.order?.grantedRefunds);
+            } else {
+                remainingQuantity = Quantity(filterByRefundData, res?.data?.order?.grantedRefunds);
+                console.log('remainingQuantity: ', remainingQuantity);
+            }
+
+            const updatedObj = {
+                ...filterByRefundData,
+                lines: filterByRefundData.lines.map((line) => {
+                    const orderLineId = line?.orderLine?.id || line?.id; // Get the orderLine ID
+                    const updatedQuantity = remainingQuantity[orderLineId]; // Get updated quantity
+                    return {
+                        ...line,
+                        quantity: updatedQuantity !== undefined ? updatedQuantity : line.quantity, // Set new quantity or keep original
+                    };
+                }),
+            };
+            console.log('updatedObj: ', updatedObj);
+
+            setRefundProduct(updatedObj);
+            let disableLines = false;
+
+            if (res?.data?.order?.grantedRefunds?.length > 0) {
+                res?.data?.order?.grantedRefunds?.map((item) => {
+                    if (item?.lines?.length == 0) {
+                        disableLines = true;
+                    }
+                });
+            }
+            setDisableLines(disableLines);
+            setInitialQuantity(remainingQuantity);
         } catch (error) {
             console.log('error: ', error);
         }
     };
-
-    // useEffect(() => {
-    //     const newTotalAmount = refundProduct?.lines?.reduce((total, item) => {
-    //         return total + (quantities[item.id] || 0) * item?.orderLine?.unitPrice?.gross?.amount;
-    //     }, 0);
-    //     setTotalAmount(newTotalAmount);
-    // }, [quantities, refundProduct]);
 
     useEffect(() => {
         const newTotalAmount =
@@ -513,9 +528,9 @@ const Editorder = () => {
 
     const sumOldCurrentBalance = (giftCards) => {
         const balanceMap = giftCards
-            ?.flatMap((giftCard) => giftCard.events)
-            ?.filter((event) => event.type === 'USED_IN_ORDER' && event.balance.oldCurrentBalance)
-            ?.reduce((acc, event) => {
+            .flatMap((giftCard) => giftCard.events)
+            .filter((event) => event.type === 'USED_IN_ORDER' && event.balance.oldCurrentBalance)
+            .reduce((acc, event) => {
                 const { amount, currency } = event.balance.oldCurrentBalance;
                 if (!acc[currency]) {
                     acc[currency] = 0;
@@ -700,7 +715,6 @@ const Editorder = () => {
                     },
                 });
                 if (res?.data?.orderFulfill?.errors?.length > 0) {
-                    Failure(res?.data?.orderFulfill?.errors[0]?.message);
                     setIsOrderOpen(false);
                 } else {
                     setOrderStatus('FULFILLED');
@@ -792,9 +806,13 @@ const Editorder = () => {
             });
             localStorage.setItem('channel', selectedCurrency);
             setCurrencyLoading(false);
-            setSelectedCurrency('');
+            setSelectedCurrency("")
             setIsOpenChannel(false);
             window.open(`/orders/new-order?orderId=${data?.draftOrderCreate?.order?.id}`);
+            // router.push({
+            //     pathname: '/orders/new-order',
+            //     query: { orderId: data?.draftOrderCreate?.order?.id },
+            // });
         } catch (error) {
             setCurrencyLoading(false);
 
@@ -807,9 +825,11 @@ const Editorder = () => {
             setUpdateLoading(true);
             if (shippingPatner == '') {
                 Success('Order updated successfully');
+                // router.push('/orders/orders');
                 setShippingError(true);
             } else if (trackingNumber == '') {
                 Success('Order updated successfully');
+                // router.push('/orders/orders');
                 setTrackingError(true);
             } else {
                 updateShippingProvider();
@@ -840,6 +860,7 @@ const Editorder = () => {
             getOrderDetails();
             setUpdateLoading(false);
             Success('Order updated successfully');
+            // router.push('/orders/orders');
         } catch (error) {
             setUpdateLoading(false);
 
@@ -1127,12 +1148,78 @@ const Editorder = () => {
     };
 
     const handleQuantityChange = (id, newQuantity) => {
-        const refundLine = refundProduct?.lines?.find((item) => item?.id === id);
+        // Find the max quantity for the given ID
+        const refundLine = refundProduct?.lines?.find((item) => item?.orderLine?.id === id || item?.id === id);
         const maxQuantity = refundLine ? refundLine.quantity : 0;
+
+        // Update the quantities state only for matching IDs
         setQuantities((prevQuantities) => ({
             ...prevQuantities,
-            [id]: refundLine ? Math.min(newQuantity, maxQuantity) : 0,
+            [id]: refundLine ? Math.min(newQuantity, maxQuantity) : 0, // Set to 0 if no match
         }));
+    };
+
+    const handleQtyChange = async (item) => {
+        const res = await orderDetailsGrandRefund({
+            id,
+            PERMISSION_HANDLE_CHECKOUTS: true,
+            PERMISSION_HANDLE_PAYMENTS: true,
+            PERMISSION_HANDLE_TAXES: true,
+            PERMISSION_IMPERSONATE_USER: true,
+            PERMISSION_MANAGE_APPS: true,
+            PERMISSION_MANAGE_CHANNELS: true,
+            PERMISSION_MANAGE_CHECKOUTS: true,
+            PERMISSION_MANAGE_DISCOUNTS: true,
+            PERMISSION_MANAGE_GIFT_CARD: true,
+            PERMISSION_MANAGE_MENUS: true,
+            PERMISSION_MANAGE_OBSERVABILITY: true,
+            PERMISSION_MANAGE_ORDERS: true,
+            PERMISSION_MANAGE_ORDERS_IMPORT: true,
+            PERMISSION_MANAGE_PAGES: true,
+            PERMISSION_MANAGE_PAGE_TYPES_AND_ATTRIBUTES: true,
+            PERMISSION_MANAGE_PLUGINS: true,
+            PERMISSION_MANAGE_PRODUCTS: true,
+            PERMISSION_MANAGE_PRODUCT_TYPES_AND_ATTRIBUTES: true,
+            PERMISSION_MANAGE_SETTINGS: true,
+            PERMISSION_MANAGE_SHIPPING: true,
+            PERMISSION_MANAGE_STAFF: true,
+            PERMISSION_MANAGE_TAXES: true,
+            PERMISSION_MANAGE_TRANSLATIONS: true,
+            PERMISSION_MANAGE_USERS: true,
+        });
+        console.log('orderDetailsGrandRefund: ', res);
+
+        if (!item) {
+            let filterByRefundData;
+            if (res?.data?.order?.fulfillments?.length > 0) {
+                filterByRefundData = res?.data?.order?.fulfillments?.find((item) => item.status != 'REFUNDED');
+            } else {
+                let lines = res?.data?.order?.lines;
+                filterByRefundData = {
+                    lines,
+                };
+            }
+            if (res?.data?.order?.lines) {
+                const initialQuantities = filterByRefundData?.lines?.reduce((acc, item, index) => {
+                    acc[item.id] = 0;
+                    return acc;
+                }, {});
+
+                setQuantities(initialQuantities);
+                setApplyAllProduct(item);
+                // setSelectedItem(selectedItem);
+            }
+        } else {
+            const filterByRefundData = res?.data?.order?.fulfillments?.find((items) => items.status != 'REFUNDED');
+            const transformedData = filterByRefundData?.lines?.reduce((acc, items) => {
+                acc[items.id] = items.quantity;
+                return acc;
+            }, {});
+
+            setQuantities(transformedData);
+            setApplyAllProduct(item);
+            // setSelectedItem('Automatic Amount');
+        }
     };
 
     const maxRefundCalculation = () => {
@@ -1149,11 +1236,36 @@ const Editorder = () => {
         return final;
     };
 
+    // const setTotalAmountCalc = () => {
+    //     let isDisable = false;
+    //     let maxRefundAmt = 0;
+    //     if (orderData?.totalRefunded?.amount == 0) {
+    //         maxRefundAmt = refundData?.total?.gross?.amount;
+    //     } else {
+    //         maxRefundAmt = refundData?.total?.gross?.amount - orderData?.totalRefunded?.amount;
+    //     }
+    //     const ttt = refundProduct.lines?.reduce((total, line) => {
+    //         const lineTotal = line?.orderLine?.unitPrice?.gross?.amount * line?.orderLine?.quantity;
+    //         return total + lineTotal;
+    //     }, 0);
+
+    //     if (selectedItem == 'Manual Amount') {
+    //         isDisable = true;
+    //     } else if (Number(maxRefundAmt) == Number(ttt)) {
+    //         isDisable = false;
+    //     } else if (Number(maxRefundAmt) < Number(ttt)) {
+    //         isDisable = true;
+    //     }
+
+    //     return isDisable;
+    // };
+
     const setTotalAmountCalc = (item) => {
         let isDisable = false;
         const orderLineId = item?.orderLine?.id || item?.id;
+        const orderLineQuantity = quantities[orderLineId];
         if (item?.orderLine?.quantity === 0 || item?.quantity === 0) {
-            isDisable = true;
+            isDisable = true; // Found a match with quantity 0
         }
         if (disableLines) {
             isDisable = true;
@@ -1162,40 +1274,70 @@ const Editorder = () => {
         return isDisable;
     };
 
+    const isDisableLines = () => {
+        let isDisable = false;
+        if (disableLines) {
+            isDisable = true;
+            setSelectedItem('Manual Amount');
+        }
+        return isDisable;
+    };
+
+    const applyAllProducts = (value) => {
+        setApplyAllProduct(value);
+
+        if (value) {
+            setQuantities(initialQuantity);
+        } else {
+            const zeroQuantities = {};
+            refundProduct?.lines?.forEach((product) => {
+                const productId = product?.orderLine?.id || product?.id;
+                zeroQuantities[productId] = 0;
+            });
+
+            setQuantities(zeroQuantities);
+        }
+    };
+
     const handleRefund = async () => {
         try {
-            let input: any = {
-                includeShippingCosts: false,
-                orderLines: [],
-                fulfillmentLines: [],
-            };
             if (selectedItem == 'Manual Amount') {
-                if (manualAmount == null && manualAmount == '') {
+                console.log(' if: ');
+                console.log('manualAmount: ', manualAmount);
+
+                if (manualAmount == null || manualAmount == '') {
                     Failure('Please enter valid amount');
                 } else {
-                    input.amountToRefund = Number(manualAmount);
-                    const response = await orderFullfilmentRefund({
+                    const response = await orderDrandRefund({
                         variables: {
-                            input,
-                            order: id,
+                            amount: Number(manualAmount),
+                            reason: '',
+                            lines: [],
+                            grantRefundForShipping: false,
+                            orderId: id,
                         },
                     });
-                    if (response?.data?.orderFulfillmentRefundProducts?.errors?.length > 0) {
-                        Failure(response?.data?.orderFulfillmentRefundProducts?.errors[0]?.message);
+
+                    if (response?.data?.orderGrantRefundCreate?.errors?.length > 0) {
+                        Failure(response?.data?.orderGrantRefundCreate?.errors[0]?.message);
                         setIsOpenRefund(false);
                     } else {
-                        getRefundData();
-                        setIsOpenRefund(false);
-                        setSelectedItem(refundAmtType[0]);
-                        const res = await getOrderDetails({
+                        const res = await manuaOrderRefund({
                             variables: {
-                                id: id,
-                                isStaffUser: true,
+                                currency: 'INR',
+                                description: '',
+                                amount: Number(response?.data?.orderGrantRefundCreate?.order?.totalRemainingGrant?.amount),
+
+                                orderId: id,
                             },
                         });
+                        setIsOpenRefund(false);
+
                         setManualAmount(null);
                         setManualAmtError('');
-                        Success('Refund amount updated');
+                        getOrderData();
+                        setQuantities({});
+                        Success('Refund Amount Updated');
                     }
                 }
             } else {
@@ -1208,55 +1350,72 @@ const Editorder = () => {
                             acc[key] = value;
                             return acc;
                         }, {});
+                    console.log('filteredData: ', filteredData);
+
                     if (isEmptyObject(filteredData)) {
                         Failure('Please select  a product quantity');
                     } else {
-                        if (refundData?.status != 'UNFULFILLED') {
-                            input.fulfillmentLines = Object.entries(filteredData)?.map(([key, value]) => ({
-                                fulfillmentLineId: key,
-                                quantity: value,
-                            }));
-                        } else {
-                            input.orderLines = Object.entries(filteredData)?.map(([key, value]) => ({
-                                orderLineId: key,
-                                quantity: value,
-                            }));
-                        }
+                        let lines = Object.entries(filteredData)?.map(([key, value]) => ({
+                            id: key,
+                            quantity: value,
+                        }));
+                        console.log('lines: ', lines);
 
-                        const response = await orderFullfilmentRefund({
+                        const response = await orderDrandRefund({
                             variables: {
-                                input,
-                                order: id,
+                                lines,
+                                orderId: id,
+                                reason: '',
+                                grantRefundForShipping: false,
                             },
                         });
-                        if (response?.data?.orderFulfillmentRefundProducts?.errors?.length > 0) {
-                            Failure(response?.data?.orderFulfillmentRefundProducts?.errors[0]?.message);
+                        console.log('response: ', response);
+
+                        if (response?.data?.orderGrantRefundCreate?.errors?.length > 0) {
+                            Failure(response?.data?.orderGrantRefundCreate?.errors[0]?.message);
                             setIsOpenRefund(false);
                         } else {
-                            getRefundData();
-                            setIsOpenRefund(false);
-                            setSelectedItem(refundAmtType[0]);
-                            const res = await getOrderDetails({
+                            let amount;
+                            const res = await manuaOrderRefund({
                                 variables: {
-                                    id: id,
-                                    isStaffUser: true,
+                                    currency: orderData?.totalRemainingGrant?.currency,
+                                    description: '',
+                                    amount: Number(response?.data?.orderGrantRefundCreate?.order?.totalRemainingGrant?.amount),
+                                    orderId: id,
                                 },
                             });
-                            Success('Refund amount updated');
+
+                            console.log('response: ', res);
+                            setIsOpenRefund(false);
+                            getOrderData();
+                            setQuantities({});
+                            Success('Refund Amount Updated');
+
+                            // getRefundData();
+                            // setIsOpenRefund(false);
+                            // setSelectedItem(refundAmtType[0]);
+                            // const res = await getOrderDetails({
+                            //     variables: {
+                            //         id: id,
+                            //         isStaffUser: true,
+                            //     },
+                            // });
                         }
                     }
                 }
             }
-            setQuantities({});
+
+            // Handle the response if needed
         } catch (error) {
+            // Log detailed error information
             console.error('Error processing refund:', error);
         }
     };
-
     const showRefundBtn = (data) => {
         let without_shipping_amount = Number(data?.total?.gross?.amount) - (Number(data?.shippingPrice?.gross?.amount) + Number(data?.codAmount) + Number(data?.giftWrapAmount));
         let totalRefunded = data?.totalRefunded?.amount;
         let show = false;
+
         if (totalRefunded < without_shipping_amount && (data?.paymentStatus == 'FULLY_CHARGED' || data?.paymentStatus == 'PARTIALLY_REFUNDED' || data.isPaid)) {
             show = true;
         }
@@ -1265,11 +1424,11 @@ const Editorder = () => {
 
     const showRefundText = () => {
         let show = false;
-        if (orderData?.fulfillments?.length > 0) {
-            const filteredData = orderData?.fulfillments.filter((fulfillment) => fulfillment.status === 'REFUNDED');
-            if (filteredData.length > 0) {
-                show = true;
-            }
+        if (orderData?.totalRefunded?.amount > 0) {
+            // const filteredData = orderData?.fulfillments.filter((fulfillment) => fulfillment.status === 'REFUNDED');
+            // if (filteredData.length > 0) {
+            show = true;
+            // }
         }
         return show;
     };
@@ -1294,53 +1453,6 @@ const Editorder = () => {
                 (orderData?.totalRefunded?.amount + Number(orderData?.shippingPrice?.gross?.amount) + Number(orderData?.codAmount) + Number(orderData?.giftWrapAmount));
         }
         return net;
-    };
-
-    const isDisableLines = () => {
-        let isDisable = false;
-        if (disableLines) {
-            isDisable = true;
-            setSelectedItem('Manual Amount');
-        }
-        return isDisable;
-    };
-
-    const applyAllProducts = (value) => {
-        setApplyAllProduct(value);
-
-        if (value) {
-            setQuantities(initialQuantity);
-        } else {
-            const zeroQuantities = {};
-            refundProduct?.lines?.forEach((product) => {
-                const productId = product?.id;
-                zeroQuantities[productId] = 0;
-            });
-
-            setQuantities(zeroQuantities);
-        }
-    };
-
-    const getRefundedLines = (fulfillments) => {
-        const refundedLines = [];
-
-        fulfillments?.forEach((fulfillment) => {
-            if (fulfillment.status === 'REFUNDED') {
-                fulfillment?.lines.forEach((line) => {
-                    const { quantity, orderLine } = line;
-                    const { productName } = orderLine;
-                    refundedLines.push({
-                        productName,
-                        quantity,
-                        thubmnail: orderLine.variant?.product?.thumbnail?.url,
-                        price: quantity * orderLine?.unitPrice?.gross?.amount,
-                        cost: orderLine?.unitPrice?.gross?.amount,
-                    });
-                });
-            }
-        });
-
-        return refundedLines;
     };
 
     return (
@@ -2003,7 +2115,7 @@ const Editorder = () => {
                                                     {item?.unitPrice?.net?.currency == 'USD' ? (
                                                         <td>{`${formatCurrency(item?.unitPrice?.net?.currency)}${addCommasToNumber(item?.unitPrice?.net?.amount)}`} </td>
                                                     ) : (
-                                                        <td>{`${formatCurrency(item?.unitPrice?.net?.currency)}${addCommasToNumber(item?.unitPrice?.net?.amount)}`} </td>
+                                                        <td>{`${formatCurrency(item?.unitPrice?.net?.currency)}${roundOff(item?.unitPrice?.net?.amount)}`} </td>
                                                     )}
                                                     <td>
                                                         <div>× {item?.quantity}</div>
@@ -2014,13 +2126,13 @@ const Editorder = () => {
                                                     </td>
                                                     {formData?.billing?.state !== '' && formData?.shipping?.state == 'Tamil Nadu' ? (
                                                         <td>
-                                                            <div>{`SGST: ${formatCurrency(item?.unitPrice?.tax?.currency)}${roundOff(item?.unitPrice?.tax?.amount / 2)}`}</div>
+                                                            <div>{`SGST: ${formatCurrency(item?.unitPrice?.tax?.currency)}${addCommasToNumber(item?.unitPrice?.tax?.amount / 2)}`}</div>
                                                             <span className="ml-10">+</span>
-                                                            <div>{`CSGT: ${formatCurrency(item?.unitPrice?.tax?.currency)}${roundOff(item?.unitPrice?.tax?.amount / 2)}`}</div>
+                                                            <div>{`CSGT: ${formatCurrency(item?.unitPrice?.tax?.currency)}${addCommasToNumber(item?.unitPrice?.tax?.amount / 2)}`}</div>
                                                         </td>
                                                     ) : (
                                                         <td>
-                                                            <div>{`IGST: ${formatCurrency(item?.unitPrice?.tax?.currency)}${roundOff(item?.unitPrice?.tax?.amount)}`}</div>
+                                                            <div>{`IGST: ${formatCurrency(item?.unitPrice?.tax?.currency)}${addCommasToNumber(item?.unitPrice?.tax?.amount)}`}</div>
                                                         </td>
                                                     )}
                                                     {/* <td>
@@ -2049,7 +2161,7 @@ const Editorder = () => {
                                 <div className="sm:w-2/5">
                                     <div className="flex items-center justify-between">
                                         <div>Items Subtotal:</div>
-                                        <div>{`${formatCurrency(orderData?.subtotal?.net?.currency)}${addCommasToNumber(orderData?.subtotal?.net?.amount)}`}</div>
+                                        <div>{`${formatCurrency(orderData?.subtotal?.gross?.currency)}${addCommasToNumber(orderData?.subtotal?.gross?.amount)}`}</div>
                                     </div>
                                     {orderDetails?.order?.giftCards?.length > 0 && (
                                         <div className="mt-4 flex  justify-between">
@@ -2093,7 +2205,7 @@ const Editorder = () => {
                                             <div className="mt-4 flex items-center justify-between">
                                                 <div>SGST:</div>
                                                 <div>
-                                                    <div>{`${formatCurrency(orderData?.total?.tax?.currency)}${addCommasToNumber(orderData?.total?.tax?.amount / 2)}`}</div>
+                                                    <div>{`${formatCurrency(orderData?.subtotal?.tax?.currency)}${addCommasToNumber(orderData?.subtotal?.tax?.amount / 2)}`}</div>
 
                                                     {/* {orderData?.subtotal?.tax?.currency} {orderData?.subtotal?.tax?.amount / 2} */}
                                                 </div>
@@ -2101,7 +2213,7 @@ const Editorder = () => {
                                             <div className="mt-4 flex items-center justify-between">
                                                 <div>CSGT:</div>
                                                 <div>
-                                                    <div>{`${formatCurrency(orderData?.total?.tax?.currency)}${addCommasToNumber(orderData?.total?.tax?.amount / 2)}`}</div>
+                                                    <div>{`${formatCurrency(orderData?.subtotal?.tax?.currency)}${addCommasToNumber(orderData?.subtotal?.tax?.amount / 2)}`}</div>
 
                                                     {/* {orderData?.subtotal?.tax?.currency} {orderData?.subtotal?.tax?.amount / 2} */}
                                                 </div>
@@ -2111,7 +2223,7 @@ const Editorder = () => {
                                         <div className="mt-4 flex items-center justify-between">
                                             <div>IGST:</div>
                                             <div>
-                                                <div>{`${formatCurrency(orderData?.total?.tax?.currency)}${addCommasToNumber(orderData?.total?.tax?.amount)}`}</div>
+                                                <div>{`${formatCurrency(orderData?.subtotal?.tax?.currency)}${addCommasToNumber(orderData?.subtotal?.tax?.amount)}`}</div>
 
                                                 {/* {orderData?.subtotal?.gross?.currency} {orderData?.subtotal?.gross?.amount} */}
                                             </div>
@@ -2802,51 +2914,10 @@ const Editorder = () => {
                 isFullWidth
                 close={() => setIsOpenRefund(false)}
                 renderComponent={() => (
-                    <div className="panel p-5">
-                        {alreadyRefundProduct?.length > 0 && (
-                            <>
-                                <div className="text-lg font-medium dark:bg-[#121c2c] ">Already Refunded Items :</div>
-
-                                <div className="table-responsive">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Item</th>
-
-                                                <th className="w-1">Cost</th>
-                                                <th className="w-1">Qty</th>
-                                                <th>Total</th>
-
-                                                <th className="w-1"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {alreadyRefundProduct?.map((item: any, index: any) => (
-                                                <tr className="panel align-top" key={index}>
-                                                    <td className="flex ">
-                                                        <img src={item?.thubmnail} height={50} width={50} alt="Selected" className="object-cover" />
-
-                                                        <div>
-                                                            <div className="pl-5">{item?.productName}</div>
-                                                        </div>
-                                                    </td>
-
-                                                    <td>{item?.cost}</td>
-                                                    <td>{item?.quantity}</td>
-
-                                                    <td>{item?.price}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </>
-                        )}
+                    <div className="p-5">
                         <div className="panel p-5">
                             {refundProduct?.lines?.length > 0 && (
                                 <>
-                                    <div className="text-lg font-medium dark:bg-[#121c2c] "> Items to Refund:</div>
-
                                     <div className="table-responsive">
                                         <table>
                                             <thead>
@@ -2875,25 +2946,27 @@ const Editorder = () => {
                                                             ) : (
                                                                 <img src={item?.orderLine?.variant?.product?.thumbnail?.url} height={50} width={50} alt="Selected" className="object-cover" />
                                                             )}
+
                                                             <div>
-                                                                <div className="pl-5">{item?.productName}</div>
-                                                                <div className="pl-5">{item?.productSku}</div>
+                                                                {item?.productName ? <div className="pl-5">{item?.productName}</div> : <div className="pl-5">{item?.orderLine?.productName}</div>}
+                                                                {item?.productSku ? <div className="pl-5">{item?.productSku}</div> : <div className="pl-5">{item?.orderLine?.productSku}</div>}
                                                             </div>
                                                         </td>
+
                                                         {item?.unitPrice ? (
                                                             <td>{`${formatCurrency(item?.unitPrice?.gross?.currency)}${addCommasToNumber(item?.unitPrice?.gross?.amount)}`} </td>
                                                         ) : (
                                                             <td>{`${formatCurrency(item?.orderLine?.unitPrice?.gross?.currency)}${addCommasToNumber(item?.orderLine?.unitPrice?.gross?.amount)}`} </td>
                                                         )}
-
-                                                        <td>{item?.orderLine?.quantity}</td>
+                                                        <td>{item?.quantity}</td>
+                                                        {/* <td>{item?.orderLine?.quantity}</td> */}
 
                                                         <td className="relative">
                                                             <input
                                                                 type="number"
-                                                                value={quantities[item?.id]}
+                                                                value={quantities[item?.orderLine?.id || item?.id]}
                                                                 disabled={setTotalAmountCalc(item)}
-                                                                onChange={(e) => handleQuantityChange(item?.id, Math.max(0, Number(e.target.value)))}
+                                                                onChange={(e) => handleQuantityChange(item?.orderLine?.id || item?.id, Math.max(0, Number(e.target.value)))}
                                                                 min="0"
                                                                 max={item?.quantity}
                                                                 className="form-input pr-8"
@@ -2903,13 +2976,15 @@ const Editorder = () => {
                                                         <td>
                                                             {item?.unitPrice ? (
                                                                 <td>{`${formatCurrency(item?.unitPrice?.gross?.currency)}${addCommasToNumber(
-                                                                    (quantities[item?.id || item?.orderLine?.id] || 0) * item?.unitPrice?.gross?.amount
+                                                                    (quantities[item?.id] || 0) * item?.unitPrice?.gross?.amount
                                                                 )}`}</td>
                                                             ) : (
                                                                 <td>{`${formatCurrency(item?.orderLine?.unitPrice?.gross?.currency)}${addCommasToNumber(
-                                                                    (quantities[item?.id || item?.orderLine?.id] || 0) * item?.orderLine?.unitPrice?.gross?.amount
+                                                                    (quantities[item?.orderLine?.id] || 0) * item?.orderLine?.unitPrice?.gross?.amount
                                                                 )}`}</td>
                                                             )}
+
+                                                            {/* <td>{`${formatCurrency(item?.unitPrice?.gross?.currency)}${addCommasToNumber(item?.unitPrice?.gross?.amount)}`} </td> */}
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -3033,7 +3108,7 @@ const Editorder = () => {
                                 Cancel
                             </button>
                             <button type="submit" className="btn btn-primary ltr:ml-4 rtl:mr-4" onClick={() => handleRefund()}>
-                                {refundLoading ? <IconLoader /> : 'Confirm'}
+                                {orderDrandRefundLoading || manuaOrderRefundLoading ? <IconLoader /> : 'Confirm'}
                             </button>
                         </div>
                     </div>

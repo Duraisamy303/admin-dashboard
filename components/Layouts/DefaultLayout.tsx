@@ -9,6 +9,8 @@ import Setting from './Setting';
 import Portals from '../../components/Portals';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
+import { LOGOUT, USER_INFO } from '@/query/product';
+import { useMutation, useQuery } from '@apollo/client';
 
 const DefaultLayout = ({ children }: PropsWithChildren) => {
     const router = useRouter();
@@ -17,6 +19,10 @@ const DefaultLayout = ({ children }: PropsWithChildren) => {
     const themeConfig = useSelector((state: any) => state.themeConfig);
     const [animation, setAnimation] = useState(themeConfig.animation);
     const dispatch = useDispatch();
+
+    const { refetch: userRefetch } = useQuery(USER_INFO);
+
+    const [tokenDeactiveRefetch] = useMutation(LOGOUT);
 
     const goToTop = () => {
         document.body.scrollTop = 0;
@@ -60,14 +66,35 @@ const DefaultLayout = ({ children }: PropsWithChildren) => {
     }, [router.asPath]);
 
     // Listen for route change start event
-  router?.events?.on("routeChangeStart", () => {
-    setShowLoader(true);
-  });
+    router?.events?.on('routeChangeStart', () => {
+        setShowLoader(true);
+    });
 
-  // Listen for route change complete event
-  router?.events?.on("routeChangeComplete", () => {
-    setShowLoader(false);
-  });
+    // Listen for route change complete event
+    router?.events?.on('routeChangeComplete', () => {
+        setShowLoader(false);
+    });
+
+    useEffect(() => {
+        checkValidToken();
+    }, [router]);
+
+    const checkValidToken = async () => {
+        try {
+            const res = await userRefetch();
+            const error = res.errors;
+            if (error?.length > 0) {
+                localStorage.clear();
+                router.replace('/auth/signin');
+            }
+        } catch (error) {
+            console.log('error: ', error.message);
+            if (error.message == 'Invalid token. Create new one by using tokenCreate mutation.') {
+                localStorage.clear();
+                router.replace('/auth/signin');
+            }
+        }
+    };
 
     function CommonLoader({ loading, spinner }: any) {
         return (
@@ -91,9 +118,7 @@ const DefaultLayout = ({ children }: PropsWithChildren) => {
             {/* BEGIN MAIN CONTAINER */}
             <div className="relative">
                 {/* screen loader  */}
-                {showLoader && (
-                   <CommonLoader loading={showLoader} />
-                )}
+                {showLoader && <CommonLoader loading={showLoader} />}
                 {/* sidebar menu overlay */}
                 {/* <div className={`${(!themeConfig.sidebar && 'hidden') || ''} fixed inset-0 z-50 bg-[black]/60 lg:hidden`} onClick={() => dispatch(toggleSidebar())}></div>
                 <div className="fixed bottom-6 z-50 ltr:right-6 rtl:left-6">
@@ -122,7 +147,7 @@ const DefaultLayout = ({ children }: PropsWithChildren) => {
                     {/* BEGIN SIDEBAR */}
                     <Sidebar />
                     {/* END SIDEBAR */}
-                    <div className="main-content flex flex-col min-h-screen">
+                    <div className="main-content flex min-h-screen flex-col">
                         {/* BEGIN TOP NAVBAR */}
                         <Header />
                         {/* END TOP NAVBAR */}

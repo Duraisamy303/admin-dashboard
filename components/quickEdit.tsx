@@ -4,6 +4,7 @@ import IconTrashLines from './Icon/IconTrashLines';
 import {
     CREATE_VARIANT,
     DELETE_VARIENT,
+    NEW_PARENT_CATEGORY_LIST,
     PARENT_CATEGORY_LIST,
     PRODUCT_FULL_DETAILS,
     PRODUCT_LIST_TAGS,
@@ -15,6 +16,8 @@ import {
 import { useMutation, useQuery } from '@apollo/client';
 import Select from 'react-select';
 import IconLoader from './Icon/IconLoader';
+import TagSelect from './TagSelect';
+import CategorySelect from './CategorySelect';
 
 export default function QuickEdit(props: any) {
     const { data, updateList, closeExpand } = props;
@@ -30,6 +33,20 @@ export default function QuickEdit(props: any) {
 
     const { refetch: tagsListRefetch } = useQuery(PRODUCT_LIST_TAGS);
     const [updateProduct] = useMutation(UPDATE_PRODUCT);
+
+    const { refetch: categorySearchRefetch } = useQuery(NEW_PARENT_CATEGORY_LIST, {
+        variables: { channel: 'india-channel' },
+    });
+
+    const { refetch: tagRefetch, loading: tagloading } = useQuery(PRODUCT_LIST_TAGS);
+
+    const fetchCategories = async (variables) => {
+        return await categorySearchRefetch(variables);
+    };
+
+    const fetchTag = async (variables) => {
+        return await tagRefetch(variables);
+    };
 
     const [state, setState] = useSetState({
         name: '',
@@ -58,8 +75,6 @@ export default function QuickEdit(props: any) {
         error: {},
         variantError: [],
     });
-
-    console.log('menuOrder: ', state.menuOrder);
 
     useEffect(() => {
         getProductDetails();
@@ -110,10 +125,7 @@ export default function QuickEdit(props: any) {
 
     const tags_list = async () => {
         try {
-            const res: any = await tagsListRefetch({
-                variables: { channel: 'india-channel', id: data?.id },
-            });
-
+            const res: any = await tagsListRefetch({ channel: 'india-channel', id: data?.id, first: 100 });
             if (res?.data?.tags?.edges?.length > 0) {
                 const list = res?.data?.tags?.edges;
                 const dropdownData = list?.map((item: any) => {
@@ -230,35 +242,44 @@ export default function QuickEdit(props: any) {
             crosssells = state.productData?.getCrosssells?.map((item: any) => item?.productId);
         }
 
-        let finish = [];
-        if (state.productData?.productFinish?.length > 0) {
-            finish = state.productData?.productFinish?.map((item: any) => item.id);
-        }
+        // let finish = [];
+        // if (state.productData?.productFinish?.length > 0) {
+        //     finish = state.productData?.productFinish?.map((item: any) => item.id);
+        // }
 
-        let design = [];
-        if (state.productData?.prouctDesign?.length > 0) {
-            design = state.productData?.prouctDesign?.map((item: any) => item.id);
-        }
+        // let design = [];
+        // if (state.productData?.prouctDesign?.length > 0) {
+        //     design = state.productData?.prouctDesign?.map((item: any) => item.id);
+        // }
 
-        let style = [];
-        if (state.productData?.productstyle?.length > 0) {
-            style = state.productData?.productstyle?.map((item: any) => item.id);
-        }
+        // let style = [];
+        // if (state.productData?.productstyle?.length > 0) {
+        //     style = state.productData?.productstyle?.map((item: any) => item.id);
+        // }
 
-        let stone = [];
-        if (state.productData?.productStoneType?.length > 0) {
-            stone = state.productData?.productStoneType?.map((item: any) => item.id);
-        }
+        // let stone = [];
+        // if (state.productData?.productStoneType?.length > 0) {
+        //     stone = state.productData?.productStoneType?.map((item: any) => item.id);
+        // }
 
-        let size = [];
-        if (state.productData?.productSize?.length > 0) {
-            size = state.productData?.productSize?.map((item: any) => item.id);
-        }
+        // let size = [];
+        // if (state.productData?.productSize?.length > 0) {
+        //     size = state.productData?.productSize?.map((item: any) => item.id);
+        // }
 
+        const finalArray = state.productData?.attributes?.reduce((acc, attr) => {
+            if (attr?.values?.length > 0) {
+                acc.push({
+                    id: attr?.attribute?.id,
+                    values: attr?.values?.map((value) => value?.slug), // extracting the slug of each value
+                });
+            }
+            return acc;
+        }, []);
         const tagId = state.tags?.map((item) => item.value) || [];
 
         const input = {
-            attributes: [],
+            attributes: finalArray,
             category: state.categories?.map((item) => item?.value),
             collections: state.productData?.collections.map((item) => item.id),
             tags: tagId,
@@ -273,11 +294,11 @@ export default function QuickEdit(props: any) {
             crosssells,
             slug: state.productData?.slug,
             order_no: state.menuOrder,
-            prouctDesign: design,
-            productstyle: style,
-            productFinish: finish,
-            productStoneType: stone,
-            productSize: size,
+            // prouctDesign: design,
+            // productstyle: style,
+            // productFinish: finish,
+            // productStoneType: stone,
+            // productSize: size,
         };
 
         const res = await updateProduct({
@@ -636,7 +657,9 @@ export default function QuickEdit(props: any) {
                                 <h5 className=" block text-lg font-medium text-gray-700">Product Tags</h5>
                             </div>
                             <div className="mb-5">
-                                <Select placeholder="Select an tags" isMulti options={state.tagsOption} value={state.tags} onChange={(data: any) => setState({ tags: data })} isSearchable={true} />
+                                <TagSelect loading={tagloading} queryFunc={fetchTag} selectedCategory={state.tags} onCategoryChange={(data) => setState({ tags: data })} />
+
+                                {/* <Select placeholder="Select an tags" isMulti options={state.tagsOption} value={state.tags} onChange={(data: any) => setState({ tags: data })} isSearchable={true} /> */}
                             </div>
                         </div>
                     </div>
@@ -646,14 +669,20 @@ export default function QuickEdit(props: any) {
                                 <h5 className=" block text-lg font-medium text-gray-700">Product Categories</h5>
                             </div>
                             <div className="mb-5">
-                                <Select
-                                    placeholder="Select an tags"
+                                <CategorySelect
+                                    queryFunc={fetchCategories} // Pass the function to fetch categories
+                                    selectedCategory={state.categories} // Use 'selectedCategory' instead of 'value'
+                                    onCategoryChange={(data) => setState({ categories: data })} // Use 'onCategoryChange' instead of 'onChange'
+                                    placeholder="Select categories"
+                                />
+                                {/* <Select
+                                    placeholder="Select Categories"
                                     isMulti
                                     options={state.categoriesOption}
                                     value={state.categories}
                                     onChange={(data: any) => setState({ categories: data })}
                                     isSearchable={true}
-                                />
+                                /> */}
                                 {state.error?.category && <p className="error-message mt-1 text-red-500">{state.error?.category}</p>}
                             </div>
                         </div>

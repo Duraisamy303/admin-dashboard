@@ -73,8 +73,21 @@ const Category = () => {
             sort: { direction: 'DESC', field: 'CREATED_aT' },
         },
         onCompleted: (data) => {
-            setTotalCount(data?.attributes?.totalCount);
             commonPagination(data);
+        },
+    });
+
+    const {} = useQuery(ATTRIBUTE_LIST, {
+        variables: {
+            first: PAGE_SIZE,
+            after: null,
+            filter: {
+                search: '',
+            },
+            sort: { direction: 'DESC', field: 'CREATED_aT' },
+        },
+        onCompleted: (data) => {
+            setTotalCount(data?.attributes?.totalCount);
         },
     });
 

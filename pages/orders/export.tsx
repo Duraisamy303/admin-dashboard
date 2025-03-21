@@ -184,7 +184,7 @@ const Orders = () => {
             date: dayjs(item?.node?.created).format('MMM D, YYYY'),
             total: `${item?.node?.total.gross.currency} ${addCommasToNumber(item?.node?.total.gross.amount)}`,
             status: OrderStatus(item?.node?.status),
-            paymentStatus: PaymentStatus(item?.node?.paymentStatus),
+            paymentStatus: PaymentStatus(item?.node?.paymentStatus,item?.node?.origin, item?.node?.totalRefunded),
             invoice: item?.node?.invoices?.length > 0 ? item?.node?.invoices[0]?.number : '-',
             shipmentTracking: item?.node?.fulfillments?.length > 0 ? `${item?.node?.courierPartner?.name}\n${item?.node?.fulfillments[0]?.trackingNumber}` : '-',
             ...item,

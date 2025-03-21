@@ -321,8 +321,8 @@ export const isEmptyObject = (obj: any) => {
 
 export const UserDropdownData = (shippingProvider: any) => {
     if (shippingProvider) {
-        if (shippingProvider && shippingProvider?.search?.edges?.length > 0) {
-            const dropdownData = shippingProvider?.search?.edges?.map((item: any) => ({
+        if (shippingProvider && shippingProvider?.length > 0) {
+            const dropdownData = shippingProvider?.map((item: any) => ({
                 value: item.node?.id,
                 label: `${item?.node?.firstName} ${item?.node?.lastName}`,
             }));
@@ -381,9 +381,9 @@ export const profilePic = (profile: any) => {
     if (profile) {
         profiles = profile;
     } else if (profile == undefined) {
-        profiles = placeholder;
+        profiles = "/assets/images/placeholder.png";
     } else {
-        profiles = placeholder;
+        profiles = "/assets/images/placeholder.png";
     }
     return profiles;
 };
@@ -539,17 +539,37 @@ export const OrderStatus = (status: any) => {
     // cancelled == cancelled
 };
 
-export const PaymentStatus = (status: any) => {
-    if (status === 'NOT_CHARGED') {
-        return 'Pending';
-    } else if (status === 'FULLY_REFUNDED') {
-        return 'Fully Refunded';
-    } else if (status === 'PARTIALLY_REFUNDED') {
-        return 'Partially Refunded';
+export const PaymentStatus = (status: any, origin: any, totalRefund: any) => {
+    if (origin == 'CHECKOUT') {
+        if (totalRefund?.amount == 0) {
+            if (status === 'NOT_CHARGED') {
+                return 'Pending';
+            } else if (status === 'FULLY_REFUNDED') {
+                return 'Fully Refunded';
+            } else if (status === 'PARTIALLY_REFUNDED') {
+                return 'Partially Refunded';
+            } else {
+                return 'Completed';
+            }
+        } else {
+            return 'Partially Refunded';
+        }
     } else {
-        return 'Completed';
+        if (status === 'NOT_CHARGED') {
+            return 'Pending';
+        } else if (status === 'FULLY_REFUNDED') {
+            return 'Fully Refunded';
+        } else if (status === 'PARTIALLY_REFUNDED') {
+            return 'Partially Refunded';
+        } else {
+            return 'Completed';
+        }
     }
 };
+
+// else if (status === 'FULLY_CHARGED') {
+//     return 'Partially refunded';
+// }
 
 export const getDateRange = (rangeType) => {
     const today = new Date();
@@ -1293,7 +1313,6 @@ export const uniqueState = (arr) => {
     return uniqueChoices;
 };
 
-
 export const addReportCommasToNumber = (value: any) => {
     if (typeof value === 'number') {
         return new Intl.NumberFormat('en-IN', {
@@ -1302,4 +1321,203 @@ export const addReportCommasToNumber = (value: any) => {
     } else {
         return value;
     }
+};
+
+export const Quantity = (orderData, grantedRefunds) => {
+    const fulfillmentLines = orderData?.lines || [];
+    const refundedLines = grantedRefunds?.flatMap((refund) => refund.lines) || [];
+    const remainingQuantities = {};
+
+    // Create a map to track total refunded quantities for each line ID
+    const refundedMap = {};
+
+    // Sum the quantities of the refunded lines grouped by order line ID
+    refundedLines.forEach((refundLine) => {
+        const orderLineId = refundLine.orderLine.id;
+        const quantity = refundLine.quantity;
+
+        // Only add to the map if the order line ID matches a fulfillment line ID
+        refundedMap[orderLineId] = (refundedMap[orderLineId] || 0) + quantity;
+    });
+
+    // Calculate remaining quantities for each fulfillment line
+    fulfillmentLines.forEach((fulfillmentLine) => {
+        const orderLineId = fulfillmentLine.id; // Use fulfillment line ID
+        const fulfilledQuantity = fulfillmentLine.quantity || 0; // Default to 0 if undefined
+        const refundedQuantity = refundedMap[orderLineId] || 0; // Get the total refunded quantity for this ID
+
+        // Calculate remaining quantity
+        remainingQuantities[orderLineId] = fulfilledQuantity - refundedQuantity;
+    });
+
+    return remainingQuantities;
+};
+
+export const FullfillQuantity = (orderData, grantedRefunds) => {
+    const fulfillmentLines = orderData?.lines || [];
+    const refundedLines = grantedRefunds?.flatMap((refund) => refund.lines) || [];
+    const remainingQuantities = {};
+
+    // Create a map to track total refunded quantities for each line ID
+    const refundedMap = {};
+
+    // Sum the quantities of the refunded lines grouped by order line ID
+    refundedLines.forEach((refundLine) => {
+        const lineId = refundLine.orderLine.id;
+        const quantity = refundLine.quantity;
+
+        // Only add to the map if the order line ID matches a fulfillment line ID
+        refundedMap[lineId] = (refundedMap[lineId] || 0) + quantity;
+    });
+
+    // Calculate remaining quantities for each fulfillment line
+    fulfillmentLines.forEach((fulfillmentLine) => {
+        const orderLineId = fulfillmentLine?.orderLine?.id; // Use orderLine ID
+        const fulfilledQuantity = fulfillmentLine?.quantity || 0; // Default to 0 if undefined
+        const refundedQuantity = refundedMap[orderLineId] || 0; // Get the total refunded quantity for this ID
+
+        // Calculate remaining quantity
+        remainingQuantities[orderLineId] = fulfilledQuantity - refundedQuantity;
+    });
+
+    // Handle cases where there are no refunded lines
+    if (refundedLines.length === 0) {
+        fulfillmentLines.forEach((fulfillmentLine) => {
+            const orderLineId = fulfillmentLine?.orderLine?.id;
+            const fulfilledQuantity = fulfillmentLine?.quantity || 0;
+            remainingQuantities[orderLineId] = fulfilledQuantity;
+        });
+    }
+
+    return remainingQuantities;
+};
+
+export const DraftQuantity = (orderData, grantedRefunds) => {
+    const fulfillmentLines = orderData?.lines || [];
+    const refundedLines = grantedRefunds?.flatMap((refund) => refund.lines) || [];
+    const remainingQuantities = {};
+
+    // Create a map to track total refunded quantities for each line ID
+    const refundedMap = {};
+
+    // Sum the quantities of the refunded lines grouped by order line ID
+    refundedLines.forEach((refundLine) => {
+        const orderLineId = refundLine.orderLine.id;
+        const quantity = refundLine.quantity;
+
+        // Only add to the map if the order line ID matches a fulfillment line ID
+        refundedMap[orderLineId] = (refundedMap[orderLineId] || 0) + quantity;
+    });
+
+    // Calculate remaining quantities for each fulfillment line
+    fulfillmentLines.forEach((fulfillmentLine) => {
+        const orderLineId = fulfillmentLine.id; // Use fulfillment line ID
+        const fulfilledQuantity = fulfillmentLine.quantity || 0; // Default to 0 if undefined
+        const refundedQuantity = refundedMap[orderLineId] || 0; // Get the total refunded quantity for this ID
+
+        // Calculate remaining quantity
+        remainingQuantities[orderLineId] = fulfilledQuantity - refundedQuantity;
+    });
+
+    return remainingQuantities;
+};
+
+export const DraftFullfillQuantity = (orderData, grantedRefunds) => {
+    const fulfillmentLines = orderData?.lines || [];
+    console.log('fulfillmentLines: ', fulfillmentLines);
+    const refundedLines = grantedRefunds?.lines || [];
+    const remainingQuantities = {};
+
+    // Create a map to track total refunded quantities for each line ID
+    const refundedMap = {};
+
+    // Sum the quantities of the refunded lines grouped by order line ID
+    refundedLines?.forEach((refundLine) => {
+        const lineId = refundLine.id;
+        const quantity = refundLine.quantity;
+
+        // Only add to the map if the order line ID matches a fulfillment line ID
+        refundedMap[lineId] = (refundedMap[lineId] || 0) + quantity;
+    });
+
+    // Calculate remaining quantities for each fulfillment line
+    fulfillmentLines?.forEach((fulfillmentLine) => {
+        console.log('fulfillmentLine: ', fulfillmentLine);
+        const orderLineId = fulfillmentLine?.id; // Use orderLine ID
+        const fulfilledQuantity = fulfillmentLine?.quantity || 0; // Default to 0 if undefined
+        const refundedQuantity = refundedMap[orderLineId] || 0; // Get the total refunded quantity for this ID
+
+        // Calculate remaining quantity
+        remainingQuantities[orderLineId] = fulfilledQuantity - refundedQuantity;
+    });
+
+    // Handle cases where there are no refunded lines
+    if (refundedLines.length === 0) {
+        fulfillmentLines.forEach((fulfillmentLine) => {
+            const orderLineId = fulfillmentLine?.id;
+            const fulfilledQuantity = fulfillmentLine?.quantity || 0;
+            remainingQuantities[orderLineId] = fulfilledQuantity;
+        });
+    }
+
+    return remainingQuantities;
+};
+
+export const updateOrderLinesWithRefund = (data) => {
+    console.log('data: ', data);
+    const order = data.data.order;
+    console.log('order: ', order);
+
+    // Filter fulfillments with status "REFUNDED"
+    const refundedFulfillments = order?.fulfillments?.filter((f) => f?.status === 'REFUNDED');
+    console.log('refundedFulfillments: ', refundedFulfillments);
+
+    // Loop through order lines and update their quantity based on refunded fulfillment lines
+    order?.lines?.forEach((line) => {
+        refundedFulfillments.forEach((fulfillment) => {
+            console.log('fulfillment: ', fulfillment);
+            fulfillment.lines.forEach((fulfillmentLine) => {
+                console.log('fulfillmentLine: ', fulfillmentLine);
+                if (line.id === fulfillmentLine?.orderLine?.id) {
+                    // Update the line's quantity by subtracting the refunded quantity
+                    line.quantity -= fulfillmentLine?.quantity;
+                }
+            });
+        });
+    });
+
+    return order.lines;
+};
+
+export const formatKeysArray = (arr) => {
+    return arr?.map((obj) => {
+        const formattedObj = {};
+        Object.keys(obj).forEach((key) => {
+            let formattedKey;
+
+            // Check for specific key replacements
+            if (key === 'noOfOrders') {
+                formattedKey = 'Number Of Orders';
+            } else if (key === 'giftwrapAmountList') {
+                formattedKey = 'Gift Wrap Amount';
+            } else if (key === 'codAmountList') {
+                formattedKey = 'COD Amount';
+            } else if (key === 'Dates') {
+                formattedKey = 'Date';
+            } else {
+                // Remove unwanted characters like '--' or non-alphanumeric characters
+                formattedKey = key
+                    .replace(/--/g, '') // Remove double dashes
+                    .replace(/_/g, ' ') // Replace underscores with spaces
+                    .replace(/[^a-zA-Z0-9 ]/g, '') // Remove any other non-alphanumeric characters
+                    .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+                    .replace(/\s+/g, ' ') // Remove extra spaces
+                    .replace(/^./, (str) => str.toUpperCase()); // Capitalize the first letter
+            }
+
+            // Add the formatted key to the new object
+            formattedObj[formattedKey] = obj[key];
+        });
+        return formattedObj;
+    });
 };

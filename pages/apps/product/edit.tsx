@@ -53,6 +53,7 @@ import {
     GET_MEDIA_IMAGE,
     MEDIA_PAGINATION,
     UPDATED_PRODUCT_PAGINATION,
+    NEW_PARENT_CATEGORY_LIST,
 } from '@/query/product';
 import {
     Failure,
@@ -94,6 +95,8 @@ import CommonLoader from '@/pages/elements/commonLoader';
 import Image from 'next/image';
 import IconArrowBackward from '@/components/Icon/IconArrowBackward';
 import IconArrowForward from '@/components/Icon/IconArrowForward';
+import CategorySelect from '@/components/CategorySelect';
+import TagSelect from '@/components/TagSelect';
 
 const ProductEdit = (props: any) => {
     const router = useRouter();
@@ -188,7 +191,7 @@ const ProductEdit = (props: any) => {
     const { refetch: relatedProductsRefetch } = useQuery(RELATED_PRODUCT);
 
     const { data: tagsList } = useQuery(PRODUCT_LIST_TAGS, {
-        variables: { channel: 'india-channel', id: id },
+        variables: { channel: 'india-channel', id: id, first: 100 },
     });
 
     const { refetch: productListRefetch } = useQuery(PRODUCT_LIST_BY_ID);
@@ -232,6 +235,19 @@ const ProductEdit = (props: any) => {
     const { data: parentList, error: parentListError } = useQuery(PARENT_CATEGORY_LIST, {
         variables: { channel: 'india-channel' },
     });
+    const { refetch: categorySearchRefetch } = useQuery(NEW_PARENT_CATEGORY_LIST, {
+        variables: { channel: 'india-channel' },
+    });
+
+    const { refetch: tagRefetch, loading: tagloading } = useQuery(PRODUCT_LIST_TAGS);
+
+    const fetchCategories = async (variables) => {
+        return await categorySearchRefetch(variables);
+    };
+
+    const fetchTag = async (variables) => {
+        return await tagRefetch(variables);
+    };
 
     const [addFormData] = useMutation(CREATE_PRODUCT);
     const [updateProductChannelList, { loading: updateChannelLoad }] = useMutation(UPDATE_PRODUCT_CHANNEL);
@@ -966,7 +982,7 @@ const ProductEdit = (props: any) => {
                 // }
 
                 // Check if any error exists
-                if (Object.values(errors).some((msg) => msg !== '') || variantErrors.some((err) => Object.keys(err).length > 0) ) {
+                if (Object.values(errors).some((msg) => msg !== '') || variantErrors.some((err) => Object.keys(err).length > 0)) {
                     // setCreateLoading(false);
                     Failure('Please fill in all required fields');
                     return; // Exit if any error exists
@@ -1607,34 +1623,6 @@ const ProductEdit = (props: any) => {
     const previewClick = async () => {
         setPreviewLoading(true);
         const savedContent = await editorInstance?.save();
-
-        const styleRes = await styleRefetch({
-            sampleParams,
-        });
-
-        const designRes = await designRefetch({
-            sampleParams,
-        });
-
-        const finishRes = await finishRefetch({
-            sampleParams,
-        });
-
-        const stoneTypeRes = await stoneRefetch({
-            sampleParams,
-        });
-
-        const stoneColorRes = await stoneColorRefetch({
-            sampleParams,
-        });
-
-        const typeRes = await typeRefetch({
-            sampleParams,
-        });
-
-        const sizeRes = await sizeRefetch({
-            sampleParams,
-        });
         let youMayLike = [];
 
         if (selectedCrosssell?.length > 0) {
@@ -1649,22 +1637,25 @@ const ProductEdit = (props: any) => {
                     name: item?.node?.name,
                     image: item?.node?.thumbnail?.url,
                     price: item?.node?.pricing?.priceRange ? item?.node?.pricing?.priceRange?.start?.gross?.amount : 0,
-
-                    // price: item?.node?.pricing?.priceRange?.start?.gross?.amount,
                 }));
             }
         }
 
-        const arr1 = {
-            design: designRes?.data?.productDesigns,
-            style: styleRes?.data?.productStyles,
-            finish: finishRes?.data?.productFinishes,
-            stoneType: stoneTypeRes?.data?.productStoneTypes,
-            stoneColor: stoneColorRes?.data?.stoneColors,
-            type: typeRes?.data?.itemTypes,
-            size: sizeRes?.data?.sizes,
-        };
-        const attributes = getFullDetails(selectedValues, arr1);
+        const att = attributesData
+            .map((attr) => {
+                const selectedValues = selectedAttributes[attr?.attribute?.id] || [];
+                return selectedValues.length > 0
+                    ? {
+                          id: attr?.attribute?.id,
+                          values: selectedValues,
+                          name: attr?.attribute?.name || null,
+                      }
+                    : null;
+            })
+            .filter(Boolean);
+
+        const attributes = att;
+
         const idSet = new Set(selectedCat.map((item) => item.value));
         let parentCat = '';
         let relateProducts = [];
@@ -2476,8 +2467,13 @@ const ProductEdit = (props: any) => {
                                 <h5 className=" block text-lg font-medium text-gray-700">Product Categories</h5>
                             </div>
                             <div className="mb-5">
-                                <Select isMulti value={selectedCat} onChange={(e) => selectCat(e)} options={categoryList} placeholder="Select categories..." className="form-select" />
-
+                                {/* <Select isMulti value={selectedCat} onChange={(e) => selectCat(e)} options={categoryList} placeholder="Select categories..." className="form-select" /> */}
+                                <CategorySelect
+                                    queryFunc={fetchCategories} // Pass the function to fetch categories
+                                    selectedCategory={selectedCat} // Use 'selectedCategory' instead of 'value'
+                                    onCategoryChange={(data) => setselectedCat(data)} // Use 'onCategoryChange' instead of 'onChange'
+                                    placeholder="Select categories"
+                                />
                                 {categoryErrMsg && <p className="error-message mt-1 text-red-500 ">{categoryErrMsg}</p>}
                             </div>
                         </div>
@@ -2487,7 +2483,9 @@ const ProductEdit = (props: any) => {
                                 <h5 className=" block text-lg font-medium text-gray-700">Product Tags</h5>
                             </div>
                             <div className="mb-5">
-                                <Select placeholder="Select an tags" isMulti options={tagList} value={selectedTag} onChange={(data: any) => setSelectedTag(data)} isSearchable={true} />
+                                <TagSelect loading={tagloading} queryFunc={fetchTag} selectedCategory={selectedTag} onCategoryChange={(data) => setSelectedTag(data)} />
+
+                                {/* <Select placeholder="Select an tags" isMulti options={tagList} value={selectedTag} onChange={(data: any) => setSelectedTag(data)} isSearchable={true} /> */}
                             </div>
                         </div>
                     </div>
@@ -3046,7 +3044,7 @@ const ProductEdit = (props: any) => {
                                                         </>
                                                     )}
                                                 </div>
-                                                {productPreview?.attributes && (
+                                                {productPreview?.attributes?.length > 0 && (
                                                     <div
                                                         style={{
                                                             borderBottom: '1px solid #EAEBED',
@@ -3068,49 +3066,20 @@ const ProductEdit = (props: any) => {
                                                             style={{
                                                                 listStyleType: 'none',
                                                                 paddingTop: '10px',
-                                                                gap: 5,
+                                                                // gap: 5,
                                                             }}
                                                         >
-                                                            {Object.keys(productPreview?.attributes).map((key) => {
-                                                                const attribute = productPreview?.attributes[key];
-                                                                // Determine the label based on the attribute key
-                                                                let label;
-                                                                switch (key) {
-                                                                    case 'design':
-                                                                        label = 'Design';
-                                                                        break;
-                                                                    case 'style':
-                                                                        label = 'Style';
-                                                                        break;
-                                                                    case 'finish':
-                                                                        label = 'Finish';
-                                                                        break;
-                                                                    case 'stoneColor':
-                                                                        label = 'Stone Color';
-                                                                        break;
-                                                                    case 'type':
-                                                                        label = 'Type';
-                                                                        break;
-                                                                    case 'size':
-                                                                        label = 'Size';
-                                                                        break;
-                                                                    default:
-                                                                        label = key.charAt(0).toUpperCase() + key.slice(1); // Capitalize key if no specific label
-                                                                        break;
-                                                                }
-
-                                                                return (
-                                                                    <div className="flex flex-wrap gap-2" key={key}>
-                                                                        <span style={{ fontWeight: 'bold' }}>{label} : </span>
-                                                                        {attribute.map((item, index) => (
-                                                                            <span key={item.id} style={{ marginRight: '3px', cursor: 'pointer' }}>
-                                                                                {item.name}
-                                                                                {index < attribute.length - 1 ? ', ' : ''}
-                                                                            </span>
-                                                                        ))}
-                                                                    </div>
-                                                                );
-                                                            })}
+                                                            {productPreview?.attributes?.map((key: any) => (
+                                                                <div className="flex flex-wrap gap-3" key={key?.id}>
+                                                                    <span style={{ fontWeight: 'bold' }}>{key?.name} : </span>
+                                                                    {key?.values?.map((item, index) => (
+                                                                        <span key={item} style={{ marginRight: '1px', cursor: 'pointer' }}>
+                                                                            {item}
+                                                                            {index < key?.values?.length - 1 ? ',' : ''}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            ))}
                                                         </ul>
                                                     </div>
                                                 )}

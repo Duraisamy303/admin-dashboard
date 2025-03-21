@@ -64,8 +64,22 @@ const Category = () => {
         },
         onCompleted: (data) => {
             console.log('data: ', data);
-            setTotalCount(data?.categories?.totalCount);
             commonPagination(data);
+        },
+    });
+
+
+    const {
+       
+    } = useQuery(CATEGORY_LIST, {
+        variables: {
+            channel: 'india-channel',
+            first: PAGE_SIZE,
+            after: null,
+            search:  '',
+        },
+        onCompleted: (data) => {
+            setTotalCount(data?.categories?.totalCount);
         },
     });
 

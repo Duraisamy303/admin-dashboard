@@ -370,6 +370,7 @@ const Finish = () => {
                         />
                     </div>
                 )}
+                
             </div>
 
             {/* CREATE AND EDIT CATEGORY FORM */}
